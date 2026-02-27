@@ -1,0 +1,18 @@
+{
+    "name": "nexstack-workspace",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Enterprise-grade fullstack starter for rapid SaaS development",
+    "scripts": {
+        "dev": "docker compose -f docker-compose.dev.yml up --build",
+        "up": "docker compose -f docker-compose.dev.yml up -d",
+        "down": "docker compose -f docker-compose.dev.yml down",
+        "clean": "docker compose -f docker-compose.dev.yml down -v",
+        "logs": "docker compose -f docker-compose.dev.yml logs -f",
+        "logs:backend": "docker compose -f docker-compose.dev.yml logs -f backend",
+        "db:migrate": "docker compose -f docker-compose.dev.yml exec backend npm run migration:run",
+        "db:seed": "docker compose -f docker-compose.dev.yml exec backend npm run seed",
+        "db:generate": "docker compose -f docker-compose.dev.yml exec backend npm run migration:generate",
+        "bash:backend": "docker compose -f docker-compose.dev.yml exec backend sh"
+    }
+}
