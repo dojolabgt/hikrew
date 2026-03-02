@@ -98,27 +98,28 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
     };
 
     return (
-        <div className="rounded-xl border bg-white dark:bg-zinc-900 divide-y divide-border">
+        <div className="rounded-xl border bg-white dark:bg-zinc-900 overflow-hidden shadow-sm transition-all duration-300 hover:shadow-md">
 
             {/* Section: Logo */}
-            <div className="p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6">
+            <div className="p-6 md:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-6 border-b border-border/50 bg-zinc-50/30 dark:bg-zinc-900/30">
                 <div className="relative group flex-shrink-0">
+                    <div className="absolute -inset-0.5 bg-gradient-to-tr from-primary/30 to-primary/0 rounded-full blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
                     <Avatar
-                        className="h-20 w-20 border-2 border-muted cursor-pointer transition-opacity group-hover:opacity-75"
+                        className="relative h-20 w-20 md:h-24 md:w-24 border-2 border-background shadow-sm cursor-pointer transition-all duration-300 group-hover:scale-[1.02]"
                         onClick={() => fileInputRef.current?.click()}
                     >
                         <AvatarImage src={currentLogo} alt={businessName} className="object-cover" />
-                        <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
+                        <AvatarFallback className="text-2xl md:text-3xl font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
                             {initials}
                         </AvatarFallback>
                     </Avatar>
                     <div
-                        className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-full bg-black/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer"
                         onClick={() => fileInputRef.current?.click()}
                     >
                         {isUploadingLogo
-                            ? <Loader2 className="w-5 h-5 text-white animate-spin" />
-                            : <Camera className="w-5 h-5 text-white" />
+                            ? <Loader2 className="w-6 h-6 text-white animate-spin" />
+                            : <Camera className="w-6 h-6 text-white" />
                         }
                     </div>
                     <input
@@ -130,42 +131,48 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
                     />
                 </div>
                 <div>
-                    <p className="font-medium text-sm">Logo del Negocio</p>
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                        JPG, PNG o WEBP · Máx. 2MB
+                    <h3 className="text-lg font-medium tracking-tight">Identidad Visual</h3>
+                    <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                        Sube el logo de tu negocio. Recomendamos una imagen cuadrada (JPG, PNG o WEBP) de al menos 400x400px, máx. 2MB.
                     </p>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="mt-3"
-                        disabled={isUploadingLogo}
-                        onClick={() => fileInputRef.current?.click()}
-                    >
-                        {isUploadingLogo
-                            ? <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Subiendo...</>
-                            : 'Cambiar logo'
-                        }
-                    </Button>
+                    <div className="mt-4 flex items-center gap-3">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            disabled={isUploadingLogo}
+                            onClick={() => fileInputRef.current?.click()}
+                            className="bg-white/50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 border shadow-sm transition-all active:scale-95"
+                        >
+                            {isUploadingLogo
+                                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Subiendo...</>
+                                : <><Camera className="mr-2 h-4 w-4" /> Cambiar logo</>
+                            }
+                        </Button>
+                    </div>
                 </div>
             </div>
 
             {/* Section: Form Fields */}
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)}>
-                    <div className="p-6 space-y-5">
+                    <div className="p-6 md:p-8 space-y-8">
                         <FormField
                             control={form.control}
                             name="businessName"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Nombre Comercial</FormLabel>
+                                    <FormLabel className="text-base">Nombre Comercial</FormLabel>
                                     <FormControl>
                                         <Input
                                             placeholder="Ej. Agencia Creativa Blend"
+                                            className="max-w-md transition-shadow focus-visible:ring-primary/20 focus-visible:border-primary"
                                             {...field}
                                         />
                                     </FormControl>
+                                    <FormDescription>
+                                        Este nombre aparecerá en tus cotizaciones y portales de pago.
+                                    </FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -176,19 +183,28 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
                             name="brandColor"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Color de Marca</FormLabel>
+                                    <FormLabel className="text-base">Color de Marca</FormLabel>
                                     <FormControl>
-                                        <div className="flex items-center gap-3 max-w-xs">
-                                            <div className="relative overflow-hidden rounded-md border flex-shrink-0 w-9 h-9">
-                                                <Input
+                                        <div className="flex items-center gap-3 max-w-md">
+                                            <div
+                                                className="relative overflow-hidden rounded-lg border shadow-sm flex-shrink-0 w-11 h-11 transition-transform duration-200 hover:scale-[1.05] cursor-pointer"
+                                                style={{ backgroundColor: field.value || '#000000' }}
+                                                onClick={() => {
+                                                    const input = document.getElementById('brand-color-input');
+                                                    if (input) input.click();
+                                                }}
+                                            >
+                                                <input
+                                                    id="brand-color-input"
                                                     type="color"
-                                                    className="absolute -top-2 -left-2 w-14 h-14 cursor-pointer border-0 p-0"
+                                                    className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
                                                     {...field}
                                                     value={field.value || '#000000'}
                                                 />
                                             </div>
                                             <Input
                                                 placeholder="#000000"
+                                                className="font-mono uppercase transition-shadow focus-visible:ring-primary/20 focus-visible:border-primary"
                                                 {...field}
                                                 onChange={(e) => {
                                                     const val = e.target.value;
@@ -198,7 +214,7 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
                                         </div>
                                     </FormControl>
                                     <FormDescription>
-                                        Se usará en acentos visuales y botones de pago.
+                                        Define el color principal de tus botones y enlaces.
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>
@@ -206,11 +222,16 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
                         />
                     </div>
 
-                    <Separator />
-
-                    <div className="px-6 py-4 flex justify-end bg-zinc-50/50 dark:bg-zinc-900/50 rounded-b-xl">
-                        <Button type="submit" disabled={isLoading} size="sm">
-                            {isLoading && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                    <div className="px-6 py-5 md:px-8 flex justify-end bg-zinc-50/50 dark:bg-zinc-900/30 border-t items-center gap-4">
+                        <p className="text-sm text-muted-foreground mr-auto opacity-70">
+                            Los cambios se guardan automáticamente.
+                        </p>
+                        <Button
+                            type="submit"
+                            disabled={isLoading}
+                            className="transition-all hover:shadow-md active:scale-[0.98]"
+                        >
+                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {isLoading ? 'Guardando...' : 'Guardar cambios'}
                         </Button>
                     </div>

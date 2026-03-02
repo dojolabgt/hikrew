@@ -48,51 +48,54 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Cards */}
-                <div className="max-w-2xl space-y-3">
-                    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
-                        Pagos
+                <div className="max-w-4xl">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-primary/40 block"></span>
+                        Opciones Disponibles
                     </p>
 
-                    {isLoading ? (
-                        <>
-                            <Skeleton className="h-24 w-full rounded-xl" />
-                            <Skeleton className="h-24 w-full rounded-xl" />
-                        </>
-                    ) : (
-                        <>
-                            <IntegrationCard
-                                logo={
-                                    <Image
-                                        src={recurrenteLogoSrc}
-                                        alt="Recurrente"
-                                        width={40}
-                                        height={40}
-                                        className="object-contain dark:invert"
-                                    />
-                                }
-                                name="Recurrente"
-                                description="Procesador de pagos en Guatemala y El Salvador. Acepta tarjetas, transferencias y links de pago."
-                                isConfigured={isConfigured ?? false}
-                                onConfigure={() => setSheetOpen(true)}
-                            />
-                            <IntegrationCard
-                                logo={
-                                    <Image
-                                        src="/integrations/drive-logo.png"
-                                        alt="Google Drive"
-                                        width={40}
-                                        height={40}
-                                        className="object-contain"
-                                    />
-                                }
-                                name="Google Drive"
-                                description="Guarda y organiza tus archivos de proyecto directamente en tu Google Drive."
-                                isConfigured={false}
-                                onConfigure={() => { }}
-                                comingSoon
-                            />
-                        </>
-                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {isLoading ? (
+                            <>
+                                <Skeleton className="h-[180px] w-full rounded-2xl" />
+                                <Skeleton className="h-[180px] w-full rounded-2xl" />
+                            </>
+                        ) : (
+                            <>
+                                <IntegrationCard
+                                    logo={
+                                        <Image
+                                            src={recurrenteLogoSrc}
+                                            alt="Recurrente"
+                                            width={44}
+                                            height={44}
+                                            className="object-contain dark:invert"
+                                        />
+                                    }
+                                    name="Recurrente"
+                                    description="Procesador de pagos en Guatemala y El Salvador. Acepta tarjetas, transferencias y links de pago."
+                                    isConfigured={isConfigured ?? false}
+                                    onConfigure={() => setSheetOpen(true)}
+                                />
+                                <IntegrationCard
+                                    logo={
+                                        <Image
+                                            src="/integrations/drive-logo.png"
+                                            alt="Google Drive"
+                                            width={44}
+                                            height={44}
+                                            className="object-contain"
+                                        />
+                                    }
+                                    name="Google Drive"
+                                    description="Guarda y organiza tus archivos de proyecto directamente en tu Google Drive de forma automática."
+                                    isConfigured={false}
+                                    onConfigure={() => { }}
+                                    comingSoon
+                                />
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
 

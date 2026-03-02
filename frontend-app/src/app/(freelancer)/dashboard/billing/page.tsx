@@ -111,8 +111,12 @@ export default function BillingPage() {
             <div className="space-y-8">
 
                 {/* --- 1. CURRENT PLAN CARD --- */}
-                <div className="rounded-xl border bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
-                    <div className="p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="rounded-2xl border bg-gradient-to-br from-zinc-50 to-white dark:from-zinc-900 dark:to-zinc-900/50 overflow-hidden shadow-sm relative">
+                    {/* Decorative Background Icon */}
+                    <div className="absolute -top-10 -right-10 opacity-[0.03] dark:opacity-[0.02] pointer-events-none">
+                        <Sparkles className="w-64 h-64" />
+                    </div>
+                    <div className="p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
                         {isLoading ? (
                             <div className="space-y-3 w-full">
                                 <Skeleton className="h-5 w-24" />
@@ -122,36 +126,37 @@ export default function BillingPage() {
                         ) : (
                             <>
                                 <div>
-                                    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+                                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-primary/40 block"></span>
                                         Plan actual
                                     </p>
                                     <div className="flex items-center gap-3 mb-2">
-                                        <span className="text-3xl font-bold tracking-tight capitalize">
+                                        <span className="text-3xl font-extrabold tracking-tight capitalize text-zinc-900 dark:text-zinc-100">
                                             Blend {planKey}
                                         </span>
                                         {planKey === 'premium' ? (
-                                            <Badge className="bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-400 py-1 px-2.5">
+                                            <Badge className="bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20 py-1 px-3 shadow-sm rounded-full">
                                                 <Sparkles className="w-3.5 h-3.5 mr-1.5" /> Premium
                                             </Badge>
                                         ) : planKey === 'pro' ? (
-                                            <Badge className="bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/40 dark:text-violet-400 py-1 px-2.5">
+                                            <Badge className="bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/20 py-1 px-3 shadow-sm rounded-full">
                                                 <Sparkles className="w-3.5 h-3.5 mr-1.5" /> Pro
                                             </Badge>
                                         ) : (
-                                            <Badge className="bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 py-1 px-2.5">
+                                            <Badge className="bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700 py-1 px-3 shadow-sm rounded-full">
                                                 Free
                                             </Badge>
                                         )}
                                     </div>
 
                                     {isProOrPremium && status?.planExpiresAt ? (
-                                        <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                                            <Clock className="w-4 h-4" />
-                                            Tu ciclo actual termina el {formatDate(status.planExpiresAt)}
+                                        <p className="text-sm font-medium text-muted-foreground flex items-center gap-1.5 mt-3">
+                                            <Clock className="w-4 h-4 opacity-70" />
+                                            Tu ciclo actual termina el <span className="text-foreground">{formatDate(status.planExpiresAt)}</span>
                                         </p>
                                     ) : (
-                                        <p className="text-sm text-muted-foreground mt-2">
-                                            Estás en el plan gratuito. Tienes límites en cotizaciones y clientes.
+                                        <p className="text-sm text-muted-foreground mt-2 max-w-lg leading-relaxed">
+                                            Estás en el plan gratuito. Tienes límites en cotizaciones y clientes. Mejora tu plan para automatizar tu negocio financiero.
                                         </p>
                                     )}
                                 </div>
@@ -159,10 +164,10 @@ export default function BillingPage() {
                                 {isProOrPremium && (
                                     <div className="flex-shrink-0">
                                         <Button
-                                            variant="destructive"
+                                            variant="outline"
                                             onClick={handleCancel}
                                             disabled={isCancelling}
-                                            className="w-full md:w-auto"
+                                            className="w-full md:w-auto text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30 border-red-200 dark:border-red-900/30 transition-colors"
                                         >
                                             {isCancelling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                             Cancelar suscripción
@@ -184,63 +189,56 @@ export default function BillingPage() {
                             </div>
 
                             {/* Toggle Mensual/Anual */}
-                            <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-800/50 p-1.5 rounded-full border self-start md:self-end">
-                                <Label
-                                    htmlFor="billing-toggle"
-                                    className={`cursor-pointer px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${!isYearly ? 'bg-white dark:bg-zinc-700 shadow-sm' : 'text-muted-foreground'}`}
+                            <div className="flex items-center bg-zinc-100/80 dark:bg-zinc-800/50 p-1 rounded-full border shadow-inner self-start md:self-end">
+                                <button
+                                    onClick={() => setIsYearly(false)}
+                                    className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-300 ${!isYearly ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-muted-foreground hover:text-zinc-700 dark:hover:text-zinc-300'}`}
                                 >
                                     Mensual
-                                </Label>
-                                <Switch
-                                    id="billing-toggle"
-                                    checked={isYearly}
-                                    onCheckedChange={setIsYearly}
-                                    className="data-[state=checked]:bg-amber-500"
-                                />
-                                <Label
-                                    htmlFor="billing-toggle"
-                                    className={`cursor-pointer px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 ${isYearly ? 'bg-white dark:bg-zinc-700 shadow-sm' : 'text-muted-foreground'}`}
+                                </button>
+                                <button
+                                    onClick={() => setIsYearly(true)}
+                                    className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${isYearly ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-muted-foreground hover:text-zinc-700 dark:hover:text-zinc-300'}`}
                                 >
                                     Anual
-                                    <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-100 dark:bg-emerald-900/40 px-1.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                                    <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-100 dark:bg-emerald-500/20 px-1.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20">
                                         -16%
                                     </span>
-                                </Label>
+                                </button>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                             {/* FREE PLAN */}
-                            <div className="rounded-xl border bg-white dark:bg-zinc-900/40 overflow-hidden shadow-sm flex flex-col relative transition-all">
-                                <div className="p-5 flex flex-col flex-grow">
-                                    <div className="mb-4">
-                                        <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 mb-1">Free</h3>
-                                        <p className="text-sm text-muted-foreground min-h-[40px]">
+                            <div className="rounded-2xl border bg-white dark:bg-zinc-900/60 overflow-hidden shadow-sm flex flex-col relative transition-all duration-300 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 hover:-translate-y-1">
+                                <div className="p-6 md:p-8 flex flex-col flex-grow">
+                                    <div className="mb-6">
+                                        <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">Free</h3>
+                                        <p className="text-sm text-muted-foreground min-h-[40px] leading-relaxed">
                                             Para empezar a usar Blend y probar la plataforma.
                                         </p>
                                     </div>
-                                    
-                                    <div className="mb-5 space-y-1">
+
+                                    <div className="mb-6 space-y-1">
                                         <div className="flex items-end gap-1">
-                                            <span className="text-3xl font-extrabold tracking-tight text-foreground">
+                                            <span className="text-4xl font-extrabold tracking-tight text-foreground">
                                                 $0
                                             </span>
-                                            <span className="text-sm font-medium text-muted-foreground mb-1">/ mes</span>
                                         </div>
-                                        <p className="text-xs text-muted-foreground h-4 mt-1">
+                                        <p className="text-sm font-medium text-muted-foreground h-5 mt-1">
                                             Gratis para siempre
                                         </p>
                                     </div>
 
-                                    <ul className="space-y-3 mb-6 flex-grow">
+                                    <ul className="space-y-4 mb-8 flex-grow">
                                         {[
                                             'Hasta 5 clientes',
                                             'Hasta 5 cotizaciones/mes',
                                             'Soporte comunitario',
                                         ].map((feat) => (
-                                            <li key={feat} className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                                                <CheckCircle2 className="w-4 h-4 text-zinc-400 flex-shrink-0 mt-0.5" />
-                                                <span>{feat}</span>
+                                            <li key={feat} className="flex items-start gap-3 text-sm text-muted-foreground">
+                                                <CheckCircle2 className="w-5 h-5 text-zinc-400 flex-shrink-0" />
+                                                <span className="pt-0.5">{feat}</span>
                                             </li>
                                         ))}
                                     </ul>
@@ -248,7 +246,7 @@ export default function BillingPage() {
                                     <div className="mt-auto">
                                         <Button
                                             variant="outline"
-                                            className="w-full text-zinc-700 bg-zinc-50 border-zinc-200 hover:bg-zinc-100 dark:text-zinc-300 dark:bg-zinc-800/50 dark:border-zinc-800 dark:hover:bg-zinc-800"
+                                            className="w-full h-11 text-zinc-700 bg-zinc-50 border-zinc-200 hover:bg-zinc-100 dark:text-zinc-300 dark:bg-zinc-800/50 dark:border-zinc-800 dark:hover:bg-zinc-800 rounded-xl"
                                             disabled={true}
                                         >
                                             Tu plan actual
@@ -258,25 +256,28 @@ export default function BillingPage() {
                             </div>
 
                             {/* PRO PLAN */}
-                            <div className="rounded-xl border border-violet-200 dark:border-violet-900/50 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm flex flex-col relative transition-all">
-                                <div className="p-5 flex flex-col flex-grow">
-                                    <div className="mb-4">
-                                        <h3 className="text-lg font-bold text-violet-600 dark:text-violet-400 mb-1">Pro</h3>
-                                        <p className="text-sm text-muted-foreground min-h-[40px]">
-                                            Ideal para freelancers buscando automatizar cobros.
+                            <div className="rounded-2xl border border-violet-200 dark:border-violet-500/30 bg-gradient-to-b from-white to-violet-50/30 dark:from-zinc-900 dark:to-violet-950/20 overflow-hidden shadow-md flex flex-col relative transition-all duration-300 hover:shadow-xl hover:border-violet-400 dark:hover:border-violet-500/60 hover:-translate-y-1 group">
+                                {/* Subtle animated glow on hover */}
+                                <div className="absolute inset-0 bg-gradient-to-r from-violet-500/0 via-violet-500/5 to-violet-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 -translate-x-full group-hover:translate-x-full ease-linear"></div>
+
+                                <div className="p-6 md:p-8 flex flex-col flex-grow relative z-10">
+                                    <div className="mb-6">
+                                        <h3 className="text-xl font-bold text-violet-600 dark:text-violet-400 mb-2">Pro</h3>
+                                        <p className="text-sm text-muted-foreground min-h-[40px] leading-relaxed">
+                                            Ideal para freelancers buscando automatizar cobros de forma profesional.
                                         </p>
                                     </div>
-                                    
-                                    <div className="mb-5 space-y-1">
+
+                                    <div className="mb-6 space-y-1">
                                         {status?.prices ? (
                                             <>
                                                 <div className="flex items-end gap-1">
-                                                    <span className="text-3xl font-extrabold tracking-tight">
+                                                    <span className="text-4xl font-extrabold tracking-tight text-foreground">
                                                         {isYearly ? formatPrice(status.prices.yearly / 12) : formatPrice(status.prices.monthly)}
                                                     </span>
-                                                    <span className="text-sm font-medium text-muted-foreground mb-1">/ mes</span>
+                                                    <span className="text-sm font-medium text-muted-foreground mb-1.5">/ mes</span>
                                                 </div>
-                                                <p className="text-xs text-muted-foreground h-4 mt-1">
+                                                <p className="text-sm font-medium text-violet-600/80 dark:text-violet-400/80 h-5 mt-1">
                                                     {isYearly ? `Facturado anualmente (${formatPrice(status.prices.yearly)})` : 'Facturado mes a mes'}
                                                 </p>
                                             </>
@@ -285,23 +286,23 @@ export default function BillingPage() {
                                         )}
                                     </div>
 
-                                    <ul className="space-y-3 mb-6 flex-grow">
+                                    <ul className="space-y-4 mb-8 flex-grow">
                                         {[
                                             'Clientes ilimitados',
                                             'Cotizaciones ilimitadas',
-                                            'Pagos automatizados recurrentes',
-                                            'Recordatorios por correo',
+                                            'Pagos automatizados',
+                                            'Recordatorios de pago',
                                         ].map((feat) => (
-                                            <li key={feat} className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                                                <CheckCircle2 className="w-4 h-4 text-violet-500 flex-shrink-0 mt-0.5" />
-                                                <span>{feat}</span>
+                                            <li key={feat} className="flex items-start gap-3 text-sm text-muted-foreground">
+                                                <CheckCircle2 className="w-5 h-5 text-violet-500 flex-shrink-0" />
+                                                <span className="pt-0.5">{feat}</span>
                                             </li>
                                         ))}
                                     </ul>
 
                                     <div className="mt-auto">
                                         <Button
-                                            className="w-full bg-violet-600 hover:bg-violet-700 text-white font-medium"
+                                            className="w-full h-11 bg-violet-600 hover:bg-violet-700 text-white font-medium rounded-xl shadow-sm transition-all active:scale-[0.98]"
                                             onClick={() => handleSubscribe('pro', isYearly ? 'year' : 'month')}
                                             disabled={isSubscribing}
                                         >
@@ -313,32 +314,32 @@ export default function BillingPage() {
                             </div>
 
                             {/* PREMIUM PLAN */}
-                            <div className="rounded-xl border border-amber-200 dark:border-amber-900/50 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm flex flex-col relative transition-all">
+                            <div className="rounded-2xl border border-amber-300 dark:border-amber-500/40 bg-gradient-to-br from-white via-amber-50/50 to-amber-100/50 dark:from-zinc-900 dark:via-zinc-900 dark:to-amber-950/20 overflow-hidden shadow-lg flex flex-col relative transition-all duration-300 hover:shadow-xl hover:border-amber-400 dark:hover:border-amber-500/70 hover:-translate-y-1 ring-1 ring-amber-500/20 dark:ring-amber-500/10">
                                 {/* Badge overlay */}
-                                <div className="absolute top-0 inset-x-0 bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wider py-1 text-center border-b border-amber-200 dark:border-amber-900/50">
+                                <div className="absolute top-0 inset-x-0 bg-amber-400/20 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 text-[11px] font-bold uppercase tracking-widest py-1.5 text-center border-b border-amber-200 dark:border-amber-500/20 backdrop-blur-sm">
                                     Mejor Valor
                                 </div>
 
-                                <div className="p-5 pt-8 flex flex-col flex-grow">
-                                    <div className="mb-4">
-                                        <h3 className="text-lg font-bold flex items-center gap-1.5 text-amber-600 dark:text-amber-400 mb-1">
-                                            Premium <Sparkles className="w-4 h-4" />
+                                <div className="p-6 md:p-8 pt-10 flex flex-col flex-grow relative z-10">
+                                    <div className="mb-6">
+                                        <h3 className="text-xl font-bold flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-2">
+                                            Premium <Sparkles className="w-5 h-5" />
                                         </h3>
-                                        <p className="text-sm text-muted-foreground min-h-[40px]">
-                                            Para equipos pequeños. Todo ilimitado y personalizado.
+                                        <p className="text-sm text-muted-foreground min-h-[40px] leading-relaxed">
+                                            Para equipos o agencias. Todo ilimitado y experiencia personalizada.
                                         </p>
                                     </div>
-                                    
-                                    <div className="mb-5 space-y-1">
+
+                                    <div className="mb-6 space-y-1">
                                         {status?.prices ? (
                                             <>
                                                 <div className="flex items-end gap-1">
-                                                    <span className="text-3xl font-extrabold tracking-tight text-foreground">
+                                                    <span className="text-4xl font-extrabold tracking-tight text-foreground">
                                                         {isYearly ? formatPrice(status.prices.yearly / 12) : formatPrice(status.prices.monthly)}
                                                     </span>
-                                                    <span className="text-sm font-medium text-muted-foreground mb-1">/ mes</span>
+                                                    <span className="text-sm font-medium text-muted-foreground mb-1.5">/ mes</span>
                                                 </div>
-                                                <p className="text-xs text-muted-foreground h-4 mt-1">
+                                                <p className="text-sm font-medium text-amber-600/80 dark:text-amber-400/80 h-5 mt-1">
                                                     {isYearly ? `Facturado anualmente (${formatPrice(status.prices.yearly)})` : 'Facturado mes a mes'}
                                                 </p>
                                             </>
@@ -347,23 +348,23 @@ export default function BillingPage() {
                                         )}
                                     </div>
 
-                                    <ul className="space-y-3 mb-6 flex-grow">
+                                    <ul className="space-y-4 mb-8 flex-grow">
                                         {[
-                                            'Todo en Pro',
-                                            'Múltiples usuarios de equipo',
+                                            'Todo en el plan Pro',
+                                            'Múltiples usuarios',
                                             'Soporte directo por WhatsApp',
-                                            'Checkouts con logo',
+                                            'Checkouts con tu logo',
                                         ].map((feat, i) => (
-                                            <li key={feat} className={`flex items-start gap-2.5 text-sm ${i === 0 ? 'font-medium text-foreground mb-1' : 'text-muted-foreground'}`}>
-                                                <CheckCircle2 className={`w-4 h-4 flex-shrink-0 mt-0.5 ${i === 0 ? 'text-amber-500' : 'text-amber-400/80'}`} />
-                                                <span>{feat}</span>
+                                            <li key={feat} className={`flex items-start gap-3 text-sm ${i === 0 ? 'font-semibold text-foreground mb-2' : 'text-muted-foreground'}`}>
+                                                <CheckCircle2 className={`w-5 h-5 flex-shrink-0 ${i === 0 ? 'text-amber-500' : 'text-amber-400/80'}`} />
+                                                <span className="pt-0.5">{feat}</span>
                                             </li>
                                         ))}
                                     </ul>
 
                                     <div className="mt-auto">
                                         <Button
-                                            className="w-full bg-amber-500 hover:bg-amber-600 text-white font-medium"
+                                            className="w-full h-11 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-xl shadow-sm transition-all active:scale-[0.98]"
                                             onClick={() => handleSubscribe('premium', isYearly ? 'year' : 'month')}
                                             disabled={isSubscribing}
                                         >
