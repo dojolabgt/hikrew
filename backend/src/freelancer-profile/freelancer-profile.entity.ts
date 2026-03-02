@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import { User } from '../users/user.entity';
 
-export type FreelancerPlan = 'free' | 'pro';
+export type FreelancerPlan = 'free' | 'pro' | 'premium';
 
 @Entity('freelancer_profiles')
 export class FreelancerProfile {

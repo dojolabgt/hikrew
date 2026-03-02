@@ -13,6 +13,7 @@ import { SettingsModule } from './core/settings/settings.module';
 import { MailModule } from './core/mail/mail.module';
 import { EncryptionModule } from './common/encryption/encryption.module';
 import { TokenModule } from './common/token/token.module';
+import { BillingModule } from './billing/billing.module';
 import { FreelancerProfileModule } from './freelancer-profile/freelancer-profile.module';
 
 @Module({
@@ -84,6 +85,7 @@ import { FreelancerProfileModule } from './freelancer-profile/freelancer-profile
     EncryptionModule,
     TokenModule,
     FreelancerProfileModule,
+    BillingModule,
   ],
   controllers: [AppController],
   providers: [

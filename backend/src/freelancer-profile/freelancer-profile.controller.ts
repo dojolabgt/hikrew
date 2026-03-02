@@ -2,11 +2,15 @@ import {
     Controller,
     Get,
     Patch,
+    Post,
     Body,
     UseGuards,
     Req,
     HttpCode,
     HttpStatus,
+    UseInterceptors,
+    UploadedFile,
+    BadRequestException,
 } from '@nestjs/common';
 import { FreelancerProfileService } from './freelancer-profile.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -16,6 +20,9 @@ import { UserRole } from '../auth/constants/roles';
 import { UpdateFreelancerProfileDto } from './dto/update-profile.dto';
 import { UpdateRecurrenteKeysDto } from './dto/update-recurrente-keys.dto';
 import type { RequestWithUser } from '../auth/interfaces/request-with-user.interface';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { imageFileFilter } from '../storage/validators/image-file.validator';
+import { storageConfig } from '../storage/storage.config';
 
 @Controller('me')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -48,5 +55,23 @@ export class FreelancerProfileController {
     @Get('recurrente-status')
     getRecurrenteStatus(@Req() req: RequestWithUser) {
         return this.profileService.getRecurrenteStatus(req.user!.id);
+    }
+
+    @Post('profile/logo')
+    @UseInterceptors(
+        FileInterceptor('file', {
+            fileFilter: imageFileFilter,
+            limits: { fileSize: storageConfig.maxFileSize },
+        }),
+    )
+    async uploadLogo(
+        @Req() req: RequestWithUser,
+        @UploadedFile() file: Express.Multer.File,
+    ) {
+        if (!file) {
+            throw new BadRequestException('No se proporcionó ningún archivo de imagen para el logo');
+        }
+
+        return this.profileService.uploadLogo(req.user!.id, file);
     }
 }

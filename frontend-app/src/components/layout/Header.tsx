@@ -1,0 +1,74 @@
+'use client';
+
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { LogOut, User as UserIcon, Settings } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
+export function TopHeader() {
+    const { user, freelancerProfile, logout } = useAuth();
+    const router = useRouter();
+
+    if (!user) return null;
+
+    const initials = user.firstName?.[0] || user.email[0];
+    const fullName = user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : (user.firstName || 'Usuario');
+    const displayLogo = freelancerProfile?.logo;
+
+    return (
+        <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-end px-6 bg-[#FDFDFD] dark:bg-[#0A0A0A] border-b border-zinc-100 dark:border-zinc-800/80">
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-2 outline-none rounded-full hover:ring-2 hover:ring-zinc-100 dark:hover:ring-zinc-800 transition-all p-1">
+                        <Avatar className="h-9 w-9 border border-zinc-300 dark:border-zinc-700">
+                            <AvatarImage src={displayLogo} alt={fullName} className="object-cover" />
+                            <AvatarFallback className="bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-bold uppercase">
+                                {initials}
+                            </AvatarFallback>
+                        </Avatar>
+                    </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                        <div className="flex flex-col space-y-1">
+                            <p className="text-sm font-medium leading-none">{fullName}</p>
+                            <p className="text-xs leading-none text-muted-foreground">
+                                {user.email}
+                            </p>
+                        </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
+                        <DropdownMenuItem onClick={() => router.push('/dashboard/profile')}>
+                            <UserIcon className="mr-2 h-4 w-4" />
+                            <span>Mi Perfil</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
+                            <Settings className="mr-2 h-4 w-4" />
+                            <span>Integraciones</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                        onClick={logout}
+                        className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30"
+                    >
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>Cerrar Sesión</span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </header>
+    );
+}

@@ -10,6 +10,8 @@ import { EncryptionService } from '../common/encryption/encryption.service';
 import { UpdateFreelancerProfileDto } from './dto/update-profile.dto';
 import { UpdateRecurrenteKeysDto } from './dto/update-recurrente-keys.dto';
 
+import { StorageService } from '../storage/storage.service';
+
 @Injectable()
 export class FreelancerProfileService {
     private readonly logger = new Logger(FreelancerProfileService.name);
@@ -18,6 +20,7 @@ export class FreelancerProfileService {
         @InjectRepository(FreelancerProfile)
         private readonly profileRepository: Repository<FreelancerProfile>,
         private readonly encryptionService: EncryptionService,
+        private readonly storageService: StorageService,
     ) { }
 
     /**
@@ -119,5 +122,25 @@ export class FreelancerProfileService {
             publicKey: this.encryptionService.decrypt(profile.recurrentePublicKey),
             privateKey: this.encryptionService.decrypt(profile.recurrentePrivateKey),
         };
+    }
+
+    /**
+     * Uploads a logo image via StorageService and updates the freelancer profile.
+     */
+    async uploadLogo(
+        userId: string,
+        file: Express.Multer.File,
+    ): Promise<FreelancerProfile> {
+        const profile = await this.findByUserId(userId);
+
+        const uploadResult = await this.storageService.upload(
+            file,
+            'brand-logos',
+        );
+
+        profile.logo = uploadResult.url;
+        this.logger.log(`Logo uploaded for userId: ${userId} at ${profile.logo}`);
+
+        return this.profileRepository.save(profile);
     }
 }

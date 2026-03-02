@@ -1,11 +1,14 @@
 'use client';
 
-import { createContext, useCallback, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { UserRole } from '@/types';
 import type { User } from '@/types';
 import type { AuthContextType, LoginCredentials, RegisterCredentials } from '../types/auth.types';
+
+import { freelancerProfileApi } from '@/features/freelancer-profile/api';
+import type { FreelancerProfile } from '@/features/freelancer-profile/types';
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -29,6 +32,7 @@ function getDashboardRoute(role: UserRole): string {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
+    const [freelancerProfile, setFreelancerProfile] = useState<FreelancerProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -37,9 +41,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setIsLoading(true);
             const response = await api.get<User>('/auth/me');
             setUser(response.data);
+
+            if (response.data.role === UserRole.FREELANCER) {
+                try {
+                    const profileData = await freelancerProfileApi.getProfile();
+                    setFreelancerProfile(profileData);
+                } catch (profileError) {
+                    console.error('Error fetching freelancer profile in AuthContext:', profileError);
+                }
+            }
+
             setError(null);
         } catch (err) {
             setUser(null);
+            setFreelancerProfile(null);
             // Don't set error state on initial load, it just means they aren't logged in
         } finally {
             setIsLoading(false);
@@ -55,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const handleForceLogout = () => {
             setUser(null);
+            setFreelancerProfile(null);
             router.push('/login');
         };
         window.addEventListener('auth-logout', handleForceLogout);
@@ -67,6 +83,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setError(null);
             const response = await api.post<{ user: User }>('/auth/login', credentials);
             setUser(response.data.user);
+
+            if (response.data.user.role === UserRole.FREELANCER) {
+                try {
+                    const profileData = await freelancerProfileApi.getProfile();
+                    setFreelancerProfile(profileData);
+                } catch (profileError) {
+                    console.error('Error fetching freelancer profile in AuthContext:', profileError);
+                }
+            }
 
             // Redirect based on the unified UserRole Enum mapping
             router.push(getDashboardRoute(response.data.user.role));
@@ -84,6 +109,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setError(null);
             const response = await api.post<{ user: User }>('/auth/register', credentials);
             setUser(response.data.user);
+
+            // Fetch profile right after register if FREELANCER
+            if (response.data.user.role === UserRole.FREELANCER) {
+                try {
+                    const profileData = await freelancerProfileApi.getProfile();
+                    setFreelancerProfile(profileData);
+                } catch (profileError) {
+                    console.error('Error fetching freelancer profile in AuthContext:', profileError);
+                }
+            }
 
             // Redirect based on role
             router.push(getDashboardRoute(response.data.user.role));
@@ -103,6 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.error('Logout failed:', err);
         } finally {
             setUser(null);
+            setFreelancerProfile(null);
             router.push('/login');
             setIsLoading(false);
         }
@@ -114,6 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         <AuthContext.Provider
             value={{
                 user,
+                freelancerProfile,
                 isLoading,
                 error,
                 login,

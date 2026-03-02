@@ -1,14 +1,15 @@
 'use client';
 
+import { TopHeader } from './Header';
+
 /**
  * DashboardShell wraps the main content area for the internal dashboard views.
  * It provides the off-white background and comfortable padding as requested.
  */
 export function DashboardShell({ children }: { children: React.ReactNode }) {
     return (
-        <div className="min-h-screen bg-[#FDFDFD] dark:bg-[#0A0A0A] text-zinc-900 dark:text-zinc-100 w-full overflow-y-auto">
-            {/* Extremely spacious layout wrapper */}
-            <div className="max-w-[1600px] mx-auto w-full p-6 sm:p-8 md:p-12 lg:p-16">
+        <div className="bg-[#FDFDFD] dark:bg-[#0A0A0A] text-zinc-900 dark:text-zinc-100 w-full min-h-full flex flex-col">
+            <div className="flex-1 w-full px-6 py-6">
                 {children}
             </div>
         </div>

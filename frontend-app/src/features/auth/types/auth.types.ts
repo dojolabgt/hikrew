@@ -1,4 +1,5 @@
 import { User } from '@/types';
+import { FreelancerProfile } from '@/features/freelancer-profile/types';
 
 export interface LoginCredentials {
     email: string;
@@ -16,6 +17,7 @@ export interface RegisterCredentials {
 
 export interface AuthState {
     user: User | null;
+    freelancerProfile: FreelancerProfile | null;
     isLoading: boolean;
     error: string | null;
 }
