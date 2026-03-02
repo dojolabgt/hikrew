@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { freelancerProfileApi } from '@/features/freelancer-profile/api';
+import { workspacesApi } from '@/features/workspaces/api';
 import { RecurrenteForm } from '../profile/_components/RecurrenteForm';
 import { IntegrationCard } from './_components/IntegrationCard';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,7 +25,7 @@ export default function SettingsPage() {
     useEffect(() => {
         async function loadData() {
             try {
-                const statusData = await freelancerProfileApi.getRecurrenteStatus();
+                const statusData = await workspacesApi.getRecurrenteStatus();
                 setIsConfigured(statusData.configured);
             } catch (error) {
                 console.error('Error loading recurrente status', error);

@@ -5,11 +5,13 @@ import { BillingService } from './billing.service';
 import { BillingController } from './billing.controller';
 import { BillingWebhookController } from './billing-webhook.controller';
 import { RecurrenteBlendService } from './recurrente-blend.service';
-import { FreelancerProfile } from '../freelancer-profile/freelancer-profile.entity';
+import { Workspace } from '../workspaces/workspace.entity';
+import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([BillingSubscription, FreelancerProfile]),
+        TypeOrmModule.forFeature([BillingSubscription, Workspace]),
+        WorkspacesModule,
     ],
     providers: [BillingService, RecurrenteBlendService],
     controllers: [BillingController, BillingWebhookController],

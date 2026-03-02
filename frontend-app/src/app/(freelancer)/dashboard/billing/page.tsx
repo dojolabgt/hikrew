@@ -79,7 +79,7 @@ export default function BillingPage() {
     };
 
     const handleCancel = async () => {
-        if (!confirm('¿Estás seguro? Tu acceso Pro terminará al final del período actual.')) return;
+        if (!window.confirm('¿Estás seguro? Tu acceso terminará al final del período actual.')) return;
         setIsCancelling(true);
         try {
             await billingApi.cancel();
@@ -97,6 +97,38 @@ export default function BillingPage() {
 
     const planKey = status?.plan || 'free';
     const isProOrPremium = planKey === 'pro' || planKey === 'premium';
+    const activeSubStatus = status?.subscription?.status;
+    const isPendingCancel = activeSubStatus === 'cancelled' && status?.planExpiresAt != null && new Date(status.planExpiresAt) > new Date();
+    const filteredHistory = history.filter(sub => !['pending', 'unable_to_start'].includes(sub.status));
+
+    // Calculate approximate prorated days for UI display
+    let remainingValueText = null;
+    if (planKey === 'pro' && status?.subscription?.currentPeriodEnd) {
+        const end = new Date(status.subscription.currentPeriodEnd).getTime();
+        const now = Date.now();
+        if (end > now) {
+            const daysLeft = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+            remainingValueText = `Tienes ~${daysLeft} días a favor de tu plan Pro. Se aplicará como saldo en tu nuevo cobro.`;
+        }
+    }
+
+    const handleDevOverride = async (plan: 'pro' | 'premium') => {
+        setIsSubscribing(true);
+        try {
+            await billingApi.devOverride(plan);
+            toast.success('¡Suscripción forzada (DEV)!');
+            const [s, h] = await Promise.all([
+                billingApi.getStatus(),
+                billingApi.getHistory(),
+            ]);
+            setStatus(s);
+            setHistory(h);
+        } catch (e) {
+            toast.error('Error forzando suscripción');
+        } finally {
+            setIsSubscribing(false);
+        }
+    };
 
     return (
         <DashboardShell>
@@ -161,7 +193,7 @@ export default function BillingPage() {
                                     )}
                                 </div>
 
-                                {isProOrPremium && (
+                                {isProOrPremium && activeSubStatus === 'active' && (
                                     <div className="flex-shrink-0">
                                         <Button
                                             variant="outline"
@@ -174,13 +206,20 @@ export default function BillingPage() {
                                         </Button>
                                     </div>
                                 )}
+                                {isPendingCancel && (
+                                    <div className="flex-shrink-0">
+                                        <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50">
+                                            Cancelación en proceso
+                                        </Badge>
+                                    </div>
+                                )}
                             </>
                         )}
                     </div>
                 </div>
 
                 {/* --- 2. UPGRADE PLANS SECTION --- */}
-                {!isLoading && !isProOrPremium && (
+                {!isLoading && (
                     <div className="space-y-6">
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                             <div>
@@ -189,20 +228,20 @@ export default function BillingPage() {
                             </div>
 
                             {/* Toggle Mensual/Anual */}
-                            <div className="flex items-center bg-zinc-100/80 dark:bg-zinc-800/50 p-1 rounded-full border shadow-inner self-start md:self-end">
+                            <div className="flex items-center bg-zinc-100/80 dark:bg-zinc-800/80 p-1.5 rounded-full border shadow-inner self-start md:self-end">
                                 <button
                                     onClick={() => setIsYearly(false)}
-                                    className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-300 ${!isYearly ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-muted-foreground hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                                    className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${!isYearly ? 'bg-white dark:bg-zinc-700 shadow-md text-zinc-900 dark:text-zinc-100 scale-105' : 'text-muted-foreground hover:text-zinc-700 dark:hover:text-zinc-300'}`}
                                 >
                                     Mensual
                                 </button>
                                 <button
                                     onClick={() => setIsYearly(true)}
-                                    className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${isYearly ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-muted-foreground hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                                    className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 ${isYearly ? 'bg-white dark:bg-zinc-700 shadow-md text-zinc-900 dark:text-zinc-100 scale-105' : 'text-muted-foreground hover:text-zinc-700 dark:hover:text-zinc-300'}`}
                                 >
                                     Anual
-                                    <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-100 dark:bg-emerald-500/20 px-1.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20">
-                                        -16%
+                                    <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-extrabold bg-emerald-100 dark:bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20">
+                                        AHORRA 16%
                                     </span>
                                 </button>
                             </div>
@@ -256,13 +295,17 @@ export default function BillingPage() {
                             </div>
 
                             {/* PRO PLAN */}
-                            <div className="rounded-2xl border border-violet-200 dark:border-violet-500/30 bg-gradient-to-b from-white to-violet-50/30 dark:from-zinc-900 dark:to-violet-950/20 overflow-hidden shadow-md flex flex-col relative transition-all duration-300 hover:shadow-xl hover:border-violet-400 dark:hover:border-violet-500/60 hover:-translate-y-1 group">
-                                {/* Subtle animated glow on hover */}
-                                <div className="absolute inset-0 bg-gradient-to-r from-violet-500/0 via-violet-500/5 to-violet-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 -translate-x-full group-hover:translate-x-full ease-linear"></div>
+                            <div className="rounded-2xl border-2 border-violet-500 dark:border-violet-500 bg-gradient-to-br from-white via-violet-50/50 to-violet-100/50 dark:from-zinc-900 dark:via-zinc-900 dark:to-violet-950/20 overflow-hidden shadow-xl flex flex-col relative transition-all duration-300 md:scale-105 z-10 hover:shadow-2xl">
+                                {/* Badge overlay */}
+                                <div className="absolute top-0 inset-x-0 bg-violet-600 text-white text-[11px] font-bold uppercase tracking-widest py-1.5 text-center shadow-sm">
+                                    Más Popular
+                                </div>
 
-                                <div className="p-6 md:p-8 flex flex-col flex-grow relative z-10">
+                                <div className="p-6 md:p-8 pt-10 flex flex-col flex-grow relative z-10">
                                     <div className="mb-6">
-                                        <h3 className="text-xl font-bold text-violet-600 dark:text-violet-400 mb-2">Pro</h3>
+                                        <h3 className="text-xl font-bold flex items-center gap-2 text-violet-700 dark:text-violet-400 mb-2">
+                                            Pro <Sparkles className="w-5 h-5 text-violet-500" />
+                                        </h3>
                                         <p className="text-sm text-muted-foreground min-h-[40px] leading-relaxed">
                                             Ideal para freelancers buscando automatizar cobros de forma profesional.
                                         </p>
@@ -293,37 +336,59 @@ export default function BillingPage() {
                                             'Pagos automatizados',
                                             'Recordatorios de pago',
                                         ].map((feat) => (
-                                            <li key={feat} className="flex items-start gap-3 text-sm text-muted-foreground">
-                                                <CheckCircle2 className="w-5 h-5 text-violet-500 flex-shrink-0" />
+                                            <li key={feat} className="flex items-start gap-3 text-sm text-muted-foreground font-medium">
+                                                <CheckCircle2 className="w-5 h-5 text-violet-600 flex-shrink-0" />
                                                 <span className="pt-0.5">{feat}</span>
                                             </li>
                                         ))}
                                     </ul>
 
-                                    <div className="mt-auto">
-                                        <Button
-                                            className="w-full h-11 bg-violet-600 hover:bg-violet-700 text-white font-medium rounded-xl shadow-sm transition-all active:scale-[0.98]"
-                                            onClick={() => handleSubscribe('pro', isYearly ? 'year' : 'month')}
-                                            disabled={isSubscribing}
-                                        >
-                                            {isSubscribing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                            Upgrade a Pro
-                                        </Button>
+                                    <div className="mt-auto space-y-3">
+                                        {planKey === 'pro' ? (
+                                            <Button
+                                                className="w-full h-12 text-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-300 font-bold rounded-xl shadow-sm transition-all"
+                                                disabled={true}
+                                            >
+                                                Tu plan actual
+                                            </Button>
+                                        ) : planKey === 'premium' ? (
+                                            <Button
+                                                className="w-full h-12 text-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-300 font-bold rounded-xl shadow-sm transition-all"
+                                                disabled={true}
+                                            >
+                                                Incluido en Premium
+                                            </Button>
+                                        ) : (
+                                            <>
+                                                <Button
+                                                    className="w-full h-12 text-md bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl shadow-md transition-all active:scale-[0.98]"
+                                                    onClick={() => handleSubscribe('pro', isYearly ? 'year' : 'month')}
+                                                    disabled={isSubscribing}
+                                                >
+                                                    {isSubscribing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                    Upgrade a Pro
+                                                </Button>
+                                                {process.env.NODE_ENV === 'development' && (
+                                                    <Button
+                                                        className="w-full h-10 text-sm bg-zinc-800 hover:bg-zinc-900 text-white font-bold rounded-xl shadow-sm transition-all"
+                                                        onClick={() => handleDevOverride('pro')}
+                                                        disabled={isSubscribing}
+                                                    >
+                                                        [DEV] Activar Inmediato
+                                                    </Button>
+                                                )}
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </div>
 
                             {/* PREMIUM PLAN */}
-                            <div className="rounded-2xl border border-amber-300 dark:border-amber-500/40 bg-gradient-to-br from-white via-amber-50/50 to-amber-100/50 dark:from-zinc-900 dark:via-zinc-900 dark:to-amber-950/20 overflow-hidden shadow-lg flex flex-col relative transition-all duration-300 hover:shadow-xl hover:border-amber-400 dark:hover:border-amber-500/70 hover:-translate-y-1 ring-1 ring-amber-500/20 dark:ring-amber-500/10">
-                                {/* Badge overlay */}
-                                <div className="absolute top-0 inset-x-0 bg-amber-400/20 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 text-[11px] font-bold uppercase tracking-widest py-1.5 text-center border-b border-amber-200 dark:border-amber-500/20 backdrop-blur-sm">
-                                    Mejor Valor
-                                </div>
-
-                                <div className="p-6 md:p-8 pt-10 flex flex-col flex-grow relative z-10">
+                            <div className="rounded-2xl border border-amber-300 dark:border-amber-500/40 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm flex flex-col relative transition-all duration-300 hover:shadow-md hover:border-amber-400 dark:hover:border-amber-500/60 hover:-translate-y-1">
+                                <div className="p-6 md:p-8 flex flex-col flex-grow relative z-10">
                                     <div className="mb-6">
                                         <h3 className="text-xl font-bold flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-2">
-                                            Premium <Sparkles className="w-5 h-5" />
+                                            Premium
                                         </h3>
                                         <p className="text-sm text-muted-foreground min-h-[40px] leading-relaxed">
                                             Para equipos o agencias. Todo ilimitado y experiencia personalizada.
@@ -362,15 +427,40 @@ export default function BillingPage() {
                                         ))}
                                     </ul>
 
-                                    <div className="mt-auto">
-                                        <Button
-                                            className="w-full h-11 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-xl shadow-sm transition-all active:scale-[0.98]"
-                                            onClick={() => handleSubscribe('premium', isYearly ? 'year' : 'month')}
-                                            disabled={isSubscribing}
-                                        >
-                                            {isSubscribing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                            Upgrade a Premium
-                                        </Button>
+                                    <div className="mt-auto space-y-3">
+                                        {remainingValueText && (
+                                            <p className="text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-2 rounded-md text-center">
+                                                {remainingValueText}
+                                            </p>
+                                        )}
+                                        {planKey === 'premium' ? (
+                                            <Button
+                                                className="w-full h-11 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold rounded-xl shadow-sm transition-all"
+                                                disabled={true}
+                                            >
+                                                Tu plan actual
+                                            </Button>
+                                        ) : (
+                                            <>
+                                                <Button
+                                                    className="w-full h-11 bg-amber-50 rounded-xl text-amber-700 hover:bg-amber-100 hover:text-amber-800 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
+                                                    onClick={() => handleSubscribe('premium', isYearly ? 'year' : 'month')}
+                                                    disabled={isSubscribing}
+                                                >
+                                                    {isSubscribing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                    {planKey === 'pro' ? 'Upgrade a Premium' : 'Comprar Premium'}
+                                                </Button>
+                                                {process.env.NODE_ENV === 'development' && (
+                                                    <Button
+                                                        className="w-full h-10 text-sm bg-zinc-800 hover:bg-zinc-900 text-white font-bold rounded-xl shadow-sm transition-all"
+                                                        onClick={() => handleDevOverride('premium')}
+                                                        disabled={isSubscribing}
+                                                    >
+                                                        [DEV] Activar Inmediato
+                                                    </Button>
+                                                )}
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -380,13 +470,13 @@ export default function BillingPage() {
                 )}
 
                 {/* --- 3. BILLING HISTORY --- */}
-                {history.length > 0 && (
+                {filteredHistory.length > 0 && (
                     <div className="rounded-xl border bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
                         <div className="p-6 pb-4 border-b">
                             <h3 className="text-lg font-semibold tracking-tight">Historial de pagos</h3>
                         </div>
                         <div className="divide-y divide-border">
-                            {history.map((sub) => {
+                            {filteredHistory.map((sub) => {
                                 const st = STATUS_LABEL[sub.status] ?? { label: sub.status, color: '' };
                                 return (
                                     <div key={sub.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">

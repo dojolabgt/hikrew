@@ -9,14 +9,14 @@ import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { RefreshTokenStrategy } from './strategies/refreshToken.strategy';
 import { SettingsModule } from '../core/settings/settings.module';
-import { FreelancerProfileModule } from '../freelancer-profile/freelancer-profile.module';
+import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 @Module({
   imports: [
     UsersModule,
     PassportModule,
     SettingsModule,
-    FreelancerProfileModule,
+    WorkspacesModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

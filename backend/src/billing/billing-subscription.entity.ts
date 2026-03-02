@@ -8,7 +8,7 @@ import {
     UpdateDateColumn,
     Index,
 } from 'typeorm';
-import { FreelancerProfile } from '../freelancer-profile/freelancer-profile.entity';
+import { Workspace } from '../workspaces/workspace.entity';
 
 export type BillingInterval = 'month' | 'year';
 export type BillingSubscriptionStatus =
@@ -23,14 +23,14 @@ export class BillingSubscription {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    /** The freelancer this subscription belongs to */
+    /** The workspace this subscription belongs to */
     @Column({ type: 'uuid' })
     @Index()
-    freelancerId: string;
+    workspaceId: string;
 
-    @ManyToOne(() => FreelancerProfile, { onDelete: 'CASCADE' })
-    @JoinColumn({ name: 'freelancerId', referencedColumnName: 'userId' })
-    freelancer: FreelancerProfile;
+    @ManyToOne(() => Workspace, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'workspaceId', referencedColumnName: 'id' })
+    workspace: Workspace;
 
     /** Recurrente checkout ID created when subscribing */
     @Column({ type: 'varchar' })

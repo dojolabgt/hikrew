@@ -7,11 +7,8 @@ import * as z from 'zod';
 import { toast } from 'sonner';
 import { Camera, Loader2 } from 'lucide-react';
 
-import {
-    FreelancerProfile,
-    UpdateFreelancerProfileDto
-} from '@/features/freelancer-profile/types';
-import { freelancerProfileApi } from '@/features/freelancer-profile/api';
+import { Workspace } from '@/features/workspaces/types';
+import { workspacesApi } from '@/features/workspaces/api';
 
 import {
     Form,
@@ -37,8 +34,8 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 interface ProfileFormProps {
-    initialData: FreelancerProfile | null;
-    onUpdate: (updatedData: FreelancerProfile) => void;
+    initialData: Workspace | null;
+    onUpdate: (updatedData: Workspace) => void;
 }
 
 export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
@@ -62,12 +59,12 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
     async function onSubmit(data: ProfileFormValues) {
         setIsLoading(true);
         try {
-            const payload: UpdateFreelancerProfileDto = {};
+            const payload: Partial<Workspace> = {};
             if (data.businessName) payload.businessName = data.businessName;
             if (data.brandColor) payload.brandColor = data.brandColor;
             if (data.logo) payload.logo = data.logo;
 
-            const updatedProfile = await freelancerProfileApi.updateProfile(payload);
+            const updatedProfile = await workspacesApi.updateWorkspace(payload);
             toast.success('Perfil comercial actualizado');
             onUpdate(updatedProfile);
         } catch (error) {
@@ -92,7 +89,7 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
 
         setIsUploadingLogo(true);
         try {
-            const updatedProfile = await freelancerProfileApi.uploadLogo(file);
+            const updatedProfile = await workspacesApi.uploadLogo(file);
             form.setValue('logo', updatedProfile.logo ?? '');
             toast.success('Logo subido correctamente');
             onUpdate(updatedProfile);

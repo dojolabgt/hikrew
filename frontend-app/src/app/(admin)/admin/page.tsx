@@ -28,9 +28,6 @@ export default function AdminDashboardPage() {
         <div className="flex h-screen overflow-hidden">
             <Sidebar
                 navItems={navItems}
-                user={mockUser}
-                settingsHref="/admin/settings"
-                onLogout={() => console.log('logout')}
             />
             <DashboardShell>
                 <Surface>

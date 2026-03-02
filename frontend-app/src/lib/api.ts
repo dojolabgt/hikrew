@@ -15,7 +15,15 @@ const api = axios.create({
 // Request Interceptor: Attach CSRF tokens or tenant headers if needed in the future
 api.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-        // CSRF token or Tenant ID can be injected here
+        if (typeof window !== 'undefined') {
+            const activeWorkspaceId = localStorage.getItem('activeWorkspaceId');
+
+            // Do not send x-workspace-id on auth routes (login, register, refresh) to prevent CORS issues
+            const isAuthRoute = config.url?.startsWith('/auth/') || config.url?.includes('auth');
+            if (activeWorkspaceId && !isAuthRoute) {
+                config.headers['x-workspace-id'] = activeWorkspaceId;
+            }
+        }
         return config;
     },
     (error) => {

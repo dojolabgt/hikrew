@@ -6,9 +6,7 @@ import api from '@/lib/api';
 import { UserRole } from '@/types';
 import type { User } from '@/types';
 import type { AuthContextType, LoginCredentials, RegisterCredentials } from '../types/auth.types';
-
-import { freelancerProfileApi } from '@/features/freelancer-profile/api';
-import type { FreelancerProfile } from '@/features/freelancer-profile/types';
+import type { Workspace } from '@/features/workspaces/types';
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -32,9 +30,43 @@ function getDashboardRoute(role: UserRole): string {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
-    const [freelancerProfile, setFreelancerProfile] = useState<FreelancerProfile | null>(null);
+    const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
+    const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const checkAndSetWorkspace = (userData: User) => {
+        if (!userData.workspaceMembers || userData.workspaceMembers.length === 0) return;
+        let storedId = localStorage.getItem('activeWorkspaceId');
+
+        // Check if storedId is valid for the user
+        let workspaceData = userData.workspaceMembers.find(wm => wm.workspaceId === storedId);
+
+        // Fallback to first available workspace normally OWNER if sorted
+        if (!workspaceData) {
+            workspaceData = userData.workspaceMembers[0];
+            storedId = workspaceData.workspaceId;
+            localStorage.setItem('activeWorkspaceId', storedId);
+        }
+
+        setActiveWorkspaceId(workspaceData.workspaceId);
+        setActiveWorkspace(workspaceData.workspace);
+    };
+
+    const switchWorkspace = (workspaceId: string) => {
+        if (!user || !user.workspaceMembers) return;
+
+        const workspaceData = user.workspaceMembers.find(wm => wm.workspaceId === workspaceId);
+        if (workspaceData) {
+            localStorage.setItem('activeWorkspaceId', workspaceId);
+            setActiveWorkspaceId(workspaceId);
+            setActiveWorkspace(workspaceData.workspace);
+
+            // Reload page or re-fetch queries depending on routing implementation
+            // Using straight push/refresh to reload data context globally.
+            router.refresh();
+        }
+    };
 
     const checkAuth = useCallback(async () => {
         try {
@@ -43,19 +75,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(response.data);
 
             if (response.data.role === UserRole.FREELANCER) {
-                try {
-                    const profileData = await freelancerProfileApi.getProfile();
-                    setFreelancerProfile(profileData);
-                } catch (profileError) {
-                    console.error('Error fetching freelancer profile in AuthContext:', profileError);
-                }
+                checkAndSetWorkspace(response.data);
             }
 
             setError(null);
         } catch (err) {
             setUser(null);
-            setFreelancerProfile(null);
-            // Don't set error state on initial load, it just means they aren't logged in
+            setActiveWorkspace(null);
+            setActiveWorkspaceId(null);
         } finally {
             setIsLoading(false);
         }
@@ -66,11 +93,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         checkAuth();
     }, [checkAuth]);
 
-    // Listen for custom logout events from the interceptor (e.g., token expired)
+    // Listen for custom logout events from the interceptor
     useEffect(() => {
         const handleForceLogout = () => {
             setUser(null);
-            setFreelancerProfile(null);
+            setActiveWorkspace(null);
+            setActiveWorkspaceId(null);
+            localStorage.removeItem('activeWorkspaceId');
             router.push('/login');
         };
         window.addEventListener('auth-logout', handleForceLogout);
@@ -85,15 +114,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(response.data.user);
 
             if (response.data.user.role === UserRole.FREELANCER) {
-                try {
-                    const profileData = await freelancerProfileApi.getProfile();
-                    setFreelancerProfile(profileData);
-                } catch (profileError) {
-                    console.error('Error fetching freelancer profile in AuthContext:', profileError);
-                }
+                checkAndSetWorkspace(response.data.user);
             }
 
-            // Redirect based on the unified UserRole Enum mapping
             router.push(getDashboardRoute(response.data.user.role));
         } catch (err: any) {
             setError(err.response?.data?.message || 'Error occurred during login');
@@ -110,17 +133,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const response = await api.post<{ user: User }>('/auth/register', credentials);
             setUser(response.data.user);
 
-            // Fetch profile right after register if FREELANCER
             if (response.data.user.role === UserRole.FREELANCER) {
-                try {
-                    const profileData = await freelancerProfileApi.getProfile();
-                    setFreelancerProfile(profileData);
-                } catch (profileError) {
-                    console.error('Error fetching freelancer profile in AuthContext:', profileError);
-                }
+                checkAndSetWorkspace(response.data.user);
             }
 
-            // Redirect based on role
             router.push(getDashboardRoute(response.data.user.role));
         } catch (err: any) {
             setError(err.response?.data?.message || 'Error occurred during registration');
@@ -138,7 +154,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.error('Logout failed:', err);
         } finally {
             setUser(null);
-            setFreelancerProfile(null);
+            setActiveWorkspace(null);
+            setActiveWorkspaceId(null);
+            localStorage.removeItem('activeWorkspaceId');
             router.push('/login');
             setIsLoading(false);
         }
@@ -150,13 +168,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         <AuthContext.Provider
             value={{
                 user,
-                freelancerProfile,
+                activeWorkspaceId,
+                activeWorkspace,
                 isLoading,
                 error,
                 login,
                 register,
                 logout,
                 checkAuth,
+                switchWorkspace,
                 clearError,
             }}
         >

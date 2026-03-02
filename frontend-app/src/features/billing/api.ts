@@ -25,6 +25,14 @@ export const billingApi = {
     },
 
     /**
+     * [DEV ONLY] Instantly switches plan without checkout
+     */
+    devOverride: async (plan: 'pro' | 'premium'): Promise<{ success: boolean }> => {
+        const response = await api.post<{ success: boolean }>('/billing/dev-override', { plan });
+        return response.data;
+    },
+
+    /**
      * Cancels the active subscription.
      */
     cancel: async (): Promise<void> => {

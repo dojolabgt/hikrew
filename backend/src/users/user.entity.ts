@@ -6,8 +6,10 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   Index,
+  OneToMany,
 } from 'typeorm';
 import { UserRole } from '../auth/constants/roles';
+import { WorkspaceMember } from '../workspaces/workspace-member.entity';
 
 @Entity('users')
 export class User {
@@ -33,6 +35,9 @@ export class User {
 
   @Column({ nullable: true })
   profileImage: string;
+
+  @OneToMany(() => WorkspaceMember, member => member.user)
+  workspaceMembers: WorkspaceMember[];
 
   @CreateDateColumn()
   @Index() // Index for sorting by creation date

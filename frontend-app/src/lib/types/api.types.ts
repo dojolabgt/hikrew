@@ -1,4 +1,5 @@
 import { UserRole } from "./enums";
+import { WorkspaceMember } from "@/features/workspaces/types";
 
 /**
  * The canonical User entity representation returned by the backend.
@@ -14,6 +15,7 @@ export interface User {
     lastLoginAt?: string;
     createdAt: string;
     updatedAt: string;
+    workspaceMembers?: WorkspaceMember[];
 }
 
 /**

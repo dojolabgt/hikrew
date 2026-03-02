@@ -1,5 +1,5 @@
 import { User } from '@/types';
-import { FreelancerProfile } from '@/features/freelancer-profile/types';
+import { Workspace } from '@/features/workspaces/types';
 
 export interface LoginCredentials {
     email: string;
@@ -17,7 +17,8 @@ export interface RegisterCredentials {
 
 export interface AuthState {
     user: User | null;
-    freelancerProfile: FreelancerProfile | null;
+    activeWorkspaceId: string | null;
+    activeWorkspace: Workspace | null;
     isLoading: boolean;
     error: string | null;
 }
@@ -27,5 +28,6 @@ export interface AuthContextType extends AuthState {
     register: (credentials: RegisterCredentials) => Promise<void>;
     logout: () => Promise<void>;
     checkAuth: () => Promise<void>;
+    switchWorkspace: (workspaceId: string) => void;
     clearError: () => void;
 }

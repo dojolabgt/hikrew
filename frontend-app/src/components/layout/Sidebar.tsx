@@ -16,7 +16,7 @@ interface SidebarProps {
 export function Sidebar({ navItems }: SidebarProps) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const pathname = usePathname();
-    const { user, freelancerProfile } = useAuth();
+    const { user, activeWorkspace, activeWorkspaceId, switchWorkspace } = useAuth();
 
     // Group items by section
     const groupedItems = navItems.reduce((acc, item) => {
@@ -27,13 +27,13 @@ export function Sidebar({ navItems }: SidebarProps) {
     }, {} as Record<string, NavItemConfig[]>);
 
     // Branding Logic
-    const isProOrPremium = freelancerProfile?.plan === 'pro' || freelancerProfile?.plan === 'premium';
-    const businessName = (isProOrPremium && freelancerProfile?.businessName) ? freelancerProfile.businessName : 'Blend Studio';
-    const displayLogo = isProOrPremium ? (freelancerProfile?.logo || undefined) : undefined;
+    const isProOrPremium = activeWorkspace?.plan === 'pro' || activeWorkspace?.plan === 'premium';
+    const businessName = activeWorkspace?.businessName || 'Mi Espacio';
+    const displayLogo = isProOrPremium ? (activeWorkspace?.logo || undefined) : undefined;
     const initials = businessName.substring(0, 2).toUpperCase();
 
     // Optional style based on brandColor
-    const brandColorStyle = (isProOrPremium && freelancerProfile?.brandColor) ? { color: freelancerProfile.brandColor } : {};
+    const brandColorStyle = (isProOrPremium && activeWorkspace?.brandColor) ? { color: activeWorkspace.brandColor } : {};
 
     return (
         <>
@@ -62,17 +62,33 @@ export function Sidebar({ navItems }: SidebarProps) {
                 mobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
             )}>
 
-                {/* Logo Area */}
-                <div className="h-16 flex items-center px-6 border-b border-zinc-100 dark:border-zinc-800/60 gap-3 shrink-0">
-                    <Avatar className="w-8 h-8 rounded-lg shadow-sm border border-border">
-                        <AvatarImage src={getImageUrl(displayLogo)} alt={businessName} className="object-cover" />
-                        <AvatarFallback className="bg-primary/10 text-primary rounded-lg text-xs font-bold" style={brandColorStyle}>
-                            {initials}
-                        </AvatarFallback>
-                    </Avatar>
-                    <span className="font-bold text-lg text-zinc-900 dark:text-white tracking-tight truncate" title={businessName}>
-                        {businessName}
-                    </span>
+                {/* Logo Area & Switcher */}
+                <div className="h-16 flex items-center px-6 border-b border-zinc-100 dark:border-zinc-800/60 justify-between shrink-0">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                        <Avatar className="w-8 h-8 rounded-lg shadow-sm border border-border">
+                            <AvatarImage src={getImageUrl(displayLogo)} alt={businessName} className="object-cover" />
+                            <AvatarFallback className="bg-primary/10 text-primary rounded-lg text-xs font-bold" style={brandColorStyle}>
+                                {initials}
+                            </AvatarFallback>
+                        </Avatar>
+                        <span className="font-bold text-lg text-zinc-900 dark:text-white tracking-tight truncate" title={businessName}>
+                            {businessName}
+                        </span>
+                    </div>
+
+                    {user?.workspaceMembers && user.workspaceMembers.length > 1 && (
+                        <select
+                            className="bg-transparent text-zinc-500 dark:text-zinc-400 text-sm ml-2 p-1 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded outline-none"
+                            value={activeWorkspaceId || ''}
+                            onChange={(e) => switchWorkspace(e.target.value)}
+                        >
+                            {user.workspaceMembers.map(wm => (
+                                <option key={wm.workspaceId} value={wm.workspaceId}>
+                                    {wm.workspace.businessName}
+                                </option>
+                            ))}
+                        </select>
+                    )}
                 </div>
 
                 {/* Navigation Links */}

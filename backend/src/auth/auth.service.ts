@@ -9,7 +9,7 @@ import { UserRole } from './constants/roles';
 import { SettingsService } from '../core/settings/settings.service';
 import { RegisterDto } from './dto/register.dto';
 import { MailService } from '../core/mail/mail.service';
-import { FreelancerProfileService } from '../freelancer-profile/freelancer-profile.service';
+import { WorkspacesService } from '../workspaces/workspaces.service';
 
 @Injectable()
 export class AuthService {
@@ -21,7 +21,7 @@ export class AuthService {
     private configService: ConfigService,
     private settingsService: SettingsService,
     private mailService: MailService,
-    private freelancerProfileService: FreelancerProfileService,
+    private workspacesService: WorkspacesService,
   ) { }
 
   async register(registerDto: RegisterDto) {
@@ -43,10 +43,12 @@ export class AuthService {
       role: UserRole.FREELANCER,
     });
 
-    // Auto-create an empty FreelancerProfile linked to the new user
-    await this.freelancerProfileService.create(newUser.id);
+    // Auto-create an empty Workspace linked to the new user as OWNER
+    await this.workspacesService.createDefaultWorkspace(newUser.id);
 
-    return this.login(this.mapToAuthenticatedUser(newUser));
+    const userWithWorkspaces = await this.usersService.findOneById(newUser.id);
+
+    return this.login(this.mapToAuthenticatedUser(userWithWorkspaces!));
   }
 
   async forgotPassword(email: string) {
@@ -136,7 +138,7 @@ export class AuthService {
   }
 
   async login(user: AuthenticatedUser) {
-    const tokens = await this.getTokens(user.id, user.email, user.role);
+    const tokens = await this.getTokens(user);
     await this.updateRefreshToken(user.id, tokens.refreshToken);
     return tokens;
   }
@@ -156,7 +158,7 @@ export class AuthService {
     );
     if (!refreshTokenMatches) throw new ForbiddenException('Access Denied');
 
-    const tokens = await this.getTokens(user.id, user.email, user.role);
+    const tokens = await this.getTokens(this.mapToAuthenticatedUser(user));
     await this.updateRefreshToken(user.id, tokens.refreshToken);
     return tokens;
   }
@@ -168,17 +170,28 @@ export class AuthService {
     });
   }
 
-  async getTokens(userId: string, email: string, role: string) {
+  async getTokens(user: AuthenticatedUser) {
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      workspaces: user.workspaceMembers?.map(wm => ({
+        id: wm.workspace.id,
+        role: wm.role,
+        businessName: wm.workspace.businessName
+      })) || []
+    };
+
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(
-        { sub: userId, email, role },
+        payload,
         {
           secret: this.configService.get<string>('JWT_SECRET'),
           expiresIn: '15m',
         },
       ),
       this.jwtService.signAsync(
-        { sub: userId, email, role },
+        payload,
         {
           secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
           expiresIn: '7d',

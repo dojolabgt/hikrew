@@ -7,8 +7,7 @@ import * as z from 'zod';
 import { toast } from 'sonner';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 
-import { freelancerProfileApi } from '@/features/freelancer-profile/api';
-import { UpdateRecurrenteKeysDto } from '@/features/freelancer-profile/types';
+import { workspacesApi } from '@/features/workspaces/api';
 
 import {
     Form,
@@ -57,7 +56,7 @@ export function RecurrenteForm({ isConfigured, onUpdateStatus }: RecurrenteFormP
     async function onSubmit(data: RecurrenteFormValues) {
         setIsLoading(true);
         try {
-            await freelancerProfileApi.updateRecurrenteKeys(data);
+            await workspacesApi.updateRecurrenteKeys(data);
             toast.success('Claves de Recurrente guardadas correctamente');
             onUpdateStatus(true);
             form.reset(); // Limpiar el formulario por seguridad

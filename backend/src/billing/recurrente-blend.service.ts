@@ -44,20 +44,20 @@ export class RecurrenteBlendService {
 
     /**
      * Creates a Recurrente subscription checkout using Blend's own keys.
-     * All checkouts carry metadata { freelancerId, context: 'blend_billing' }
+     * All checkouts carry metadata { workspaceId, context: 'blend_billing' }
      * so the webhook handler can route the event correctly.
      */
     async createSubscriptionCheckout(
-        freelancerId: string,
-        plan: 'pro' | 'premium',
-        interval: BillingInterval,
+        workspaceId: string,
+        planType: 'pro' | 'premium',
+        isAnnual: boolean,
         successUrl: string,
         cancelUrl: string,
     ): Promise<RecurrenteCheckoutResponse> {
-        const isMonthly = interval === 'month';
+        const isMonthly = !isAnnual;
         const amountInCents = isMonthly ? this.monthlyPriceCents : this.yearlyPriceCents;
 
-        const itemName = plan === 'premium'
+        const itemName = planType === 'premium'
             ? `Blend Premium — ${isMonthly ? 'Mensual' : 'Anual'}`
             : `Blend Pro — ${isMonthly ? 'Mensual' : 'Anual'}`;
 
@@ -69,16 +69,16 @@ export class RecurrenteBlendService {
                     currency: 'GTQ',
                     amount_in_cents: amountInCents,
                     charge_type: 'recurring',
-                    billing_interval: interval,
+                    billing_interval: isMonthly ? 'month' : 'year',
                     billing_interval_count: 1,
                 },
             ],
             success_url: successUrl,
             cancel_url: cancelUrl,
-            metadata: {
-                freelancerId,
+            custom_info: {
+                workspaceId,
                 context: 'blend_billing',
-                plan,
+                plan: planType,
             },
         };
 

@@ -3,14 +3,14 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { UsersService } from './users/users.service';
 import { SettingsService } from './core/settings/settings.service';
-import { FreelancerProfileService } from './freelancer-profile/freelancer-profile.service';
+import { WorkspacesService } from './workspaces/workspaces.service';
 import { UserRole } from './auth/constants/roles';
 
 async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule);
   const usersService = app.get(UsersService);
   const settingsService = app.get(SettingsService);
-  const freelancerProfileService = app.get(FreelancerProfileService);
+  const workspacesService = app.get(WorkspacesService);
   const configService = app.get(ConfigService);
 
   // All credentials come from env — easy to configure per environment
@@ -48,24 +48,24 @@ async function bootstrap() {
         );
       }
 
-      // Ensure FreelancerProfile exists for FREELANCER seed users
+      // Ensure Workspace exists for FREELANCER seed users
       if (userData.role === UserRole.FREELANCER) {
-        try {
-          await freelancerProfileService.findByUserId(existingUser.id);
-          console.log(`⏭️  FreelancerProfile already exists for ${userData.email}`);
-        } catch {
-          await freelancerProfileService.create(existingUser.id);
-          console.log(`✅ FreelancerProfile created for ${userData.email}`);
+        const workspaces = await workspacesService.findByUserId(existingUser.id);
+        if (workspaces.length > 0) {
+          console.log(`⏭️  Workspace already exists for ${userData.email}`);
+        } else {
+          await workspacesService.createDefaultWorkspace(existingUser.id);
+          console.log(`✅ Default Workspace created for ${userData.email}`);
         }
       }
     } else {
       const newUser = await usersService.create(userData);
       console.log(`✅ User ${userData.email} created successfully.`);
 
-      // Auto-create FreelancerProfile for freelancer seed users
+      // Auto-create Workspace for freelancer seed users
       if (userData.role === UserRole.FREELANCER) {
-        await freelancerProfileService.create(newUser.id);
-        console.log(`✅ FreelancerProfile created for ${userData.email}`);
+        await workspacesService.createDefaultWorkspace(newUser.id);
+        console.log(`✅ Default Workspace created for ${userData.email}`);
       }
     }
   }

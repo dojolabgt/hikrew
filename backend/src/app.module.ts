@@ -14,7 +14,9 @@ import { MailModule } from './core/mail/mail.module';
 import { EncryptionModule } from './common/encryption/encryption.module';
 import { TokenModule } from './common/token/token.module';
 import { BillingModule } from './billing/billing.module';
-import { FreelancerProfileModule } from './freelancer-profile/freelancer-profile.module';
+import { WorkspacesModule } from './workspaces/workspaces.module';
+import { ServicesModule } from './services/services.module';
+import { ClientsModule } from './clients/clients.module';
 
 @Module({
   imports: [
@@ -84,8 +86,10 @@ import { FreelancerProfileModule } from './freelancer-profile/freelancer-profile
     MailModule,
     EncryptionModule,
     TokenModule,
-    FreelancerProfileModule,
+    WorkspacesModule,
     BillingModule,
+    ServicesModule,
+    ClientsModule,
   ],
   controllers: [AppController],
   providers: [

@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FreelancerProfile } from '@/features/freelancer-profile/types';
 import { getImageUrl } from '@/lib/utils';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { LogOut, User as UserIcon, Settings } from 'lucide-react';
@@ -19,7 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export function TopHeader() {
-    const { user, freelancerProfile, logout } = useAuth();
+    const { user, logout } = useAuth();
     const router = useRouter();
 
     if (!user) return null;

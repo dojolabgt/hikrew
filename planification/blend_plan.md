@@ -1,416 +1,311 @@
 # Blend — Implementation Plan
-> Plataforma de cobros, cotizaciones y servicios para freelancers en Guatemala
+
+> **Plataforma de cobros, cotizaciones y servicios para agencias y freelancers en Centroamérica**
+>
 > Stack: NestJS + PostgreSQL + TypeORM + Recurrente
 
 ---
 
 ## El negocio en una línea
 
-Blend cobra suscripción a freelancers. Los freelancers cobran a sus clientes usando su propia cuenta Recurrente conectada a Blend. Los freelancers pueden colaborar entre sí con registro de reparto de ganancias.
+Blend cobra suscripción a los espacios de trabajo (Workspaces). Los usuarios cobran a sus clientes usando su propia cuenta Recurrente conectada a su Workspace en Blend. Los profesionales pueden invitar a colaboradores a sus espacios para trabajar juntos y repartir ganancias.
 
 ---
 
-## Roles
+## Roles y Permisos
+
+### Roles de Aplicación (Globales)
 
 | Rol | Descripción |
 |-----|-------------|
 | `ADMIN` | Dueño del SaaS — acceso total |
-| `SUPPORT` | Soporte — acceso limitado a perfiles y estados |
-| `FREELANCER` | Usuario principal |
-| `CLIENT` | Cliente del freelancer — dashboard read-only |
+| `SUPPORT` | Soporte — acceso limitado a workspaces y estados |
+| `USER` | Usuario principal (Freelancer/Agencia) |
+| `CLIENT` | Cliente final — dashboard read-only |
+
+### Roles de Workspace (Locales)
+
+| Rol | Descripción |
+|-----|-------------|
+| `OWNER` | Dueño del Workspace (El que paga y administra claves) |
+| `COLLABORATOR` | Miembro del equipo (Ej. diseñador junior de la agencia) |
+| `GUEST` | Colaborador externo invitado por Magic Token a un proyecto/cobro |
 
 ---
 
-## Fase 0 — Fundación
-> No construyas ningún feature hasta que esto esté resuelto.
+## Fase 0 — Fundación: Arquitectura Multi-Tenant
+
+> ⚠️ No construyas ningún feature hasta que esto esté resuelto.
 
 ### Infraestructura base
-- Renombrar rol `USER` a `FREELANCER`, eliminar `TEAM`, agregar `CLIENT` y `SUPPORT`
+
+- Configuración de roles globales y locales
 - Migrations configuradas correctamente, sin `synchronize: true`
 - Interceptor global de errores con formato consistente
 - Logger estructurado (no `console.log`)
 - Swagger habilitado desde el inicio
 - `.env.example` completo y actualizado
 
-### Variables de entorno nuevas
-```
-ENCRYPTION_KEY                # AES-256 para keys de Recurrente
-BLEND_RECURRENTE_PUBLIC_KEY   # Keys propias de Blend para cobrar suscripciones
-BLEND_RECURRENTE_SECRET_KEY
-```
-
 ### Utilidades core
-- `EncryptionService` — AES-256. Usado para API keys de Recurrente
+
+- `EncryptionService` — AES-256-GCM. Usado para API keys de Recurrente
 - `TokenService` — generar y validar tokens con expiración (invitaciones, public tokens)
 - `PaginationDto` — estandarizar paginación en todos los listados
-- `ApiResponseInterceptor` — formato de respuesta consistente en toda la API
+- `ApiResponseInterceptor` — formato de respuesta consistente
 
-### FreelancerProfile
+### Workspaces (El Tenant Principal)
+
 ```
-FreelancerProfile
+Workspace
   - id
-  - userId (OneToOne)
   - businessName, logo, brandColor
   - recurrentePublicKey  (encriptado)
   - recurrentePrivateKey (encriptado)
-  - plan: free | pro
+  - plan: free | pro | premium
   - planExpiresAt
-  - quotesThisMonth
-  - quotesMonthReset
+  - quotesThisMonth, quotesMonthReset
   - isActive
   - createdAt, updatedAt
-```
-- `register()` crea FreelancerProfile automáticamente
-- `GET /me/profile` y `PATCH /me/profile`
-- `PATCH /me/recurrente-keys` — guarda keys encriptadas, nunca se devuelven en texto plano
-- `GET /me/recurrente-status` — indica si las keys están configuradas, sin exponerlas
 
-### Migración inicial
-- Alterar enum de roles
-- Crear tabla `freelancer_profiles`
+WorkspaceMember
+  - id
+  - userId
+  - workspaceId
+  - role: owner | collaborator | guest
+```
+
+- `register()` crea el User, genera un Workspace por defecto y crea el WorkspaceMember con rol `OWNER`.
+- **Regla de Negocio:** Un usuario solo puede ser `OWNER` de 1 Workspace (su negocio principal), pero puede ser `COLLABORATOR` o `GUEST` en múltiples Workspaces de terceros.
+
+**Endpoints:**
+- `GET /workspaces` — Devuelve los workspaces a los que pertenece el usuario.
+- `PATCH /workspaces/:id` — Actualiza branding (Solo OWNER).
+- `PATCH /workspaces/:id/recurrente-keys` — Guarda keys encriptadas.
+- **Guard/Interceptor `x-workspace-id`:** Inyecta el tenant en todas las peticiones para aislar datos.
 
 ---
 
 ## Fase 1 — Servicios y Clientes
 
 ### Services
+
 ```
 Service
-  - id, freelancerId
+  - id, workspaceId
   - name, description
   - defaultPrice, currency (GTQ | USD)
   - category, isActive
   - createdAt, updatedAt
 ```
-- `GET /services` con filtros por categoría e isActive
-- `POST /services`
-- `GET /services/:id`
-- `PATCH /services/:id`
-- `DELETE /services/:id` — soft delete si tiene quotes asociadas
+
+- CRUD estándar protegido por el `WorkspaceGuard`. Filtrado automático por `workspaceId`.
+- `DELETE /services/:id` — soft delete si tiene quotes asociadas.
 
 ### Clients
+
 ```
 Client
-  - id, freelancerId
-  - linkedUserId (nullable)
+  - id, workspaceId
+  - linkedUserId (nullable, por si el cliente crea cuenta)
   - name, email, whatsapp, notes
   - inviteToken (nullable), inviteExpiresAt
   - inviteStatus: pending | accepted | null
   - createdAt, updatedAt
 ```
-- `GET /clients` con paginación y búsqueda
-- `POST /clients`
-- `GET /clients/:id`
-- `PATCH /clients/:id`
-- `DELETE /clients/:id` — soft delete
-- `GET /clients/:id/history` — cotizaciones + pagos del cliente
-- `POST /clients/:id/invite` — genera token, envía email con link de registro
 
-### Flujos de registro de clientes
-- **Invitado:** recibe email con link `/register?clientToken=xxx` → se registra → linkedUserId se conecta automáticamente
-- **Auto-registro:** se registra como CLIENT → puede vincularse después si el freelancer lo agrega
+- `GET /clients/:id/history` — cotizaciones + pagos del cliente en ese workspace.
+- `POST /clients/:id/invite` — genera token, envía email con link de registro.
 
-### LimitsGuard
-```
-free → 5 clientes, 10 cotizaciones/mes
-pro  → ilimitado
-```
-Cron job mensual para reset de `quotesThisMonth`.
+### LimitsGuard (Por Workspace)
+
+| Plan | Límites |
+|------|---------|
+| `free` | 5 clientes, 10 cotizaciones/mes |
+| `pro` | Clientes ilimitados, 500 cotizaciones/mes |
+| `premium` | Ilimitado + módulos extra + colaboradores |
+
+- Cron job mensual para reset de `quotesThisMonth` en la tabla Workspaces.
 
 ---
 
 ## Fase 2 — Cotizaciones y PDF
 
 ### Quotes
+
 ```
 Quote
-  - id, freelancerId, clientId
+  - id, workspaceId, clientId
   - status: draft | sent | accepted | rejected | expired
   - validUntil, notes, internalNotes, currency
   - subtotal, taxPercent, taxAmount, total
   - publicToken (uso único, para aceptar sin login)
   - sentAt, acceptedAt, rejectedAt
-  - createdAt, updatedAt
 
 QuoteItem
   - id, quoteId, serviceId (nullable)
   - description, quantity, unitPrice, total, order
 ```
-- `GET /quotes` con filtros por status, cliente, fecha
-- `POST /quotes`
-- `GET /quotes/:id`
-- `PATCH /quotes/:id` — solo en status draft
-- `DELETE /quotes/:id` — solo en status draft
-- `POST /quotes/:id/send` — status = sent, genera publicToken, envía email
-- `POST /quotes/:id/accept` — autenticado, desde dashboard del cliente
-- `POST /quotes/:id/reject` — autenticado
-- `POST /public/quotes/:token/accept` — sin auth, desde link en email
-- `POST /public/quotes/:token/reject` — sin auth
-- `GET /public/quotes/:token` — ver cotización sin login
-- `GET /quotes/:id/pdf` — requiere auth del freelancer
-- `GET /public/quotes/:token/pdf` — descarga sin login
 
-### PDF
-- Template HTML con logo, colores de marca, items, subtotal, impuestos, total
-- Generado con puppeteer o pdfmake
-- Cron job diario para expirar quotes vencidas
+- CRUD de Quotes asociado al `workspaceId`.
+- `POST /quotes/:id/send` — genera `publicToken`, envía email al cliente.
+- `POST /public/quotes/:token/accept` — cliente acepta sin login vía link.
+- `GET /quotes/:id/pdf` — Genera PDF con logo y `brandColor` del Workspace.
 
 ---
 
 ## Fase 3 — Pagos con Recurrente
 
 ### RecurrenteModule (wrapper interno)
-- Recibe `freelancerId`, desencripta keys en memoria
-- Incluye `metadata: { freelancerId, paymentId, context: freelancer_payment }` en todos los checkouts
-- Maneja errores de la API con mensajes claros
+
+- Recibe `workspaceId`, busca el Workspace y desencripta keys en memoria.
+- Incluye metadata: `{ workspaceId, paymentId, context: blend_payment }` en los checkouts.
 
 ### Payments
+
 ```
 Payment
-  - id, freelancerId, clientId, quoteId (nullable)
+  - id, workspaceId, clientId, quoteId (nullable)
   - recurrenteCheckoutId, recurrenteCheckoutUrl
   - amount, currency
   - status: pending | paid | failed | refunded
   - dueDate, paidAt, reminderSentAt
-  - createdAt, updatedAt
 ```
-- `GET /payments` con filtros por status, cliente, fecha
-- `POST /payments` — crea Payment + genera checkout en Recurrente
-- `GET /payments/:id`
-- `PATCH /payments/:id` — solo campos internos
-- `POST /payments/:id/send` — envía link de pago por email
-- `POST /payments/:id/remind` — reenvía recordatorio (pro only)
+
+- `POST /payments` — crea Payment local + genera checkout en Recurrente.
+- `POST /payments/:id/remind` — reenvía recordatorio (solo pro/premium).
 
 ### Webhook
-- `POST /webhooks/recurrente` — público, sin auth JWT
-- Verificar firma con `RECURRENTE_WEBHOOK_SECRET`
-- Leer `metadata.context` para distinguir tipo de evento
-- Actualizar `Payment.status` y notificar al freelancer
-- Loggear todos los webhooks recibidos para auditoría
+
+- `POST /webhooks/recurrente` — Endpoint público para Recurrente.
+  - Verificar firma con `RECURRENTE_WEBHOOK_SECRET`.
+  - Leer `metadata.context` y `metadata.workspaceId`.
+  - Actualizar `Payment.status`.
 
 ---
 
-## Fase 4 — Colaboración entre Freelancers
+## Fase 4 — Colaboración y Equipos (El Magic Token)
 
-### FreelancerConnection
-```
-FreelancerConnection
-  - id, ownerId, collaboratorId
-  - inviteToken, inviteExpiresAt
-  - status: pending | active | paused
-  - createdAt, updatedAt
-```
-- `POST /connections/invite`
-- `POST /connections/accept`
-- `GET /connections`
-- `GET /connections/received`
-- `PATCH /connections/:id`
-- `DELETE /connections/:id`
+### Invitaciones a Workspaces
 
-### CollaborationAssignment
+- `POST /workspaces/:id/invites` — (Solo Premium/Pro). Invita a un correo. Crea token.
+- `POST /invites/accept/:token` — El usuario (nuevo o existente) acepta y se inserta en `WorkspaceMember` como `COLLABORATOR` o `GUEST`.
+
+### CollaborationSplit (Reparto de ganancias)
+
 ```
-CollaborationAssignment
-  - id, connectionId, paymentId
-  - ownerId, collaboratorId
+CollaborationSplit
+  - id, workspaceId, paymentId
+  - collaboratorUserId
   - revenuePercent
-  - ownerAmount, collaboratorAmount (calculados al crear)
+  - ownerAmount, collaboratorAmount (calculados al pagar)
   - status: assigned | completed
-  - notes, createdAt, updatedAt
 ```
-- `POST /payments/:id/assign`
-- `GET /assignments`
-- `GET /assignments/received`
-- `PATCH /assignments/:id` — solo si status = assigned
-- `POST /assignments/:id/complete`
 
-### Reglas de negocio
-- Solo se puede asignar a freelancers con conexión activa
-- No se puede asignar más del 100% en total por pago
-- El cobro al cliente lo maneja el dueño, sin cambios en Recurrente
-- Blend muestra el desglose: "De Q1,000 → Tú recibes Q700, Colaborador recibe Q300"
+- `POST /payments/:id/assign-split` — El Owner asigna una parte del pago a un Guest/Collaborator.
+- El cobro principal va al Recurrente del Owner. Blend solo lleva el tracking financiero de quién le debe a quién.
+  > _Ejemplo: De Q1,000 → Agencia recibe Q700, Freelancer Externo Q300_
 
 ---
 
-## Fase 5 — Billing (Blend cobra al freelancer)
-> Blend usa sus propias keys de Recurrente, no las del freelancer.
+## Fase 5 — Billing (Blend cobra al SaaS)
 
-### BillingService
-- `subscribe(freelancerId, interval: month | year)`
-- `cancelSubscription(freelancerId)`
-- `handleWebhook(event)`
+> Blend usa sus propias keys maestras de Recurrente, no las del usuario.
 
-### Endpoints
-- `GET /billing/status`
-- `POST /billing/subscribe`
-- `POST /billing/cancel`
-- `GET /billing/history`
+### BillingSubscription
 
-### Webhook de billing
-- `POST /webhooks/recurrente/billing` — endpoint separado
-- `paid` → plan = pro, actualizar planExpiresAt
-- `past_due` → notificar, grace period de 3 días
-- `cancelled` → plan = free
-- `unable_to_start` → notificar, no activar pro
+```
+BillingSubscription
+  - id, workspaceId
+  - recurrenteCheckoutId, recurrenteSubscriptionId
+  - plan: pro | premium
+  - status, currentPeriodStart, currentPeriodEnd
+```
+
+- `POST /billing/subscribe` — Genera checkout de suscripción de Blend.
+- `POST /webhooks/recurrente/billing` — Escucha pagos de suscripción y actualiza el plan del Workspace.
 
 ---
 
-## Fase 6 — Dashboard del Freelancer
+## Fase 6 — Dashboard del Workspace
 
-```
-GET /dashboard/summary
-  pendingPayments: { count, total }
-  paidThisMonth: { count, total }
-  overduePayments: { count, total }
-  pendingQuotes: { count }
-  acceptedQuotesThisMonth: { count, total }
-  topClients: [{ name, totalPaid }]
-  topServices: [{ name, timesUsed, totalBilled }]
-  collaboratorsSummary: [{ name, assignedCount, pendingAmount }]
-  planStatus: { plan, quotesThisMonth, quotesLimit, renewsAt }
+**`GET /workspaces/:id/summary`**
+
+```json
+{
+  "pendingPayments": { "count": 0, "total": 0 },
+  "paidThisMonth": { "count": 0, "total": 0 },
+  "pendingQuotes": { "count": 0 },
+  "topClients": [{ "name": "", "totalPaid": 0 }],
+  "teamSummary": [{ "name": "", "role": "", "assignedAmount": 0 }],
+  "planStatus": { "plan": "", "quotesThisMonth": 0, "renewsAt": "" }
+}
 ```
 
 ---
 
 ## Fase 7 — Dashboard del Cliente
 
-- `GET /client/quotes` con filtros
-- `GET /client/quotes/:id`
-- `POST /client/quotes/:id/accept`
-- `POST /client/quotes/:id/reject`
-- `GET /client/payments`
-- `GET /client/payments/:id` con link de pago si está pendiente
+- Vista Read-Only de Quotes y Payments donde el email del cliente coincida.
+- Acceso a botones directos de pago de Recurrente.
 
 ---
 
-## Fase 8 — Admin Panel
+## Fase 8 — Admin Panel (SuperAdmin)
 
-### Roles
-- `ADMIN` — acceso total
-- `SUPPORT` — solo lectura de perfiles, clientes y estados. Sin métricas financieras.
+### Métricas SaaS
 
-### Métricas (ADMIN only)
-```
-GET /admin/metrics
-  mrr, arr
-  activeFreelancers
-  newFreelancersThisMonth
-  churnThisMonth, churnRate
-  freeVsPro: { free, pro }
-  conversionRate
-  totalVolumeProcessed
-  quotesGeneratedThisMonth
-  avgPaymentsPerFreelancer
-```
+- MRR, ARR, Workspaces Activos (Por plan: Free, Pro, Premium)
+- Churn Rate, Volumen procesado global
 
-### Definiciones de negocio
-- **Churn:** cancelación de suscripción pro
-- **Freelancer activo:** al menos 1 pago o cotización en los últimos 30 días
-- **Volumen procesado:** suma de Payment.amount donde status = paid en la DB de Blend
+### Gestión
 
-### Gestión (ADMIN + SUPPORT)
-- `GET /admin/freelancers` con búsqueda y filtros
-- `GET /admin/freelancers/:id`
-- `GET /admin/freelancers/:id/payments`
-- `GET /admin/freelancers/:id/billing`
-
-### Acciones (ADMIN only)
-- `PATCH /admin/freelancers/:id/plan`
-- `PATCH /admin/freelancers/:id/suspend`
-- `PATCH /admin/freelancers/:id/activate`
-- `POST /admin/support-users`
-- `DELETE /admin/support-users/:id`
+- `GET /admin/workspaces` — Ver todos los negocios registrados.
+- `PATCH /admin/workspaces/:id/plan` — Upgrade/Downgrade manual.
+- `PATCH /admin/users/:id/suspend` — Banear usuarios problemáticos.
 
 ---
 
-## Fase 0.5: Refactor Core y Preparación Multi-Tenant (✓ Completada)
-**Objetivo:** Adaptar el código base a un entorno robusto, tipado y multi-rol para soportar la escalabilidad.
+## Fase 0.5: Refactor Multi-Tenant ✅
 
-- [x] Unificar enums (`UserRole`) y centralizar tipos.
-- [x] Crear interceptares robustos (unwrap de `ApiResponse<T>`).
-- [x] Reconstruir la arquitectura de rutas en Next.js usando *Route Groups* (`(admin)`, `(freelancer)`, `(client)`).
-- [x] Extraer layouts compartidos (`DashboardShell`, `Sidebar`) independientes de rol.
-- [x] Crear el servicio base del backend para Perfiles de Freelancer con encripción de claves.
+### Backend
+- [x] Eliminar `FreelancerProfile`.
+- [x] Crear `Workspace` y tabla pivote `WorkspaceMember`.
+- [x] Actualizar Auth (`register`) para que cree el Usuario y su Workspace nativo en 1 transacción.
+- [x] Crear Guard/Interceptor `x-workspace-id`.
 
-## Fase 1: Perfiles Freelancer y Gestión de Usuarios Avanzada (🔄 En Progreso)
-**Objetivo:** Reconstruir el frontend desde cero (`frontend-app`) e integrar las funciones base del Multi-tenant.
-
-**Backend (✓ Listo):**
-- Módulos `users` y `freelancer-profile` con encriptación AES-256-GCM.
-- Endpoints CRUD para usuarios y actualización de claves Recurrente.
-
-**Frontend (frontend-app):**
-- Setup limpio de Next.js, Shadcn y Tailwind.
-- Portar lógica base (Tipos, Interceptores, Contexto de Auth).
-- **Perfil del Freelancer**: Formularios de perfil básico y almacenamiento seguro de claves Recurrente (Pública/Privada) conectando con el endpoint `/me/recurrente-keys`.
-- **Panel de Admin**: Tabla y diálogos completos de gestión de Usuarios.
+### Frontend
+- [x] `AuthContext` ahora maneja `activeWorkspaceId`.
+- [x] Cliente API inyecta header `x-workspace-id` automáticamente.
+- [x] UI limpia: Ocultar selector de Workspaces si el usuario solo pertenece a 1 (su propio negocio).
 
 ---
 
 ## Fase 9 — Notificaciones y Automatizaciones
 
-### Emails transaccionales (todos los planes)
-- Registro y verificación de email
-- Invitación de cliente
-- Cotización enviada al cliente
-- Cotización aceptada/rechazada (al freelancer)
-- Pago recibido (al freelancer)
-- Link de pago al cliente
-- Invitación de colaboración entre freelancers
-- Alerta de plan past_due
+### Emails transaccionales
 
-### Automatizaciones (pro only)
-- Recordatorio automático de pago (3, 7, 14 días después del vencimiento)
-- Alerta de cotización por vencer (2 días antes de validUntil)
-- Resumen semanal al freelancer
+- Invitaciones a colaborar en un Workspace
+- Cotización enviada / Link de pago generado
+- Comprobante de pago (Recibo interno de Blend)
 
-### Cron jobs
-- Reset mensual de quotesThisMonth
-- Expiración diaria de quotes vencidas
-- Expiración de tokens de invitación
-- Envío de recordatorios automáticos
+### Automatizaciones (Pro/Premium)
+
+- Módulo n8n / Zapier vía Webhooks expuestos por Blend
+- Recordatorios de pago a los 3 y 7 días de vencimiento
 
 ---
 
-## Arquitectura de webhooks
+## Orden de Ejecución Recomendado
 
-Checkouts de flujo freelancer→cliente:
-```json
-{ "freelancerId": "uuid", "paymentId": "uuid", "context": "freelancer_payment" }
-```
-
-Checkouts de billing de Blend:
-```json
-{ "freelancerId": "uuid", "context": "blend_billing" }
-```
-
-El router de webhooks lee `context` y delega al handler correcto. Todos los eventos se loggean en DB para auditoría.
-
----
-
-## Seguridad
-
-- API keys encriptadas AES-256, desencriptadas solo en memoria, nunca en logs ni respuestas
-- Tokens públicos firmados con expiración y uso único donde aplique
-- Rate limiting en endpoints públicos
-- Validación de firma en todos los webhooks de Recurrente
-- Guards de ownership — un freelancer no puede ver datos de otro
-- SUPPORT no puede ver métricas financieras ni modificar planes
-
----
-
-## Orden de ejecución
-
-```
-0. Fundación        → Roles, FreelancerProfile, utilidades core, infraestructura
-1. Servicios        → Services + Clients + flujos de invitación + LimitsGuard
-2. Cotizaciones     → Quotes + PDF + flujo de aprobación dual
-3. Pagos            → RecurrenteModule + Payments + webhooks
-4. Colaboración     → Connections + Assignments
-5. Billing          → Blend cobra al freelancer + webhooks de billing
-6. Dashboard FR     → Resumen del freelancer
-7. Dashboard Client → Vista del cliente
-8. Admin Panel      → Métricas + gestión + roles de soporte
-9. Automatizaciones → Emails + recordatorios + cron jobs
-```
-
-No avanzar a la siguiente fase hasta que la anterior tenga sus endpoints funcionando y los casos edge principales cubiertos.
+| # | Fase | Descripción |
+|---|------|-------------|
+| 0 | Fundación | Refactor Multi-tenant, Auth, Workspaces, Guardias *(En progreso)* |
+| 1 | Servicios | CRUD |
+| 2 | Cotizaciones | Quotes + PDF + flujo de aprobación dual |
+| 3 | Pagos | RecurrenteModule + Payments + webhooks |
+| 4 | Colaboración | Invitaciones + CollaborationSplit |
+| 5 | Billing | Blend cobra suscripción al Workspace |
+| 6 | Dashboard FR | Resumen del Workspace |
+| 7 | Dashboard Client | Vista del cliente |
+| 8 | Admin Panel | Métricas + gestión |
+| 9 | Automatizaciones | Emails + n8n webhooks + recordatorios |

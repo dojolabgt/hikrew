@@ -9,7 +9,7 @@ import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { BillingSubscription, BillingSubscriptionStatus } from './billing-subscription.entity';
 import { RecurrenteBlendService } from './recurrente-blend.service';
-import { FreelancerProfile } from '../freelancer-profile/freelancer-profile.entity';
+import { Workspace, WorkspacePlan } from '../workspaces/workspace.entity';
 import { SubscribeDto } from './dto/subscribe.dto';
 
 @Injectable()
@@ -19,28 +19,28 @@ export class BillingService {
     constructor(
         @InjectRepository(BillingSubscription)
         private readonly subscriptionRepo: Repository<BillingSubscription>,
-        @InjectRepository(FreelancerProfile)
-        private readonly profileRepo: Repository<FreelancerProfile>,
+        @InjectRepository(Workspace)
+        private readonly workspaceRepo: Repository<Workspace>,
         private readonly recurrenteBlend: RecurrenteBlendService,
         private readonly configService: ConfigService,
     ) { }
 
     /**
-     * Returns the current billing status for a freelancer:
+     * Returns the current billing status for a workspace:
      * plan, planExpiresAt, active subscription (if any), and prices.
      */
-    async getStatus(userId: string) {
-        const profile = await this.profileRepo.findOne({ where: { userId } });
-        if (!profile) throw new NotFoundException('Perfil no encontrado');
+    async getStatus(workspaceId: string) {
+        const workspace = await this.workspaceRepo.findOne({ where: { id: workspaceId } });
+        if (!workspace) throw new NotFoundException('Espacio de trabajo no encontrado');
 
         const activeSubscription = await this.subscriptionRepo.findOne({
-            where: { freelancerId: userId, status: 'active' },
+            where: { workspaceId, status: 'active' },
             order: { createdAt: 'DESC' },
         });
 
         return {
-            plan: profile.plan,
-            planExpiresAt: profile.planExpiresAt,
+            plan: workspace.plan,
+            planExpiresAt: workspace.planExpiresAt,
             subscription: activeSubscription ?? null,
             prices: this.recurrenteBlend.prices,
         };
@@ -50,16 +50,20 @@ export class BillingService {
      * Creates a Recurrente subscription checkout and persists the pending BillingSubscription.
      * Returns the checkout URL to redirect the user.
      */
-    async subscribe(userId: string, dto: SubscribeDto): Promise<{ checkoutUrl: string }> {
-        const profile = await this.profileRepo.findOne({ where: { userId } });
-        if (!profile) throw new NotFoundException('Perfil no encontrado');
+    async subscribe(workspaceId: string, dto: SubscribeDto): Promise<{ checkoutUrl: string }> {
+        const workspace = await this.workspaceRepo.findOne({ where: { id: workspaceId } });
+        if (!workspace) throw new NotFoundException('Espacio de trabajo no encontrado');
 
-        if (profile.plan === 'pro') {
-            const active = await this.subscriptionRepo.findOne({
-                where: { freelancerId: userId, status: 'active' },
-            });
-            if (active) {
-                throw new BadRequestException('Ya tienes una suscripción activa');
+        const active = await this.subscriptionRepo.findOne({
+            where: { workspaceId, status: 'active' },
+        });
+
+        if (active) {
+            if (active.plan === dto.plan) {
+                throw new BadRequestException('Este espacio ya tiene el plan activo');
+            }
+            if (active.plan === 'premium' && dto.plan === 'pro') {
+                throw new BadRequestException('No puedes bajar de plan desde Premium directamente. Cancela tu suscripción actual primero.');
             }
         }
 
@@ -68,16 +72,16 @@ export class BillingService {
         const cancelUrl = `${frontendUrl}/dashboard/billing?cancelled=1`;
 
         const checkout = await this.recurrenteBlend.createSubscriptionCheckout(
-            userId,
+            workspaceId,
             dto.plan,
-            dto.interval,
+            dto.interval === 'year',
             successUrl,
             cancelUrl,
         );
 
         await this.subscriptionRepo.save(
             this.subscriptionRepo.create({
-                freelancerId: userId,
+                workspaceId: workspaceId,
                 recurrenteCheckoutId: checkout.id,
                 plan: dto.plan,
                 interval: dto.interval,
@@ -85,47 +89,98 @@ export class BillingService {
             }),
         );
 
-        this.logger.log(`Created billing checkout ${checkout.id} for freelancer ${userId}`);
+        this.logger.log(`Created billing checkout ${checkout.id} for workspace ${workspaceId}`);
         return { checkoutUrl: checkout.checkout_url };
+    }
+
+    async devOverridePlan(workspaceId: string, plan: 'pro' | 'premium'): Promise<{ success: boolean }> {
+        if (this.configService.get('NODE_ENV') === 'production') {
+            throw new BadRequestException('Not available in production');
+        }
+
+        const workspace = await this.workspaceRepo.findOne({ where: { id: workspaceId } });
+        if (!workspace) throw new NotFoundException('Espacio de trabajo no encontrado');
+
+        // Cancel existing active subscription if any
+        const existing = await this.subscriptionRepo.findOne({
+            where: { workspaceId, status: 'active' },
+        });
+
+        if (existing) {
+            existing.status = 'cancelled';
+            await this.subscriptionRepo.save(existing);
+        }
+
+        // Create a fake active subscription
+        await this.subscriptionRepo.save(
+            this.subscriptionRepo.create({
+                workspaceId: workspaceId,
+                recurrenteCheckoutId: `dev_checkout_${Date.now()}`,
+                recurrenteSubscriptionId: `dev_sub_${Date.now()}`,
+                plan,
+                interval: 'month',
+                status: 'active',
+                currentPeriodStart: new Date(),
+                currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            })
+        );
+
+        await this.workspaceRepo.update(
+            { id: workspaceId },
+            {
+                plan: plan as WorkspacePlan,
+                planExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            }
+        );
+
+        this.logger.log(`Dev override: upgraded workspace ${workspaceId} to ${plan}`);
+        return { success: true };
     }
 
     /**
      * Cancels the active subscription in Recurrente and marks it cancelled locally.
      */
-    async cancelSubscription(userId: string): Promise<void> {
+    async cancelSubscription(workspaceId: string): Promise<void> {
         const subscription = await this.subscriptionRepo.findOne({
-            where: { freelancerId: userId, status: 'active' },
+            where: { workspaceId, status: 'active' },
         });
 
         if (!subscription) {
-            throw new NotFoundException('No tienes una suscripción activa');
+            throw new NotFoundException('Este espacio no tiene una suscripción activa');
         }
 
-        if (subscription.recurrenteSubscriptionId) {
+        if (subscription.recurrenteSubscriptionId && !subscription.recurrenteSubscriptionId.startsWith('dev_')) {
             await this.recurrenteBlend.cancelSubscription(subscription.recurrenteSubscriptionId);
         }
 
         subscription.status = 'cancelled';
         await this.subscriptionRepo.save(subscription);
 
-        await this.profileRepo.update({ userId }, { plan: 'free', planExpiresAt: null });
+        if (this.configService.get('NODE_ENV') !== 'production') {
+            // Cancel immediately in DEV
+            await this.workspaceRepo.update({ id: workspaceId }, { plan: WorkspacePlan.FREE, planExpiresAt: null as unknown as Date });
+        } else {
+            // In PROD, we let them keep access until planExpiresAt
+            const workspace = await this.workspaceRepo.findOne({ where: { id: workspaceId } });
+            this.logger.log(`Subscription cancelled for ${workspaceId}, but access kept until ${workspace?.planExpiresAt}`);
+        }
 
-        this.logger.log(`Subscription cancelled for freelancer ${userId}`);
+        this.logger.log(`Subscription cancelled for workspace ${workspaceId}`);
     }
 
     /**
-     * Returns a list of all billing subscriptions for a freelancer, newest first.
+     * Returns a list of all billing subscriptions for a workspace, newest first.
      */
-    async getHistory(userId: string): Promise<BillingSubscription[]> {
+    async getHistory(workspaceId: string): Promise<BillingSubscription[]> {
         return this.subscriptionRepo.find({
-            where: { freelancerId: userId },
+            where: { workspaceId },
             order: { createdAt: 'DESC' },
         });
     }
 
     /**
      * Handles incoming webhook events from Recurrente's billing webhook.
-     * Routes events by type and updates subscription + profile plan accordingly.
+     * Routes events by type and updates subscription + workspace plan accordingly.
      */
     async handleWebhookEvent(body: Record<string, unknown>): Promise<void> {
         const eventType = body['event'] as string | undefined;
@@ -182,16 +237,34 @@ export class BillingService {
         if (periodEnd) subscription.currentPeriodEnd = new Date(periodEnd);
         await this.subscriptionRepo.save(subscription);
 
+        // Cancel any old active subscriptions this workspace might have (Upgrades!)
+        const oldSubs = await this.subscriptionRepo.find({
+            where: { workspaceId: subscription.workspaceId, status: 'active' },
+        });
+        for (const oldSub of oldSubs) {
+            if (oldSub.id !== subscription.id) {
+                oldSub.status = 'cancelled';
+                if (oldSub.recurrenteSubscriptionId && !oldSub.recurrenteSubscriptionId.startsWith('dev_')) {
+                    try {
+                        await this.recurrenteBlend.cancelSubscription(oldSub.recurrenteSubscriptionId);
+                    } catch (e) {
+                        this.logger.error(`Could not cancel old Recurrente sub ${oldSub.recurrenteSubscriptionId}`);
+                    }
+                }
+                await this.subscriptionRepo.save(oldSub);
+            }
+        }
+
         // Upgrade plan
-        await this.profileRepo.update(
-            { userId: subscription.freelancerId },
+        await this.workspaceRepo.update(
+            { id: subscription.workspaceId },
             {
-                plan: subscription.plan as any,
-                planExpiresAt: periodEnd ? new Date(periodEnd) : null,
+                plan: subscription.plan as WorkspacePlan,
+                planExpiresAt: periodEnd ? new Date(periodEnd) : null as unknown as Date,
             },
         );
 
-        this.logger.log(`Freelancer ${subscription.freelancerId} upgraded to ${subscription.plan.toUpperCase()} via checkout ${checkoutId}`);
+        this.logger.log(`Workspace ${subscription.workspaceId} upgraded to ${subscription.plan.toUpperCase()} via checkout ${checkoutId}`);
     }
 
     private async handleSubscriptionPaid(data: Record<string, unknown>): Promise<void> {
@@ -213,11 +286,11 @@ export class BillingService {
         if (periodEnd) subscription.currentPeriodEnd = new Date(periodEnd);
         await this.subscriptionRepo.save(subscription);
 
-        await this.profileRepo.update(
-            { userId: subscription.freelancerId },
+        await this.workspaceRepo.update(
+            { id: subscription.workspaceId },
             {
-                plan: subscription.plan as any,
-                planExpiresAt: periodEnd ? new Date(periodEnd) : null,
+                plan: subscription.plan as WorkspacePlan,
+                planExpiresAt: periodEnd ? new Date(periodEnd) : null as unknown as Date,
             },
         );
     }
@@ -231,8 +304,8 @@ export class BillingService {
         if (subscription) {
             subscription.status = 'past_due';
             await this.subscriptionRepo.save(subscription);
-            // TODO: send past_due email notification via MailService
-            this.logger.warn(`Subscription past_due for freelancer ${subscription.freelancerId}`);
+            // TODO: send email notification
+            this.logger.warn(`Subscription past_due for workspace ${subscription.workspaceId}`);
         }
     }
 
@@ -246,12 +319,12 @@ export class BillingService {
             subscription.status = 'cancelled';
             await this.subscriptionRepo.save(subscription);
 
-            await this.profileRepo.update(
-                { userId: subscription.freelancerId },
-                { plan: 'free', planExpiresAt: null },
+            await this.workspaceRepo.update(
+                { id: subscription.workspaceId },
+                { plan: WorkspacePlan.FREE, planExpiresAt: null as unknown as Date },
             );
 
-            this.logger.log(`Freelancer ${subscription.freelancerId} downgraded to FREE`);
+            this.logger.log(`Workspace ${subscription.workspaceId} downgraded to FREE`);
         }
     }
 
