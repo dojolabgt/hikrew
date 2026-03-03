@@ -9,6 +9,18 @@ export interface Workspace {
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
+    country?: string | null;
+    state?: string | null;
+    taxId?: string | null;
+    taxType?: string | null;
+    language?: string | null;
+    timezone?: string | null;
+    dateFormat?: string | null;
+    timeFormat?: string | null;
+    numberFormat?: string | null;
+    currencyFormat?: string | null;
+    firstDayOfWeek?: string | null;
+    currencies?: { code: string; name: string; symbol: string; isDefault: boolean }[] | null;
 }
 
 export interface WorkspaceMember {

@@ -1,15 +1,15 @@
 import {
-    Injectable,
-    NestInterceptor,
-    ExecutionContext,
-    CallHandler,
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 export interface ApiResponse<T> {
-    success: true;
-    data: T;
+  success: true;
+  data: T;
 }
 
 /**
@@ -19,17 +19,19 @@ export interface ApiResponse<T> {
  * Error responses are handled separately by HttpExceptionFilter.
  */
 @Injectable()
-export class ApiResponseInterceptor<T>
-    implements NestInterceptor<T, ApiResponse<T>> {
-    intercept(
-        _context: ExecutionContext,
-        next: CallHandler,
-    ): Observable<ApiResponse<T>> {
-        return next.handle().pipe(
-            map((data: T) => ({
-                success: true as const,
-                data,
-            })),
-        );
-    }
+export class ApiResponseInterceptor<T> implements NestInterceptor<
+  T,
+  ApiResponse<T>
+> {
+  intercept(
+    _context: ExecutionContext,
+    next: CallHandler,
+  ): Observable<ApiResponse<T>> {
+    return next.handle().pipe(
+      map((data: T) => ({
+        success: true as const,
+        data,
+      })),
+    );
+  }
 }

@@ -43,9 +43,9 @@ export default function SettingsPage() {
         <DashboardShell>
             <div className="space-y-12 w-full py-2">
                 {/* Header */}
-                <div>
-                    <h1 className="text-xl font-medium text-zinc-900 dark:text-zinc-100 tracking-tight">Integraciones</h1>
-                    <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                <div className="mb-6">
+                    <h1 className="text-xl font-semibold tracking-tight">Integraciones</h1>
+                    <p className="text-sm text-muted-foreground mt-0.5">
                         Conecta las herramientas que usas para cobrar y gestionar tu negocio.
                     </p>
                 </div>

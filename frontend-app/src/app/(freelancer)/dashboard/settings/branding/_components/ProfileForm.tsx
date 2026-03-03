@@ -19,8 +19,6 @@ import {
     FormLabel,
     FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getImageUrl } from '@/lib/utils';
 import {
@@ -31,6 +29,8 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { AppInput } from '@/components/common/AppInput';
+import { PrimaryButton } from '@/components/common/PrimaryButton';
 
 const profileSchema = z.object({
     businessName: z.string().max(100, 'El nombre no puede exceder 100 caracteres').optional(),
@@ -86,7 +86,6 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Validar tamaño máximo (2MB)
         const MAX_SIZE_MB = 2;
         if (file.size > MAX_SIZE_MB * 1024 * 1024) {
             toast.error(`La imagen excede el límite de ${MAX_SIZE_MB}MB. Por favor, elige una más pequeña.`);
@@ -102,7 +101,6 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
             onUpdate(updatedProfile);
         } catch (error: any) {
             console.error('Error uploading logo', error);
-            // Capturar el error 413 o mensaje del backend si existe
             const backendMsg = error?.response?.data?.message;
             const msg = typeof backendMsg === 'string' ? backendMsg :
                 (error?.response?.status === 413 ? 'El archivo es demasiado grande para el servidor.' : 'Error al subir el logo');
@@ -116,34 +114,34 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
     return (
         <div className="space-y-6">
 
-            {/* Section: Logo */}
+            {/* ── Identidad Visual ───────────────────────────────── */}
             <Card>
                 <CardHeader>
                     <CardTitle>Identidad Visual</CardTitle>
                     <CardDescription>
-                        Sube el logo de tu negocio. Recomendamos una imagen cuadrada (JPG, PNG o WEBP) de al menos 400x400px, máx. 2MB.
+                        Sube el logo de tu negocio. Recomendamos una imagen cuadrada (JPG, PNG o WEBP) de al menos 400×400px, máx. 2MB.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex flex-col sm:flex-row items-start gap-6">
+                    <div className="flex items-center gap-5">
                         <div className="relative group inline-flex flex-shrink-0">
-                            <div className="absolute -inset-0.5 bg-gradient-to-tr from-primary/30 to-primary/0 rounded-full blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
+                            <div className="absolute -inset-0.5 bg-gradient-to-tr from-primary/30 to-primary/0 rounded-full blur opacity-0 group-hover:opacity-100 transition duration-500" />
                             <Avatar
-                                className="relative h-20 w-20 md:h-24 md:w-24 border-2 border-background shadow-sm cursor-pointer transition-all duration-300 group-hover:scale-[1.02]"
+                                className="relative h-20 w-20 border-2 border-background shadow-sm cursor-pointer transition-all duration-300 group-hover:scale-[1.02]"
                                 onClick={() => fileInputRef.current?.click()}
                             >
                                 <AvatarImage src={getImageUrl(currentLogo)} alt={businessName} className="object-cover" />
-                                <AvatarFallback className="text-2xl md:text-3xl font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                                <AvatarFallback className="text-2xl font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
                                     {initials}
                                 </AvatarFallback>
                             </Avatar>
                             <div
-                                className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-full bg-black/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer"
+                                className="absolute inset-0 z-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer"
                                 onClick={() => fileInputRef.current?.click()}
                             >
                                 {isUploadingLogo
-                                    ? <Loader2 className="w-6 h-6 text-white animate-spin" />
-                                    : <Camera className="w-6 h-6 text-white" />
+                                    ? <Loader2 className="w-5 h-5 text-white animate-spin" />
+                                    : <Camera className="w-5 h-5 text-white" />
                                 }
                             </div>
                             <input
@@ -154,26 +152,19 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
                                 accept="image/png,image/jpeg,image/jpg,image/webp"
                             />
                         </div>
-                        <div className="flex-1 max-w-md space-y-3">
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                disabled={isUploadingLogo}
-                                onClick={() => fileInputRef.current?.click()}
-                                className="bg-white/50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 border shadow-sm transition-all active:scale-95 mt-4"
-                            >
-                                {isUploadingLogo
-                                    ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Subiendo...</>
-                                    : <><Camera className="mr-2 h-4 w-4" /> Cambiar logo</>
-                                }
-                            </Button>
-                        </div>
+                        <button
+                            type="button"
+                            disabled={isUploadingLogo}
+                            onClick={() => fileInputRef.current?.click()}
+                            className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                        >
+                            {isUploadingLogo ? 'Subiendo...' : 'Cambiar logo'}
+                        </button>
                     </div>
                 </CardContent>
             </Card>
 
-            {/* Section: Form Fields */}
+            {/* ── Detalles de Marca ──────────────────────────────── */}
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <Card>
@@ -184,18 +175,17 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
                             </CardDescription>
                         </CardHeader>
 
-                        <CardContent className="space-y-6">
-                            <div className="space-y-6 max-w-md">
+                        <CardContent>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <FormField
                                     control={form.control}
                                     name="businessName"
                                     render={({ field }) => (
-                                        <FormItem>
+                                        <FormItem className="sm:col-span-2">
                                             <FormLabel>Nombre Comercial</FormLabel>
                                             <FormControl>
-                                                <Input
+                                                <AppInput
                                                     placeholder="Ej. Agencia Creativa Blend"
-                                                    className="bg-zinc-50/50 dark:bg-zinc-900/50"
                                                     {...field}
                                                 />
                                             </FormControl>
@@ -214,14 +204,11 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
                                         <FormItem>
                                             <FormLabel>Color de Marca</FormLabel>
                                             <FormControl>
-                                                <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-2">
                                                     <div
-                                                        className="relative overflow-hidden rounded-lg border shadow-sm flex-shrink-0 w-11 h-11 transition-transform duration-200 hover:scale-[1.05] cursor-pointer"
+                                                        className="relative overflow-hidden rounded-md border shadow-sm flex-shrink-0 w-10 h-10 cursor-pointer hover:scale-105 transition-transform"
                                                         style={{ backgroundColor: field.value || '#000000' }}
-                                                        onClick={() => {
-                                                            const input = document.getElementById('brand-color-input');
-                                                            if (input) input.click();
-                                                        }}
+                                                        onClick={() => document.getElementById('brand-color-input')?.click()}
                                                     >
                                                         <input
                                                             id="brand-color-input"
@@ -231,9 +218,9 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
                                                             value={field.value || '#000000'}
                                                         />
                                                     </div>
-                                                    <Input
+                                                    <AppInput
                                                         placeholder="#000000"
-                                                        className="font-mono uppercase bg-zinc-50/50 dark:bg-zinc-900/50"
+                                                        className="font-mono uppercase"
                                                         {...field}
                                                         onChange={(e) => {
                                                             const val = e.target.value;
@@ -243,7 +230,7 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
                                                 </div>
                                             </FormControl>
                                             <FormDescription className="text-xs">
-                                                Define el color principal de tus botones y enlaces.
+                                                Color principal de tus botones y enlaces.
                                             </FormDescription>
                                             <FormMessage />
                                         </FormItem>
@@ -254,10 +241,7 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
 
                         <CardFooter className="justify-between border-t border-border/40 pt-6">
                             <p className="text-xs text-muted-foreground">Asegúrate de guardar tus cambios.</p>
-                            <Button
-                                type="submit"
-                                disabled={isLoading}
-                            >
+                            <PrimaryButton compact type="submit" disabled={isLoading}>
                                 {isLoading ? (
                                     <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -266,7 +250,7 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
                                 ) : (
                                     'Guardar cambios'
                                 )}
-                            </Button>
+                            </PrimaryButton>
                         </CardFooter>
                     </Card>
                 </form>

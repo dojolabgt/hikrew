@@ -6,12 +6,9 @@ import { ServicesController } from './services.controller';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([Service]),
-        WorkspacesModule,
-    ],
-    controllers: [ServicesController],
-    providers: [ServicesService],
-    exports: [ServicesService],
+  imports: [TypeOrmModule.forFeature([Service]), WorkspacesModule],
+  controllers: [ServicesController],
+  providers: [ServicesService],
+  exports: [ServicesService],
 })
-export class ServicesModule { }
+export class ServicesModule {}

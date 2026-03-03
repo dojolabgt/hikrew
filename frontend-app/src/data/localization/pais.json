@@ -1,0 +1,54 @@
+{
+    "GT": {
+        "name": "Guatemala",
+        "labels": {
+            "lvl1": "Departamento",
+            "lvl2": "Municipio"
+        },
+        "regions": [
+            {
+                "id": "01",
+                "name": "Guatemala",
+                "cities": [
+                    {
+                        "id": "0101",
+                        "name": "Guatemala"
+                    },
+                    {
+                        "id": "0108",
+                        "name": "Mixco"
+                    }
+                ]
+            }
+        ]
+    },
+    "MX": {
+        "name": "México",
+        "labels": {
+            "lvl1": "Estado",
+            "lvl2": "Municipio / Alcaldía"
+        },
+        "regions": [
+            {
+                "id": "CDMX",
+                "name": "Ciudad de México",
+                "cities": [
+                    {
+                        "id": "CUA",
+                        "name": "Cuauhtémoc"
+                    }
+                ]
+            },
+            {
+                "id": "JAL",
+                "name": "Jalisco",
+                "cities": [
+                    {
+                        "id": "GDL",
+                        "name": "Guadalajara"
+                    }
+                ]
+            }
+        ]
+    }
+}

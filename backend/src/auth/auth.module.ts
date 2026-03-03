@@ -30,4 +30,4 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
   providers: [AuthService, LocalStrategy, JwtStrategy, RefreshTokenStrategy],
   exports: [AuthService],
 })
-export class AuthModule { }
+export class AuthModule {}

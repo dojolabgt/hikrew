@@ -22,7 +22,7 @@ export class AuthService {
     private settingsService: SettingsService,
     private mailService: MailService,
     private workspacesService: WorkspacesService,
-  ) { }
+  ) {}
 
   async register(registerDto: RegisterDto) {
     const settings = await this.settingsService.getSettings();
@@ -175,28 +175,23 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       role: user.role,
-      workspaces: user.workspaceMembers?.map(wm => ({
-        id: wm.workspace.id,
-        role: wm.role,
-        businessName: wm.workspace.businessName
-      })) || []
+      workspaces:
+        user.workspaceMembers?.map((wm) => ({
+          id: wm.workspace.id,
+          role: wm.role,
+          businessName: wm.workspace.businessName,
+        })) || [],
     };
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(
-        payload,
-        {
-          secret: this.configService.get<string>('JWT_SECRET'),
-          expiresIn: '15m',
-        },
-      ),
-      this.jwtService.signAsync(
-        payload,
-        {
-          secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-          expiresIn: '7d',
-        },
-      ),
+      this.jwtService.signAsync(payload, {
+        secret: this.configService.get<string>('JWT_SECRET'),
+        expiresIn: '15m',
+      }),
+      this.jwtService.signAsync(payload, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+        expiresIn: '7d',
+      }),
     ]);
 
     return {

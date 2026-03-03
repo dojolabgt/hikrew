@@ -29,6 +29,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { PrimaryButton } from '@/components/common/PrimaryButton';
 
 const recurrenteSchema = z.object({
     publicKey: z.string().min(1, 'La llave pública es requerida'),
@@ -138,9 +139,9 @@ export function RecurrenteForm({ isConfigured, onUpdateStatus }: RecurrenteFormP
 
                     <div className="pt-6 border-t border-border mt-4 flex items-center justify-between">
                         <p className="text-xs text-muted-foreground mr-4">Asegúrate de guardar tus cambios.</p>
-                        <Button type="submit" className="h-11 px-8 rounded-xl shrink-0" disabled={isLoading}>
+                        <PrimaryButton compact type="submit" disabled={isLoading}>
                             {isLoading ? 'Guardando...' : 'Guardar Claves'}
-                        </Button>
+                        </PrimaryButton>
                     </div>
                 </form>
             </Form>

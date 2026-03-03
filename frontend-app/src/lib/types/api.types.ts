@@ -9,9 +9,12 @@ export interface User {
     id: string;
     email: string;
     role: UserRole;
-    name: string;
+    firstName: string;
+    lastName: string;
     status: 'active' | 'inactive';
     profileImage?: string;
+    authProviders?: string[]; // e.g. ['password', 'google']
+    hasPassword?: boolean;
     lastLoginAt?: string;
     createdAt: string;
     updatedAt: string;

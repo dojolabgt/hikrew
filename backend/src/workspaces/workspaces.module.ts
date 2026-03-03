@@ -8,13 +8,13 @@ import { StorageModule } from '../storage/storage.module';
 import { EncryptionModule } from '../common/encryption/encryption.module';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([Workspace, WorkspaceMember]),
-        StorageModule,
-        EncryptionModule,
-    ],
-    controllers: [WorkspacesController],
-    providers: [WorkspacesService],
-    exports: [WorkspacesService],
+  imports: [
+    TypeOrmModule.forFeature([Workspace, WorkspaceMember]),
+    StorageModule,
+    EncryptionModule,
+  ],
+  controllers: [WorkspacesController],
+  providers: [WorkspacesService],
+  exports: [WorkspacesService],
 })
-export class WorkspacesModule { }
+export class WorkspacesModule {}

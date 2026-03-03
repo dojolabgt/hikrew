@@ -16,8 +16,12 @@ async function bootstrap() {
   // All credentials come from env — easy to configure per environment
   const adminEmail = configService.getOrThrow<string>('SEED_ADMIN_EMAIL');
   const adminPassword = configService.getOrThrow<string>('SEED_ADMIN_PASSWORD');
-  const freelancerEmail = configService.getOrThrow<string>('SEED_FREELANCER_EMAIL');
-  const freelancerPassword = configService.getOrThrow<string>('SEED_FREELANCER_PASSWORD');
+  const freelancerEmail = configService.getOrThrow<string>(
+    'SEED_FREELANCER_EMAIL',
+  );
+  const freelancerPassword = configService.getOrThrow<string>(
+    'SEED_FREELANCER_PASSWORD',
+  );
 
   const users = [
     {
@@ -50,7 +54,9 @@ async function bootstrap() {
 
       // Ensure Workspace exists for FREELANCER seed users
       if (userData.role === UserRole.FREELANCER) {
-        const workspaces = await workspacesService.findByUserId(existingUser.id);
+        const workspaces = await workspacesService.findByUserId(
+          existingUser.id,
+        );
         if (workspaces.length > 0) {
           console.log(`⏭️  Workspace already exists for ${userData.email}`);
         } else {

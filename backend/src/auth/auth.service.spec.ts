@@ -6,6 +6,10 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { UserRole } from './constants/roles';
 
+import { SettingsService } from '../core/settings/settings.service';
+import { MailService } from '../core/mail/mail.service';
+import { WorkspacesService } from '../workspaces/workspaces.service';
+
 // Mock bcrypt module
 jest.mock('bcrypt', () => ({
   compare: jest.fn(),
@@ -27,6 +31,19 @@ const mockConfigService = () => ({
   get: jest.fn().mockReturnValue('super-secret'),
 });
 
+const mockSettingsService = () => ({
+  getSettings: jest.fn(),
+});
+
+const mockMailService = () => ({
+  sendPasswordReset: jest.fn(),
+  sendUserConfirmation: jest.fn(),
+});
+
+const mockWorkspacesService = () => ({
+  createDefaultWorkspace: jest.fn(),
+});
+
 describe('AuthService', () => {
   let service: AuthService;
   let usersService: ReturnType<typeof mockUsersService>;
@@ -39,6 +56,9 @@ describe('AuthService', () => {
         { provide: UsersService, useFactory: mockUsersService },
         { provide: JwtService, useFactory: mockJwtService },
         { provide: ConfigService, useFactory: mockConfigService },
+        { provide: SettingsService, useFactory: mockSettingsService },
+        { provide: MailService, useFactory: mockMailService },
+        { provide: WorkspacesService, useFactory: mockWorkspacesService },
       ],
     }).compile();
 
@@ -61,8 +81,9 @@ describe('AuthService', () => {
         id: '1',
         email: 'test@test.com',
         password: 'hashedPassword',
-        name: 'Test',
-        role: UserRole.USER,
+        firstName: 'Test',
+        lastName: 'User',
+        role: UserRole.FREELANCER,
         refreshToken: null,
       };
 
@@ -73,46 +94,47 @@ describe('AuthService', () => {
       expect(result).toEqual({
         id: '1',
         email: 'test@test.com',
-        name: 'Test',
-        role: UserRole.USER,
+        firstName: 'Test',
+        lastName: 'User',
+        role: UserRole.FREELANCER,
       });
-    });
-
-    it('should return null if password does not match', async () => {
-      const user = {
-        id: '1',
-        email: 'test@test.com',
-        password: 'hashedPassword',
-        role: UserRole.USER,
-      };
-
-      usersService.findOneByEmailWithPassword.mockResolvedValue(user);
-      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
-
-      const result = await service.validateUser(
-        'test@test.com',
-        'wrongpassword',
-      );
-      expect(result).toBeNull();
-    });
-
-    it('should return null if user not found', async () => {
-      usersService.findOneByEmailWithPassword.mockResolvedValue(null);
-      const result = await service.validateUser(
-        'notfound@test.com',
-        'password',
-      );
-      expect(result).toBeNull();
     });
   });
 
+  it('should return null if password does not match', async () => {
+    const user = {
+      id: '1',
+      email: 'test@test.com',
+      password: 'hashedPassword',
+      role: UserRole.FREELANCER,
+    };
+
+    usersService.findOneByEmailWithPassword.mockResolvedValue(user);
+    (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+
+    const result = await service.validateUser(
+      'test@test.com',
+      'wrongpassword',
+    );
+    expect(result).toBeNull();
+  });
+
+  it('should return null if user not found', async () => {
+    usersService.findOneByEmailWithPassword.mockResolvedValue(null);
+    const result = await service.validateUser(
+      'notfound@test.com',
+      'password',
+    );
+    expect(result).toBeNull();
+  });
   describe('login', () => {
     it('should return access_token and refresh_token', async () => {
       const user = {
         id: '1',
         email: 'test@test.com',
-        role: UserRole.USER,
-        name: 'Test',
+        role: UserRole.FREELANCER,
+        firstName: 'Test',
+        lastName: 'User',
       };
       jwtService.signAsync.mockResolvedValue('token');
 

@@ -31,7 +31,8 @@ export class UsersService {
       select: [
         'id',
         'email',
-        'name',
+        'firstName',
+        'lastName',
         'role',
         'profileImage',
         'createdAt',
@@ -55,7 +56,8 @@ export class UsersService {
       select: [
         'id',
         'email',
-        'name',
+        'firstName',
+        'lastName',
         'role',
         'profileImage',
         'createdAt',
@@ -79,7 +81,8 @@ export class UsersService {
       select: [
         'id',
         'email',
-        'name',
+        'firstName',
+        'lastName',
         'role',
         'profileImage',
         'createdAt',

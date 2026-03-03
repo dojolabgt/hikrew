@@ -37,8 +37,12 @@ export class BlendFoundation1770864000000 implements MigrationInterface {
     `);
 
     // Step 1c: Remap old values → new values
-    await queryRunner.query(`UPDATE "users" SET "role" = 'freelancer' WHERE "role" = 'user'`);
-    await queryRunner.query(`UPDATE "users" SET "role" = 'support'    WHERE "role" = 'team'`);
+    await queryRunner.query(
+      `UPDATE "users" SET "role" = 'freelancer' WHERE "role" = 'user'`,
+    );
+    await queryRunner.query(
+      `UPDATE "users" SET "role" = 'support'    WHERE "role" = 'team'`,
+    );
 
     // Step 1d: Cast back to new enum type (varchar → enum works fine with USING)
     await queryRunner.query(`
@@ -119,8 +123,12 @@ export class BlendFoundation1770864000000 implements MigrationInterface {
         TYPE varchar
         USING "role"::text
     `);
-    await queryRunner.query(`UPDATE "users" SET "role" = 'user' WHERE "role" IN ('freelancer', 'client')`);
-    await queryRunner.query(`UPDATE "users" SET "role" = 'team' WHERE "role" = 'support'`);
+    await queryRunner.query(
+      `UPDATE "users" SET "role" = 'user' WHERE "role" IN ('freelancer', 'client')`,
+    );
+    await queryRunner.query(
+      `UPDATE "users" SET "role" = 'team' WHERE "role" = 'support'`,
+    );
     await queryRunner.query(`
       ALTER TABLE "users"
         ALTER COLUMN "role"

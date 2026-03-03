@@ -72,7 +72,8 @@ describe('UsersService', () => {
       const userData = {
         email: 'test@example.com',
         password: 'password123',
-        name: 'Test User',
+        firstName: 'Test',
+        lastName: 'User',
       };
 
       const savedUser = {
@@ -92,7 +93,8 @@ describe('UsersService', () => {
       expect(userRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           email: userData.email,
-          name: userData.name,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
         }),
       );
       expect(userRepository.save).toHaveBeenCalled();

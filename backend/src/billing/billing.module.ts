@@ -9,12 +9,12 @@ import { Workspace } from '../workspaces/workspace.entity';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([BillingSubscription, Workspace]),
-        WorkspacesModule,
-    ],
-    providers: [BillingService, RecurrenteBlendService],
-    controllers: [BillingController, BillingWebhookController],
-    exports: [BillingService],
+  imports: [
+    TypeOrmModule.forFeature([BillingSubscription, Workspace]),
+    WorkspacesModule,
+  ],
+  providers: [BillingService, RecurrenteBlendService],
+  controllers: [BillingController, BillingWebhookController],
+  exports: [BillingService],
 })
-export class BillingModule { }
+export class BillingModule {}

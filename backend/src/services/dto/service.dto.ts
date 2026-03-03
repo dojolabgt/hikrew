@@ -1,119 +1,132 @@
-import { IsString, IsOptional, IsNumber, IsEnum, IsBoolean, IsInt, IsObject, ValidateNested } from 'class-validator';
-import { ServiceCurrency, ServiceUnitType, ServiceChargeType } from '../service.entity';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsEnum,
+  IsBoolean,
+  IsInt,
+  IsObject,
+  ValidateNested,
+} from 'class-validator';
+import {
+  ServiceCurrency,
+  ServiceUnitType,
+  ServiceChargeType,
+} from '../service.entity';
 
 export class CreateServiceDto {
-    @IsString()
-    name: string;
+  @IsString()
+  name: string;
 
-    @IsOptional()
-    @IsString()
-    sku?: string;
+  @IsOptional()
+  @IsString()
+  sku?: string;
 
-    @IsOptional()
-    @IsString()
-    description?: string;
+  @IsOptional()
+  @IsString()
+  description?: string;
 
-    @IsNumber()
-    basePrice: number;
+  @IsNumber()
+  basePrice: number;
 
-    @IsEnum(ServiceCurrency)
-    currency: ServiceCurrency;
+  @IsEnum(ServiceCurrency)
+  currency: ServiceCurrency;
 
-    @IsOptional()
-    @IsEnum(ServiceUnitType)
-    unitType?: ServiceUnitType;
+  @IsOptional()
+  @IsEnum(ServiceUnitType)
+  unitType?: ServiceUnitType;
 
-    @IsOptional()
-    @IsEnum(ServiceChargeType)
-    chargeType?: ServiceChargeType;
+  @IsOptional()
+  @IsEnum(ServiceChargeType)
+  chargeType?: ServiceChargeType;
 
-    @IsOptional()
-    @IsNumber()
-    internalCost?: number;
+  @IsOptional()
+  @IsNumber()
+  internalCost?: number;
 
-    @IsOptional()
-    @IsBoolean()
-    isTaxable?: boolean;
+  @IsOptional()
+  @IsBoolean()
+  isTaxable?: boolean;
 
-    @IsOptional()
-    @IsString()
-    imageUrl?: string;
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
 
-    @IsOptional()
-    @IsInt()
-    estimatedDeliveryDays?: number;
+  @IsOptional()
+  @IsInt()
+  estimatedDeliveryDays?: number;
 
-    @IsOptional()
-    @IsString()
-    specificTerms?: string;
+  @IsOptional()
+  @IsString()
+  specificTerms?: string;
 
-    @IsOptional()
-    @IsObject()
-    metadata?: Record<string, any>;
+  @IsOptional()
+  @IsObject()
+  metadata?: Record<string, any>;
 
-    @IsOptional()
-    @IsString()
-    category?: string;
+  @IsOptional()
+  @IsString()
+  category?: string;
 }
 
 export class UpdateServiceDto {
-    @IsOptional()
-    @IsString()
-    name?: string;
+  @IsOptional()
+  @IsString()
+  name?: string;
 
-    @IsOptional()
-    @IsString()
-    sku?: string;
+  @IsOptional()
+  @IsString()
+  sku?: string;
 
-    @IsOptional()
-    @IsString()
-    description?: string;
+  @IsOptional()
+  @IsString()
+  description?: string;
 
-    @IsOptional()
-    @IsNumber()
-    basePrice?: number;
+  @IsOptional()
+  @IsNumber()
+  basePrice?: number;
 
-    @IsOptional()
-    @IsEnum(ServiceCurrency)
-    currency?: ServiceCurrency;
+  @IsOptional()
+  @IsEnum(ServiceCurrency)
+  currency?: ServiceCurrency;
 
-    @IsOptional()
-    @IsEnum(ServiceUnitType)
-    unitType?: ServiceUnitType;
+  @IsOptional()
+  @IsEnum(ServiceUnitType)
+  unitType?: ServiceUnitType;
 
-    @IsOptional()
-    @IsEnum(ServiceChargeType)
-    chargeType?: ServiceChargeType;
+  @IsOptional()
+  @IsEnum(ServiceChargeType)
+  chargeType?: ServiceChargeType;
 
-    @IsOptional()
-    @IsNumber()
-    internalCost?: number;
+  @IsOptional()
+  @IsNumber()
+  internalCost?: number;
 
-    @IsOptional()
-    @IsBoolean()
-    isTaxable?: boolean;
+  @IsOptional()
+  @IsBoolean()
+  isTaxable?: boolean;
 
-    @IsOptional()
-    @IsString()
-    imageUrl?: string;
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
 
-    @IsOptional()
-    @IsInt()
-    estimatedDeliveryDays?: number;
+  @IsOptional()
+  @IsInt()
+  estimatedDeliveryDays?: number;
 
-    @IsOptional()
-    @IsString()
-    specificTerms?: string;
+  @IsOptional()
+  @IsString()
+  specificTerms?: string;
 
-    @IsOptional()
-    @IsObject()
-    metadata?: Record<string, any>;
+  @IsOptional()
+  @IsObject()
+  metadata?: Record<string, any>;
 
-    @IsOptional()
-    @IsString()
-    category?: string;
+  @IsOptional()
+  @IsString()
+  category?: string;
 
-    @IsOptional()
-    @IsBoolean()
-    isActive?: boolean;
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }

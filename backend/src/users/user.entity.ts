@@ -24,7 +24,10 @@ export class User {
   password: string;
 
   @Column()
-  name: string;
+  firstName: string;
+
+  @Column()
+  lastName: string;
 
   @Column({ type: 'enum', enum: UserRole, default: UserRole.FREELANCER })
   @Index() // Index for role-based queries
@@ -36,7 +39,7 @@ export class User {
   @Column({ nullable: true })
   profileImage: string;
 
-  @OneToMany(() => WorkspaceMember, member => member.user)
+  @OneToMany(() => WorkspaceMember, (member) => member.user)
   workspaceMembers: WorkspaceMember[];
 
   @CreateDateColumn()

@@ -11,10 +11,10 @@
 Blend cobra suscripción a los espacios de trabajo (Workspaces). Los usuarios cobran a sus clientes usando su propia cuenta Recurrente conectada a su Workspace en Blend. Los profesionales pueden invitar a colaboradores a sus espacios para trabajar juntos y repartir ganancias.
 
 ---
-
+## COMPLETADO
 ## Roles y Permisos
 
-### Roles de Aplicación (Globales)
+### Roles de Aplicación (Globales) 
 
 | Rol | Descripción |
 |-----|-------------|
@@ -33,6 +33,7 @@ Blend cobra suscripción a los espacios de trabajo (Workspaces). Los usuarios co
 
 ---
 
+## COMPLETADO
 ## Fase 0 — Fundación: Arquitectura Multi-Tenant
 
 > ⚠️ No construyas ningún feature hasta que esto esté resuelto.
@@ -85,6 +86,7 @@ WorkspaceMember
 
 ---
 
+## COMPLETADO
 ## Fase 1 — Servicios y Clientes
 
 ### Services
@@ -264,7 +266,7 @@ BillingSubscription
 - `PATCH /admin/users/:id/suspend` — Banear usuarios problemáticos.
 
 ---
-
+## COMPLETADO
 ## Fase 0.5: Refactor Multi-Tenant ✅
 
 ### Backend

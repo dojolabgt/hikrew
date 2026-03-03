@@ -7,12 +7,9 @@ import { Workspace } from '../workspaces/workspace.entity';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([Client, Workspace]),
-        WorkspacesModule,
-    ],
-    controllers: [ClientsController],
-    providers: [ClientsService],
-    exports: [ClientsService],
+  imports: [TypeOrmModule.forFeature([Client, Workspace]), WorkspacesModule],
+  controllers: [ClientsController],
+  providers: [ClientsService],
+  exports: [ClientsService],
 })
-export class ClientsModule { }
+export class ClientsModule {}

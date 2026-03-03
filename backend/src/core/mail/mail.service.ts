@@ -8,7 +8,7 @@ export class MailService {
   constructor(
     private mailerService: MailerService,
     private configService: ConfigService,
-  ) {}
+  ) { }
 
   async sendUserConfirmation(user: User, token: string) {
     // ✅ Use dashboard URL where authentication happens
@@ -22,7 +22,7 @@ export class MailService {
       subject: 'Welcome to Nice App! Confirm your Email',
       template: './confirmation',
       context: {
-        name: user.name,
+        name: user.firstName,
         url,
       },
     });
@@ -40,7 +40,7 @@ export class MailService {
       subject: 'Reset Password',
       template: './reset-password',
       context: {
-        name: user.name,
+        name: user.firstName,
         url,
       },
     });
