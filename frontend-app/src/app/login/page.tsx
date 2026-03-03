@@ -159,55 +159,108 @@ export default function LoginPage() {
                 <div className="w-full h-full bg-gradient-to-tr from-zinc-900 to-zinc-950 rounded-2xl overflow-hidden relative border border-zinc-800/50 shadow-2xl flex flex-col items-center pt-20 px-12">
 
                     {/* Representación gráfica del dashboard */}
-                    <div className="w-full max-w-[600px] h-[500px] bg-[#121214] border border-zinc-800 rounded-xl shadow-2xl flex flex-col overflow-hidden opacity-90 backdrop-blur-3xl transform hover:scale-[1.01] transition-transform duration-500">
-                        {/* Barra de encabezado */}
-                        <div className="h-14 border-b border-zinc-800 flex items-center px-6 gap-4">
-                            <div className="w-8 h-8 rounded bg-zinc-800 flex items-center justify-center">
-                                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M13 3L4 14H12L11 21L20 10H12L13 3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
+                    <div className="w-full max-w-[650px] h-[520px] bg-zinc-950 border border-zinc-800/60 rounded-xl shadow-2xl flex overflow-hidden opacity-90 backdrop-blur-3xl transform hover:scale-[1.01] transition-transform duration-500">
+
+                        {/* Sidebar Mock */}
+                        <div className="w-48 bg-zinc-950 border-r border-zinc-800/60 flex flex-col p-4">
+                            <div className="flex items-center gap-2 px-2 mb-8 mt-2 text-white">
+                                <div className="w-6 h-6 bg-white rounded-md flex items-center justify-center">
+                                    <svg className="w-4 h-4 text-black" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M13 3L4 14H12L11 21L20 10H12L13 3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                </div>
+                                <span className="font-semibold text-sm tracking-tight">Blend Studio</span>
                             </div>
-                            <div className="flex gap-2 items-center text-sm text-zinc-400">
-                                <span className="text-zinc-300">Campañas</span>
-                                <span>/</span>
-                                <span>Bootcamp de diseño</span>
+
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-3 px-3 py-2 bg-zinc-800/50 text-white rounded-lg text-xs font-medium border border-zinc-700/50">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                                    Dashboard
+                                </div>
+                                {[
+                                    { icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>, label: 'Clientes' },
+                                    { icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>, label: 'Cotizaciones' },
+                                    { icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>, label: 'Pagos' }
+                                ].map((item, i) => (
+                                    <div key={i} className="flex items-center gap-3 px-3 py-2 text-zinc-400 hover:text-white rounded-lg text-xs font-medium transition-colors">
+                                        {item.icon}
+                                        {item.label}
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                        {/* Contenido del cuerpo */}
-                        <div className="flex flex-1 p-6 gap-6 relative">
-                            {/* Menú interno */}
-                            <div className="w-64 bg-[#18181b] rounded-xl border border-zinc-800 p-4 space-y-4 shadow-inner">
-                                <div className="text-xs font-medium text-zinc-500 mb-2">MENSAJES</div>
-                                {['Correo', 'Mensaje en App', 'Notificación Push', 'Mensaje de Slack', 'SMS Twilio'].map((item, i) => (
-                                    <div key={i} className={`flex items-center gap-3 text-sm px-3 py-2 rounded-lg ${i === 0 ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'}`}>
-                                        <div className="w-4 h-4 rounded-sm border border-zinc-700"></div>
-                                        {item}
-                                    </div>
-                                ))}
-                                <div className="text-xs font-medium text-zinc-500 mt-6 mb-2">DATOS</div>
-                                {['Crear Persona', 'Enviar Evento', 'Actualización Masiva'].map((item, i) => (
-                                    <div key={i + 10} className="flex items-center gap-3 text-sm px-3 py-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50">
-                                        <div className="w-4 h-4 rounded-full border border-zinc-700"></div>
-                                        {item}
-                                    </div>
-                                ))}
+
+                        {/* Main Content Mock */}
+                        <div className="flex-1 flex flex-col bg-[#0c0c0e] relative overflow-hidden">
+                            {/* Subtle noise overlay */}
+                            <div className="absolute inset-0 z-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] pointer-events-none"></div>
+
+                            {/* Header Mock */}
+                            <div className="h-14 border-b border-zinc-800/60 flex justify-between items-center px-6 relative z-10 bg-zinc-950/50 backdrop-blur-md">
+                                <div className="text-sm font-medium text-white">Resumen</div>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] text-zinc-400">RC</div>
+                                </div>
                             </div>
-                            {/* Área de canvas */}
-                            <div className="flex-1 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-[length:100px_100px] rounded-xl border border-zinc-800/50 relative overflow-hidden flex items-center justify-center">
-                                <div className="absolute right-10 top-20 w-48 bg-zinc-800/80 backdrop-blur-md border border-zinc-700 rounded-xl p-4 flex gap-3 shadow-xl">
-                                    <div className="mt-1"><svg className="w-5 h-5 text-zinc-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg></div>
-                                    <div>
-                                        <div className="text-sm font-medium text-white">Disparador</div>
-                                        <div className="text-xs text-zinc-400">class-drop</div>
+
+                            {/* Dashboard Body Mock */}
+                            <div className="flex-1 p-6 relative z-10 space-y-6">
+                                {/* Stats Cards */}
+                                <div className="grid grid-cols-3 gap-4">
+                                    {[
+                                        { label: 'Ingresos del mes', value: 'Q12,450.00', trend: '+14%', positive: true },
+                                        { label: 'Cobros pendientes', value: 'Q3,200.00', trend: '2 facturas', positive: false },
+                                        { label: 'Cotizaciones activas', value: '5', trend: 'Q8,500 total', positive: true },
+                                    ].map((stat, i) => (
+                                        <div key={i} className="bg-zinc-900 border border-zinc-800/60 rounded-xl p-4 shadow-sm">
+                                            <div className="text-xs text-zinc-400 font-medium mb-1">{stat.label}</div>
+                                            <div className="text-xl font-semibold text-white mb-2 tracking-tight">{stat.value}</div>
+                                            <div className={`text-[10px] font-medium px-2 py-0.5 rounded-full inline-flex ${stat.positive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                                                {stat.trend}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Recent Activity List */}
+                                <div className="bg-zinc-900 border border-zinc-800/60 rounded-xl overflow-hidden">
+                                    <div className="px-5 py-4 border-b border-zinc-800/60 flex justify-between items-center">
+                                        <h3 className="text-sm font-medium text-white">Actividad Reciente</h3>
+                                        <span className="text-xs text-zinc-500 hover:text-zinc-300">Ver todo</span>
+                                    </div>
+                                    <div className="divide-y divide-zinc-800/60">
+                                        {[
+                                            { client: 'Acme Corp', desc: 'Pago recibido - Landing Page', amount: 'Q4,500.00', status: 'Pagado', color: 'emerald' },
+                                            { client: 'Studio Creativo', desc: 'Cotización aceptada', amount: 'Q2,800.00', status: 'Aprobado', color: 'blue' },
+                                            { client: 'Tech Start', desc: 'Pago pendiente - Consultoría', amount: 'Q1,200.00', status: 'Pendiente', color: 'amber' },
+                                        ].map((item, i) => (
+                                            <div key={i} className="px-5 py-4 flex justify-between items-center hover:bg-zinc-800/20 transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-medium text-zinc-300`}>
+                                                        {item.client.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-sm font-medium text-white">{item.client}</div>
+                                                        <div className="text-xs text-zinc-500">{item.desc}</div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-sm font-medium text-white">{item.amount}</div>
+                                                    <div className={`text-[10px] font-medium text-${item.color}-400`}>{item.status}</div>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="absolute bottom-16 w-full flex flex-col items-center">
-                        <h2 className="text-2xl font-semibold text-white mb-2">Optimiza tus Procesos</h2>
-                        <p className="text-zinc-400 text-sm mb-8 text-center max-w-sm">Empodera a tu equipo para automatizar tareas y procesos con total control.</p>
+                    <div className="absolute bottom-12 w-full flex flex-col items-center">
+                        <h2 className="text-2xl font-semibold text-white mb-2 tracking-tight">Tu negocio en un solo lugar</h2>
+                        <p className="text-zinc-400 text-sm mb-8 text-center max-w-sm">
+                            Gestiona clientes, envía cotizaciones y recibe pagos recurrentes sin complicaciones.
+                        </p>
 
                         <div className="flex gap-2">
                             <div className="w-2 h-2 rounded-full bg-white"></div>
