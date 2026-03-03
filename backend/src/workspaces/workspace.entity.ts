@@ -92,6 +92,12 @@ export class Workspace {
     isDefault: boolean;
   }[];
 
+  @Column({ type: 'jsonb', nullable: true, default: '[]' })
+  useCases: string[];
+
+  @Column({ default: false })
+  onboardingCompleted: boolean;
+
   @OneToMany(() => WorkspaceMember, (member) => member.workspace)
   members: WorkspaceMember[];
 

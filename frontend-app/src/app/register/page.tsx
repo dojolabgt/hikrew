@@ -9,20 +9,8 @@ import { SocialButton } from '@/components/common/SocialButton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Eye, EyeOff, Mail, Lock, User, MapPin } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 import Link from 'next/link';
-
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-
-// Importing localization data
-import paisData from '@/data/localization/pais.json';
-import guatemalaData from '@/data/localization/guatemala.json';
 import { UserRole } from '@/types';
 
 export default function RegisterPage() {
@@ -34,19 +22,8 @@ export default function RegisterPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-
-    // Localization state
-    const [country, setCountry] = useState('GT');
-    const [stateValue, setStateValue] = useState('');
-
     const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [localError, setLocalError] = useState<string | null>(null);
-
-    const activeCountryData = (paisData as any)[country];
-    const lvl1Label = activeCountryData?.labels?.lvl1 || 'Región';
-
-    // Options for lvl1
-    const lvl1Options = country === 'GT' ? guatemalaData.map((d: any) => d.title) : activeCountryData?.regions?.map((r: any) => r.name) || [];
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -57,11 +34,6 @@ export default function RegisterPage() {
             return;
         }
 
-        if (!stateValue) {
-            setLocalError(`Por favor selecciona un ${lvl1Label}.`);
-            return;
-        }
-
         try {
             await register({
                 email,
@@ -69,8 +41,6 @@ export default function RegisterPage() {
                 firstName,
                 lastName,
                 role: UserRole.FREELANCER,
-                country,
-                state: stateValue
             });
         } catch (err: any) {
             console.error('Error al registrarse', err);
@@ -130,45 +100,6 @@ export default function RegisterPage() {
                             onChange={(e) => setEmail(e.target.value)}
                             required
                         />
-
-                        {/* Localización dinámica */}
-                        <div className="flex gap-4">
-                            <div className="w-1/2">
-                                <Select value={country} onValueChange={(val) => {
-                                    setCountry(val);
-                                    setStateValue('');
-                                }}>
-                                    <SelectTrigger className="h-12 rounded-xl border-zinc-200 dark:border-zinc-800 focus:ring-1 focus:ring-zinc-900 dark:bg-zinc-900">
-                                        <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
-                                            <MapPin className="h-4 w-4" />
-                                            <SelectValue placeholder="País" />
-                                        </div>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {Object.entries(paisData).map(([code, data]: [string, any]) => (
-                                            <SelectItem key={code} value={code}>
-                                                {data.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="w-1/2">
-                                <Select value={stateValue} onValueChange={setStateValue}>
-                                    <SelectTrigger className="h-12 rounded-xl border-zinc-200 dark:border-zinc-800 focus:ring-1 focus:ring-zinc-900 dark:bg-zinc-900">
-                                        <SelectValue placeholder={lvl1Label} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {lvl1Options.map((opt: string) => (
-                                            <SelectItem key={opt} value={opt}>
-                                                {opt}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
 
                         {/* Campo de contraseña */}
                         <AuthInput
@@ -243,6 +174,14 @@ export default function RegisterPage() {
                         </SocialButton>
                     </div>
 
+                    {/* Link a login */}
+                    <p className="text-sm text-zinc-500 mt-6">
+                        ¿Ya tienes cuenta?{' '}
+                        <Link href="/login" className="text-zinc-900 dark:text-zinc-100 font-medium hover:underline">
+                            Inicia sesión
+                        </Link>
+                    </p>
+
                     {/* Footer con políticas */}
                     <div className="flex w-full justify-between items-center mt-auto pt-16 text-xs font-medium text-zinc-500 px-2 lg:px-4">
                         <span>©2026 Blend LTD. Todos los derechos reservados.</span>
@@ -255,11 +194,10 @@ export default function RegisterPage() {
                 </div>
             </div>
 
-            {/* Lado derecho - Splash oscuro (Exact match from Login but different copy) */}
+            {/* Lado derecho - Splash */}
             <div className="hidden lg:flex lg:w-1/2 bg-[#09090b] relative p-4 pl-0">
                 <div className="w-full h-full bg-gradient-to-tr from-zinc-900 to-zinc-950 rounded-2xl overflow-hidden relative border border-zinc-800/50 shadow-2xl flex flex-col items-center pt-20 px-12">
 
-                    {/* Representación gráfica del dashboard (Identical to login for brand consistency) */}
                     <div className="w-full max-w-[600px] h-[500px] bg-[#121214] border border-zinc-800 rounded-xl shadow-2xl flex flex-col overflow-hidden opacity-90 backdrop-blur-3xl transform hover:scale-[1.01] transition-transform duration-500">
                         {/* Barra de encabezado */}
                         <div className="h-14 border-b border-zinc-800 flex items-center px-6 gap-4">
@@ -276,7 +214,6 @@ export default function RegisterPage() {
                         </div>
                         {/* Contenido del cuerpo */}
                         <div className="flex flex-1 p-6 gap-6 relative">
-                            {/* Menú interno */}
                             <div className="w-64 bg-[#18181b] rounded-xl border border-zinc-800 p-4 space-y-4 shadow-inner">
                                 <div className="text-xs font-medium text-zinc-500 mb-2">MENSAJES</div>
                                 {['Correo', 'Mensaje en App', 'Notificación Push', 'Mensaje de Slack', 'SMS Twilio'].map((item, i) => (
@@ -293,7 +230,6 @@ export default function RegisterPage() {
                                     </div>
                                 ))}
                             </div>
-                            {/* Área de canvas */}
                             <div className="flex-1 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-[length:100px_100px] rounded-xl border border-zinc-800/50 relative overflow-hidden flex items-center justify-center">
                                 <div className="absolute right-10 top-20 w-48 bg-zinc-800/80 backdrop-blur-md border border-zinc-700 rounded-xl p-4 flex gap-3 shadow-xl">
                                     <div className="mt-1"><svg className="w-5 h-5 text-zinc-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg></div>
@@ -311,7 +247,6 @@ export default function RegisterPage() {
                         <p className="text-zinc-400 text-sm mb-8 text-center max-w-sm">
                             Únete de forma gratuita y lleva el control total de tus clientes, pagos y proyectos desde hoy.
                         </p>
-
                         <div className="flex gap-2">
                             <div className="w-2 h-2 rounded-full bg-zinc-700"></div>
                             <div className="w-2 h-2 rounded-full bg-white"></div>

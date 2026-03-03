@@ -115,6 +115,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (response.data.user.role === UserRole.FREELANCER) {
                 checkAndSetWorkspace(response.data.user);
+
+                // Redirect to onboarding if not completed yet
+                const workspace = response.data.user.workspaceMembers?.[0]?.workspace;
+                if (workspace && !workspace.onboardingCompleted) {
+                    router.push('/onboarding');
+                    return;
+                }
             }
 
             router.push(getDashboardRoute(response.data.user.role));
@@ -137,7 +144,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 checkAndSetWorkspace(response.data.user);
             }
 
-            router.push(getDashboardRoute(response.data.user.role));
+            // Always send new registrations to onboarding
+            router.push('/onboarding');
         } catch (err: any) {
             setError(err.response?.data?.message || 'Error occurred during registration');
             throw err;

@@ -13,8 +13,6 @@ export interface RegisterCredentials {
     role?: string;
     firstName?: string;
     lastName?: string;
-    country?: string;
-    state?: string;
 }
 
 export interface AuthState {

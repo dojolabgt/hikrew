@@ -21,6 +21,8 @@ export interface Workspace {
     currencyFormat?: string | null;
     firstDayOfWeek?: string | null;
     currencies?: { code: string; name: string; symbol: string; isDefault: boolean }[] | null;
+    useCases?: string[] | null;
+    onboardingCompleted?: boolean;
 }
 
 export interface WorkspaceMember {

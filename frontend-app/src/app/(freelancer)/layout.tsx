@@ -6,9 +6,10 @@ import { UserRole } from '@/types';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { NavItemConfig } from '@/components/layout/NavItem';
 import { LayoutDashboard, Users, Briefcase, FileText, CreditCard } from 'lucide-react';
-
 import { TopHeader } from '@/components/layout/Header';
 import { Settings } from 'lucide-react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 const freelancerNavItems: NavItemConfig[] = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, section: 'GENERAL' },
@@ -22,10 +23,19 @@ const freelancerNavItems: NavItemConfig[] = [
 
 export default function FreelancerLayout({ children }: { children: React.ReactNode }) {
     const { isAuthorized, isLoading } = useRequireRole(UserRole.FREELANCER);
-    const { user } = useAuth();
+    const { user, activeWorkspace } = useAuth();
+    const router = useRouter();
 
-    if (isLoading) return null; // Or a full-screen spinner
+    // Guard: redirect to onboarding if not completed yet
+    useEffect(() => {
+        if (!isLoading && isAuthorized && activeWorkspace && !activeWorkspace.onboardingCompleted) {
+            router.replace('/onboarding');
+        }
+    }, [isLoading, isAuthorized, activeWorkspace, router]);
+
+    if (isLoading) return null;
     if (!isAuthorized || !user) return null;
+    if (activeWorkspace && !activeWorkspace.onboardingCompleted) return null; // wait for redirect
 
     return (
         <div className="flex h-screen overflow-hidden bg-zinc-50 dark:bg-zinc-950">
