@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { billingApi } from '@/features/billing/api';
 import { BillingStatus, BillingSubscription } from '@/features/billing/types';
 import { DashboardShell } from '@/components/layout/DashboardShell';
+import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -22,12 +23,12 @@ import { Sparkles, CheckCircle2, XCircle, Clock, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const STATUS_LABEL: Record<string, { label: string; color: string }> = {
-    pending: { label: 'Pendiente', color: 'text-amber-600 bg-amber-50 border-amber-200' },
-    active: { label: 'Activo', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
-    past_due: { label: 'Pago vencido', color: 'text-red-600 bg-red-50 border-red-200' },
-    cancelled: { label: 'Cancelado', color: 'text-zinc-500 bg-zinc-50 border-zinc-200' },
-    unable_to_start: { label: 'No iniciado', color: 'text-red-600 bg-red-50 border-red-200' },
+const STATUS_LABEL: Record<string, { labelKey: string; color: string }> = {
+    pending: { labelKey: 'billing.statusPending', color: 'text-amber-600 bg-amber-50 border-amber-200' },
+    active: { labelKey: 'billing.statusActive', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+    past_due: { labelKey: 'billing.statusPastDue', color: 'text-red-600 bg-red-50 border-red-200' },
+    cancelled: { labelKey: 'billing.statusCancelled', color: 'text-zinc-500 bg-zinc-50 border-zinc-200' },
+    unable_to_start: { labelKey: 'billing.statusUnableToStart', color: 'text-red-600 bg-red-50 border-red-200' },
 };
 
 function formatPrice(cents: number): string {
@@ -40,6 +41,7 @@ function formatDate(dateStr: string | null): string {
 }
 
 export default function BillingPage() {
+    const { t } = useWorkspaceSettings();
     const [status, setStatus] = useState<BillingStatus | null>(null);
     const [history, setHistory] = useState<BillingSubscription[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -58,7 +60,7 @@ export default function BillingPage() {
                 setStatus(s);
                 setHistory(h);
             } catch {
-                toast.error('Error cargando información de facturación');
+                toast.error(t('billing.errLoad'));
             } finally {
                 setIsLoading(false);
             }
@@ -67,9 +69,9 @@ export default function BillingPage() {
 
         // Show toast based on return from Recurrente checkout
         if (searchParams?.get('success')) {
-            toast.success('¡Suscripción activada! Tu plan Pro está listo.');
+            toast.success(t('billing.toastProReady'));
         } else if (searchParams?.get('cancelled')) {
-            toast.info('Pago cancelado. Puedes intentarlo de nuevo cuando quieras.');
+            toast.info(t('billing.toastCancelled'));
         }
     }, [searchParams]);
 
@@ -79,23 +81,23 @@ export default function BillingPage() {
             const { checkoutUrl } = await billingApi.subscribe(plan, interval);
             window.location.href = checkoutUrl;
         } catch {
-            toast.error('No se pudo iniciar el proceso de pago');
+            toast.error(t('billing.errPayment'));
             setIsSubscribing(false);
         }
     };
 
     const handleCancel = async () => {
-        if (!window.confirm('¿Estás seguro? Tu acceso terminará al final del período actual.')) return;
+        if (!window.confirm(t('billing.confirmCancel'))) return;
         setIsCancelling(true);
         try {
             await billingApi.cancel();
-            toast.success('Suscripción cancelada');
+            toast.success(t('billing.successCancel'));
             const updated = await billingApi.getStatus();
             setStatus(updated);
             const newHistory = await billingApi.getHistory();
             setHistory(newHistory);
         } catch {
-            toast.error('Error al cancelar la suscripción');
+            toast.error(t('billing.errCancel'));
         } finally {
             setIsCancelling(false);
         }
@@ -114,7 +116,7 @@ export default function BillingPage() {
         const now = Date.now();
         if (end > now) {
             const daysLeft = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
-            remainingValueText = `Tienes ~${daysLeft} días a favor de tu plan Pro. Se aplicará como saldo en tu nuevo cobro.`;
+            remainingValueText = `${t('billing.remainingDaysPre')}${daysLeft}${t('billing.remainingDaysPost')}`;
         }
     }
 
@@ -140,9 +142,9 @@ export default function BillingPage() {
         <DashboardShell>
             {/* Page Header */}
             <div className="mb-6">
-                <h1 className="text-xl font-semibold tracking-tight">Facturación y Planes</h1>
+                <h1 className="text-xl font-semibold tracking-tight">{t('billing.title')}</h1>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                    Administra tu suscripción a Blend y tu historial de pagos.
+                    {t('billing.desc')}
                 </p>
             </div>
 
@@ -166,7 +168,7 @@ export default function BillingPage() {
                                 <div>
                                     <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
                                         <span className="w-2 h-2 rounded-full bg-primary/40 block"></span>
-                                        Plan actual
+                                        {t('billing.currentPlan')}
                                     </p>
                                     <div className="flex items-center gap-3 mb-2">
                                         <span className="text-3xl font-extrabold tracking-tight capitalize text-zinc-900 dark:text-zinc-100">
@@ -190,11 +192,11 @@ export default function BillingPage() {
                                     {isProOrPremium && status?.planExpiresAt ? (
                                         <p className="text-sm font-medium text-muted-foreground flex items-center gap-1.5 mt-3">
                                             <Clock className="w-4 h-4 opacity-70" />
-                                            Tu ciclo actual termina el <span className="text-foreground">{formatDate(status.planExpiresAt)}</span>
+                                            {t('billing.cycleEnds')} <span className="text-foreground ml-1">{formatDate(status.planExpiresAt)}</span>
                                         </p>
                                     ) : (
                                         <p className="text-sm text-muted-foreground mt-2 max-w-lg leading-relaxed">
-                                            Estás en el plan gratuito. Tienes límites en cotizaciones y clientes. Mejora tu plan para automatizar tu negocio financiero.
+                                            {t('billing.freeDesc')}
                                         </p>
                                     )}
                                 </div>
@@ -208,14 +210,14 @@ export default function BillingPage() {
                                             className="w-full md:w-auto text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30 border-red-200 dark:border-red-900/30 transition-colors"
                                         >
                                             {isCancelling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                            Cancelar suscripción
+                                            {t('billing.btnCancel')}
                                         </Button>
                                     </div>
                                 )}
                                 {isPendingCancel && (
                                     <div className="flex-shrink-0">
                                         <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50">
-                                            Cancelación en proceso
+                                            {t('billing.cancelling')}
                                         </Badge>
                                     </div>
                                 )}
@@ -229,8 +231,8 @@ export default function BillingPage() {
                     <div className="space-y-6">
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                             <div>
-                                <h2 className="text-xl font-bold tracking-tight">Elige tu plan</h2>
-                                <p className="text-sm text-muted-foreground mt-1">Desbloquea todo el potencial de Blend para tu negocio.</p>
+                                <h2 className="text-xl font-bold tracking-tight">{t('billing.choosePlan')}</h2>
+                                <p className="text-sm text-muted-foreground mt-1">{t('billing.choosePlanDesc')}</p>
                             </div>
 
                             {/* Toggle Mensual/Anual */}
@@ -239,15 +241,15 @@ export default function BillingPage() {
                                     onClick={() => setIsYearly(false)}
                                     className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${!isYearly ? 'bg-white dark:bg-zinc-700 shadow-md text-zinc-900 dark:text-zinc-100 scale-105' : 'text-muted-foreground hover:text-zinc-700 dark:hover:text-zinc-300'}`}
                                 >
-                                    Mensual
+                                    {t('billing.monthly')}
                                 </button>
                                 <button
                                     onClick={() => setIsYearly(true)}
                                     className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 ${isYearly ? 'bg-white dark:bg-zinc-700 shadow-md text-zinc-900 dark:text-zinc-100 scale-105' : 'text-muted-foreground hover:text-zinc-700 dark:hover:text-zinc-300'}`}
                                 >
-                                    Anual
+                                    {t('billing.yearly')}
                                     <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-extrabold bg-emerald-100 dark:bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20">
-                                        AHORRA 16%
+                                        {t('billing.save16')}
                                     </span>
                                 </button>
                             </div>
@@ -259,7 +261,7 @@ export default function BillingPage() {
                                 <CardHeader className="pb-5">
                                     <CardTitle className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Free</CardTitle>
                                     <CardDescription className="min-h-[40px] text-sm leading-relaxed">
-                                        Para empezar a usar Blend y probar la plataforma.
+                                        {t('billing.freeSub')}
                                     </CardDescription>
                                 </CardHeader>
 
@@ -271,15 +273,15 @@ export default function BillingPage() {
                                             </span>
                                         </div>
                                         <p className="text-sm font-medium text-muted-foreground h-5 mt-1">
-                                            Gratis para siempre
+                                            {t('billing.freeForever')}
                                         </p>
                                     </div>
 
                                     <ul className="space-y-4 mb-8 flex-grow">
                                         {[
-                                            'Hasta 5 clientes',
-                                            'Hasta 5 cotizaciones/mes',
-                                            'Soporte comunitario',
+                                            t('billing.featFree1'),
+                                            t('billing.featFree2'),
+                                            t('billing.featFree3'),
                                         ].map((feat) => (
                                             <li key={feat} className="flex items-start gap-3 text-sm text-muted-foreground">
                                                 <CheckCircle2 className="w-5 h-5 text-zinc-400 flex-shrink-0" />
@@ -295,7 +297,7 @@ export default function BillingPage() {
                                         className="w-full h-12 text-zinc-500 bg-transparent border-border dark:border-zinc-800 rounded-xl"
                                         disabled={true}
                                     >
-                                        Tu plan actual
+                                        {t('billing.yourPlan')}
                                     </Button>
                                 </CardFooter>
                             </Card>
@@ -304,7 +306,7 @@ export default function BillingPage() {
                             <Card className="border-2 border-violet-500/20 dark:border-violet-500/30 bg-violet-50/30 dark:bg-violet-950/10 overflow-hidden flex flex-col relative transition-all duration-300 shadow-sm hover:shadow-md hover:border-violet-500/40">
                                 {/* Badge overlay */}
                                 <div className="absolute top-0 inset-x-0 bg-violet-600 text-white text-[11px] font-bold uppercase tracking-widest py-1.5 text-center shadow-sm z-20">
-                                    Más Popular
+                                    {t('billing.mostPopular')}
                                 </div>
 
                                 <CardHeader className="pt-10 pb-5 relative z-10">
@@ -312,7 +314,7 @@ export default function BillingPage() {
                                         Pro <Sparkles className="w-4 h-4 text-violet-500" />
                                     </CardTitle>
                                     <CardDescription className="min-h-[40px] text-sm leading-relaxed">
-                                        Ideal para freelancers buscando automatizar cobros de forma profesional.
+                                        {t('billing.proSub')}
                                     </CardDescription>
                                 </CardHeader>
 
@@ -327,7 +329,7 @@ export default function BillingPage() {
                                                     <span className="text-sm font-medium text-muted-foreground mb-1.5">/ mes</span>
                                                 </div>
                                                 <p className="text-sm font-medium text-violet-600/80 dark:text-violet-400/80 h-5 mt-1">
-                                                    {isYearly ? `Facturado anualmente (${formatPrice(status.prices.yearly)})` : 'Facturado mes a mes'}
+                                                    {isYearly ? `${t('billing.billedYearly')} (${formatPrice(status.prices.yearly)})` : t('billing.billedMonthly')}
                                                 </p>
                                             </>
                                         ) : (
@@ -337,10 +339,10 @@ export default function BillingPage() {
 
                                     <ul className="space-y-4 mb-8 flex-grow">
                                         {[
-                                            'Clientes ilimitados',
-                                            'Cotizaciones ilimitadas',
-                                            'Pagos automatizados',
-                                            'Recordatorios de pago',
+                                            t('billing.featPro1'),
+                                            t('billing.featPro2'),
+                                            t('billing.featPro3'),
+                                            t('billing.featPro4'),
                                         ].map((feat) => (
                                             <li key={feat} className="flex items-start gap-3 text-sm text-muted-foreground font-medium">
                                                 <CheckCircle2 className="w-5 h-5 text-violet-600 flex-shrink-0" />
@@ -356,14 +358,14 @@ export default function BillingPage() {
                                             className="w-full h-12 text-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-300 font-bold rounded-xl shadow-sm transition-all"
                                             disabled={true}
                                         >
-                                            Tu plan actual
+                                            {t('billing.yourPlan')}
                                         </Button>
                                     ) : planKey === 'premium' ? (
                                         <Button
                                             className="w-full h-12 text-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-300 font-bold rounded-xl shadow-sm transition-all"
                                             disabled={true}
                                         >
-                                            Incluido en Premium
+                                            {t('billing.includedPremium')}
                                         </Button>
                                     ) : (
                                         <>
@@ -373,7 +375,7 @@ export default function BillingPage() {
                                                 disabled={isSubscribing}
                                             >
                                                 {isSubscribing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                Upgrade a Pro
+                                                {t('billing.upgradePro')}
                                             </PrimaryButton>
                                             {process.env.NODE_ENV === 'development' && (
                                                 <Button
@@ -397,7 +399,7 @@ export default function BillingPage() {
                                         Premium
                                     </CardTitle>
                                     <CardDescription className="min-h-[40px] text-sm leading-relaxed">
-                                        Para equipos o agencias. Todo ilimitado y experiencia personalizada.
+                                        {t('billing.premiumSub')}
                                     </CardDescription>
                                 </CardHeader>
 
@@ -412,7 +414,7 @@ export default function BillingPage() {
                                                     <span className="text-sm font-medium text-muted-foreground mb-1.5">/ mes</span>
                                                 </div>
                                                 <p className="text-sm font-medium text-amber-600/80 dark:text-amber-400/80 h-5 mt-1">
-                                                    {isYearly ? `Facturado anualmente (${formatPrice(status.prices.yearly)})` : 'Facturado mes a mes'}
+                                                    {isYearly ? `${t('billing.billedYearly')} (${formatPrice(status.prices.yearly)})` : t('billing.billedMonthly')}
                                                 </p>
                                             </>
                                         ) : (
@@ -422,10 +424,10 @@ export default function BillingPage() {
 
                                     <ul className="space-y-4 mb-8 flex-grow">
                                         {[
-                                            'Todo en el plan Pro',
-                                            'Múltiples usuarios',
-                                            'Soporte directo por WhatsApp',
-                                            'Checkouts con tu logo',
+                                            t('billing.featPremium1'),
+                                            t('billing.featPremium2'),
+                                            t('billing.featPremium3'),
+                                            t('billing.featPremium4'),
                                         ].map((feat, i) => (
                                             <li key={feat} className={`flex items-start gap-3 text-sm ${i === 0 ? 'font-semibold text-foreground mb-2' : 'text-muted-foreground'}`}>
                                                 <CheckCircle2 className={`w-5 h-5 flex-shrink-0 ${i === 0 ? 'text-amber-500' : 'text-amber-400/80'}`} />
@@ -447,7 +449,7 @@ export default function BillingPage() {
                                             className="w-full h-12 text-zinc-500 bg-transparent border-border dark:border-zinc-800 rounded-xl"
                                             disabled={true}
                                         >
-                                            Tu plan actual
+                                            {t('billing.yourPlan')}
                                         </Button>
                                     ) : (
                                         <>
@@ -457,7 +459,7 @@ export default function BillingPage() {
                                                 disabled={isSubscribing}
                                             >
                                                 {isSubscribing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                {planKey === 'pro' ? 'Upgrade a Premium' : 'Comprar Premium'}
+                                                {planKey === 'pro' ? t('billing.upgradePremium') : t('billing.buyPremium')}
                                             </PrimaryButton>
                                             {process.env.NODE_ENV === 'development' && (
                                                 <Button
@@ -482,19 +484,19 @@ export default function BillingPage() {
                 {filteredHistory.length > 0 && (
                     <Card>
                         <CardHeader className="p-6 pb-4 border-b border-border/50">
-                            <CardTitle>Historial de pagos</CardTitle>
+                            <CardTitle>{t('billing.history')}</CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">
                             <div className="divide-y divide-border/50">
                                 {filteredHistory.map((sub) => {
-                                    const st = STATUS_LABEL[sub.status] ?? { label: sub.status, color: '' };
+                                    const st = STATUS_LABEL[sub.status] ?? { labelKey: sub.status, color: '' };
                                     return (
                                         <div key={sub.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50 transition-colors">
                                             <div>
                                                 <p className="text-sm font-semibold capitalize flex items-center gap-2">
                                                     Blend {(sub as any).plan || 'Pro'}
                                                     <span className="text-muted-foreground font-normal text-xs uppercase tracking-wider">
-                                                        ({sub.interval === 'month' ? 'Mensual' : 'Anual'})
+                                                        ({sub.interval === 'month' ? t('billing.monthly') : t('billing.yearly')})
                                                     </span>
                                                 </p>
                                                 <p className="text-sm text-muted-foreground mt-1">
@@ -504,7 +506,7 @@ export default function BillingPage() {
                                             <Badge className={`text-xs px-2.5 py-1 border ${st.color}`}>
                                                 {sub.status === 'active' && <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
                                                 {sub.status === 'cancelled' && <XCircle className="w-3.5 h-3.5 mr-1" />}
-                                                {st.label}
+                                                {t(st.labelKey)}
                                             </Badge>
                                         </div>
                                     );

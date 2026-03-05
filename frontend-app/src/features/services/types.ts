@@ -1,7 +1,4 @@
-export enum ServiceCurrency {
-    GTQ = 'GTQ',
-    USD = 'USD',
-}
+
 
 export enum ServiceUnitType {
     HOUR = 'HOUR',
@@ -23,7 +20,7 @@ export interface Service {
     sku?: string;
     description?: string;
     basePrice: number;
-    currency: ServiceCurrency;
+    currency: string;
     unitType: ServiceUnitType;
     chargeType: ServiceChargeType;
     internalCost: number;
@@ -43,7 +40,7 @@ export interface CreateServiceDto {
     sku?: string;
     description?: string;
     basePrice: number;
-    currency: ServiceCurrency;
+    currency: string;
     unitType?: ServiceUnitType;
     chargeType?: ServiceChargeType;
     internalCost?: number;

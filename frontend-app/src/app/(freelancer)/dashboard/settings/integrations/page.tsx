@@ -15,11 +15,13 @@ import {
     SheetTitle,
 } from '@/components/ui/sheet';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
 import { Gt, Sv } from '@next-languages/flags';
 
 const recurrenteLogoSrc = '/integrations/recurrente-logo.png';
 
 export default function SettingsPage() {
+    const { t } = useWorkspaceSettings();
     const { activeWorkspace } = useAuth();
     const isProOrPremium = activeWorkspace?.plan === 'pro' || activeWorkspace?.plan === 'premium';
     const workspaceCountry = activeWorkspace?.country || 'GT';
@@ -48,9 +50,9 @@ export default function SettingsPage() {
             <div className="space-y-12 w-full py-2">
                 {/* Header */}
                 <div className="mb-6">
-                    <h1 className="text-xl font-semibold tracking-tight">Integraciones</h1>
+                    <h1 className="text-xl font-semibold tracking-tight">{t('integrations.title')}</h1>
                     <p className="text-sm text-muted-foreground mt-0.5">
-                        Conecta las herramientas que usas para cobrar y gestionar tu negocio.
+                        {t('integrations.titleDesc')}
                     </p>
                 </div>
 
@@ -58,7 +60,7 @@ export default function SettingsPage() {
                 <div className="w-full">
                     <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4 flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-primary/40 block"></span>
-                        Opciones Disponibles
+                        {t('integrations.availableOptions')}
                     </p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -81,7 +83,7 @@ export default function SettingsPage() {
                                         />
                                     }
                                     name="Recurrente"
-                                    description="Procesador de pagos en Guatemala y El Salvador. Acepta tarjetas, transferencias y links de pago."
+                                    description={t('integrations.recurrenteDesc')}
                                     isConfigured={isConfigured ?? false}
                                     onConfigure={() => setSheetOpen(true)}
                                     proOnly
@@ -94,7 +96,7 @@ export default function SettingsPage() {
                                             <Sv className="w-full h-auto" />
                                         </div>,
                                     ]}
-                                    disabledReason={!isRecurrenteSupported ? 'No disponible en tu país' : undefined}
+                                    disabledReason={!isRecurrenteSupported ? t('integrations.notSupportedCountry') : undefined}
                                 />
                                 <IntegrationCard
                                     logo={
@@ -107,7 +109,7 @@ export default function SettingsPage() {
                                         />
                                     }
                                     name="Google Drive"
-                                    description="Guarda y organiza tus archivos de proyecto directamente en tu Google Drive de forma automática."
+                                    description={t('integrations.driveDesc')}
                                     isConfigured={false}
                                     onConfigure={() => { }}
                                     comingSoon
@@ -125,7 +127,7 @@ export default function SettingsPage() {
                                         />
                                     }
                                     name="Blend API"
-                                    description="Conecta aplicaciones personalizadas o automatiza flujos de trabajo utilizando nuestra API REST pública."
+                                    description={t('integrations.apiDesc')}
                                     isConfigured={false}
                                     onConfigure={() => { }}
                                     comingSoon
@@ -143,7 +145,7 @@ export default function SettingsPage() {
                                         />
                                     }
                                     name="n8n Templates"
-                                    description="Automatiza tareas y sincroniza datos usando nuestros templates preconfigurados para n8n."
+                                    description={t('integrations.n8nDesc')}
                                     isConfigured={false}
                                     onConfigure={() => { }}
                                     comingSoon
@@ -171,10 +173,9 @@ export default function SettingsPage() {
                                 />
                             </div>
                             <div>
-                                <SheetTitle className="text-xl tracking-tight text-left">Configurar Recurrente</SheetTitle>
+                                <SheetTitle className="text-xl tracking-tight text-left">{t('integrations.configRecurrente')}</SheetTitle>
                                 <SheetDescription className="text-left mt-1.5 leading-relaxed text-zinc-500 dark:text-zinc-400">
-                                    Ingresa tus credenciales API de Recurrente para habilitar el procesamiento de pagos.
-                                    Tus llaves se guardan encriptadas.
+                                    {t('integrations.configRecurrenteDesc')}
                                 </SheetDescription>
                             </div>
                         </div>

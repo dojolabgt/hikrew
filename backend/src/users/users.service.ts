@@ -23,7 +23,7 @@ export class UsersService {
     private usersRepository: Repository<User>,
     private readonly storageService: StorageService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async findOneByEmail(email: string): Promise<User | null> {
     return this.usersRepository.findOne({
@@ -44,7 +44,7 @@ export class UsersService {
   async findOneByEmailWithPassword(email: string): Promise<User | null> {
     return this.usersRepository.findOne({
       where: { email },
-      relations: ['workspaceMembers', 'workspaceMembers.workspace'],
+      relations: ['workspaceMembers', 'workspaceMembers.workspace', 'workspaceMembers.workspace.taxes'],
     });
   }
 
@@ -52,7 +52,7 @@ export class UsersService {
     // Exclude sensitive data by default for general queries
     return this.usersRepository.findOne({
       where: { id },
-      relations: ['workspaceMembers', 'workspaceMembers.workspace'],
+      relations: ['workspaceMembers', 'workspaceMembers.workspace', 'workspaceMembers.workspace.taxes'],
       select: [
         'id',
         'email',

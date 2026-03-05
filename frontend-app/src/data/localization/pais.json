@@ -22,34 +22,24 @@
                 "placeholder": "ej. 1234567-8",
                 "description": "Número de Identificación Tributaria emitido por la SAT",
                 "required": true
-            },
-            {
-                "key": "cui",
-                "label": "CUI / DPI",
-                "placeholder": "ej. 1234 56789 0101",
-                "description": "Código Único de Identificación (persona natural)",
-                "required": false
             }
         ],
-        "withholdings": [
+        "taxes": [
             {
                 "key": "iva",
                 "label": "IVA",
                 "rate": 0.12,
-                "description": "Impuesto al Valor Agregado (12%)",
-                "appliesTo": [
-                    "services",
-                    "products"
-                ]
+                "appliesTo": "all",
+                "isDefault": true,
+                "description": "Impuesto al Valor Agregado — Guatemala (SAT, 12%)"
             },
             {
                 "key": "isr_retencion",
                 "label": "Retención ISR",
                 "rate": 0.05,
-                "description": "Retención ISR Pequeño Contribuyente (5%)",
-                "appliesTo": [
-                    "services"
-                ]
+                "appliesTo": "services",
+                "isDefault": false,
+                "description": "Retención ISR — Régimen Opcional Simplificado. Aplica cuando el cliente es agente retenedor y la base supera Q2,800. NO aplica a Pequeño Contribuyente."
             }
         ],
         "invoiceFields": [

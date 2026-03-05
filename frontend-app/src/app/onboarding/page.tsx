@@ -149,18 +149,25 @@ export default function OnboardingPage() {
             }
 
             // Save workspace data — apply country defaults from pais.json
-            const countryDefaults = (paisData as any)[country]?.defaults || {};
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { currency: _defaultCurrency, ...countryDefaults } = (paisData as any)[country]?.defaults || {};
             await api.patch('/workspaces/current', {
                 businessName,
                 country,
                 state: '',
-                // Spread defaults: timezone, dateFormat, language, etc.
+                // Spread defaults: timezone, dateFormat, language, etc. (currency excluded — not a Workspace column)
                 ...countryDefaults,
-                // Override currency with the one the user selected
+                // Store the selected currency inside the currencies array
                 currencies: [{ code: currency, name: currency, symbol: currency, isDefault: true }],
                 useCases: skip ? [] : selectedUseCases,
                 onboardingCompleted: true,
             });
+
+            // Seed taxes from pais.json for the selected country (idempotent — safe to call multiple times)
+            const countryTaxes = (paisData as any)[country]?.taxes ?? [];
+            if (countryTaxes.length > 0) {
+                await api.post('/workspaces/current/taxes/seed', { taxes: countryTaxes });
+            }
 
             await checkAuth();
             router.push('/dashboard');
@@ -169,6 +176,7 @@ export default function OnboardingPage() {
             setIsSubmitting(false);
         }
     };
+
 
     return (
         <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6">

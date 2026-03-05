@@ -17,6 +17,7 @@ import { BillingModule } from './billing/billing.module';
 import { WorkspacesModule } from './workspaces/workspaces.module';
 import { ServicesModule } from './services/services.module';
 import { ClientsModule } from './clients/clients.module';
+import { DealsModule } from './deals/deals.module';
 
 @Module({
   imports: [
@@ -90,6 +91,7 @@ import { ClientsModule } from './clients/clients.module';
     BillingModule,
     ServicesModule,
     ClientsModule,
+    DealsModule,
   ],
   controllers: [AppController],
   providers: [

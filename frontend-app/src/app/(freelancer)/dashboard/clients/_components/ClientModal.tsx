@@ -35,7 +35,9 @@ import { clientsApi } from '@/features/clients/api';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { toast } from 'sonner';
 import paisData from '@/data/localization/pais.json';
+// @ts-ignore
 import { Gt } from '@next-languages/flags';
+import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
 
 // ─── Flag map (add more as new countries are enabled in pais.json) ─────────────
 
@@ -134,19 +136,8 @@ function PhonePrefixInput({
     );
 }
 
-// ─── Schema ───────────────────────────────────────────────────────────────────
-
-const clientSchema = z.object({
-    name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
-    email: z.string().email('Correo electrónico inválido'),
-    phone: z.string().optional().nullable(),
-    whatsapp: z.string().optional().nullable(),
-    country: z.string().optional(),
-    type: z.enum(['person', 'company']).default('person'),
-    notes: z.string().optional().nullable(),
-});
-
-type ClientFormValues = z.infer<typeof clientSchema>;
+// We will redefine the schema inside the component to use translations.
+// type ClientFormValues = z.infer<typeof clientSchema>;
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -161,6 +152,7 @@ interface ClientModalProps {
 
 export function ClientModal({ open, onOpenChange, onSuccess, initialData }: ClientModalProps) {
     const { activeWorkspace } = useAuth();
+    const { t } = useWorkspaceSettings();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Tax identifier: a single selector + value
@@ -172,8 +164,21 @@ export function ClientModal({ open, onOpenChange, onSuccess, initialData }: Clie
 
     const defaultCountry = activeWorkspace?.country || 'GT';
 
+    // Dynamic schema for translations
+    const clientSchema = z.object({
+        name: z.string().min(2, t('clientModal.nameError')),
+        email: z.string().email(t('clientModal.emailError')),
+        phone: z.string().optional().nullable(),
+        whatsapp: z.string().optional().nullable(),
+        country: z.string().optional(),
+        type: z.enum(['person', 'company']).default('person'),
+        notes: z.string().optional().nullable(),
+    });
+
+    type ClientFormValues = z.infer<typeof clientSchema>;
+
     const form = useForm<ClientFormValues>({
-        resolver: zodResolver(clientSchema),
+        resolver: zodResolver(clientSchema as any),
         defaultValues: {
             name: '',
             email: '',
@@ -242,15 +247,15 @@ export function ClientModal({ open, onOpenChange, onSuccess, initialData }: Clie
             };
             if (initialData?.id) {
                 await clientsApi.update(initialData.id, payload as any);
-                toast.success('Cliente actualizado');
+                toast.success(t('clientModal.successUpdate'));
             } else {
                 await clientsApi.create(payload as any);
-                toast.success('Cliente creado');
+                toast.success(t('clientModal.successCreate'));
             }
             onSuccess();
             onOpenChange(false);
         } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Error al guardar el cliente');
+            toast.error(error.response?.data?.message || t('clientModal.errorSave'));
         } finally {
             setIsSubmitting(false);
         }
@@ -264,8 +269,8 @@ export function ClientModal({ open, onOpenChange, onSuccess, initialData }: Clie
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[500px] rounded-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>{initialData ? 'Editar Cliente' : 'Nuevo Cliente'}</DialogTitle>
-                    <DialogDescription>Completa la información del cliente.</DialogDescription>
+                    <DialogTitle>{initialData ? t('clientModal.titleEdit') : t('clientModal.titleNew')}</DialogTitle>
+                    <DialogDescription>{t('clientModal.desc')}</DialogDescription>
                 </DialogHeader>
 
                 <Form {...form}>
@@ -277,9 +282,9 @@ export function ClientModal({ open, onOpenChange, onSuccess, initialData }: Clie
                             name="name"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Nombre completo</FormLabel>
+                                    <FormLabel>{t('clientModal.nameForm')}</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Ej. Juan Pérez" {...field} value={field.value || ''} className="rounded-xl" />
+                                        <Input placeholder={t('clientModal.namePlaceholder')} {...field} value={field.value || ''} className="rounded-xl" />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -291,9 +296,9 @@ export function ClientModal({ open, onOpenChange, onSuccess, initialData }: Clie
                             name="email"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Correo electrónico</FormLabel>
+                                    <FormLabel>{t('clientModal.emailForm')}</FormLabel>
                                     <FormControl>
-                                        <Input type="email" placeholder="cliente@ejemplo.com" {...field} value={field.value || ''} className="rounded-xl" />
+                                        <Input type="email" placeholder={t('clientModal.emailPlaceholder')} {...field} value={field.value || ''} className="rounded-xl" />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -307,7 +312,7 @@ export function ClientModal({ open, onOpenChange, onSuccess, initialData }: Clie
                                 name="phone"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Teléfono</FormLabel>
+                                        <FormLabel>{t('clientModal.phoneForm')}</FormLabel>
                                         <FormControl>
                                             <PhonePrefixInput
                                                 value={field.value || ''}
@@ -325,7 +330,7 @@ export function ClientModal({ open, onOpenChange, onSuccess, initialData }: Clie
                                 name="whatsapp"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>WhatsApp</FormLabel>
+                                        <FormLabel>{t('clientModal.whatsappForm')}</FormLabel>
                                         <FormControl>
                                             <PhonePrefixInput
                                                 value={field.value || ''}
@@ -347,11 +352,11 @@ export function ClientModal({ open, onOpenChange, onSuccess, initialData }: Clie
                                 name="country"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>País</FormLabel>
+                                        <FormLabel>{t('clientModal.countryForm')}</FormLabel>
                                         <FormControl>
                                             <Select value={field.value || ''} onValueChange={field.onChange}>
                                                 <SelectTrigger className="rounded-xl">
-                                                    <SelectValue placeholder="Selecciona país" />
+                                                    <SelectValue placeholder={t('clientModal.countryPlaceholder')} />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     {ALL_COUNTRIES.map(({ code, name }) => (
@@ -366,7 +371,7 @@ export function ClientModal({ open, onOpenChange, onSuccess, initialData }: Clie
                                             </Select>
                                         </FormControl>
                                         <FormDescription className="text-xs">
-                                            Define los campos de identificación disponibles.
+                                            {t('clientModal.countryDesc')}
                                         </FormDescription>
                                         <FormMessage />
                                     </FormItem>
@@ -378,15 +383,15 @@ export function ClientModal({ open, onOpenChange, onSuccess, initialData }: Clie
                                 name="type"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Tipo</FormLabel>
+                                        <FormLabel>{t('clientModal.typeForm')}</FormLabel>
                                         <FormControl>
                                             <Select value={field.value} onValueChange={field.onChange}>
                                                 <SelectTrigger className="rounded-xl">
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="person">Persona natural</SelectItem>
-                                                    <SelectItem value="company">Empresa</SelectItem>
+                                                    <SelectItem value="person">{t('clientModal.typePerson')}</SelectItem>
+                                                    <SelectItem value="company">{t('clientModal.typeCompany')}</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </FormControl>
@@ -399,15 +404,15 @@ export function ClientModal({ open, onOpenChange, onSuccess, initialData }: Clie
                         {/* ── Identificación fiscal (select + input dinámico) ── */}
                         {taxOptions.length > 0 && (
                             <div className="space-y-2.5 rounded-xl border border-border/60 bg-muted/20 p-4">
-                                <p className="text-sm font-medium">Identificación fiscal</p>
+                                <p className="text-sm font-medium">{t('clientModal.taxIdTitle')}</p>
                                 <div className="flex gap-2">
                                     {/* Which identifier */}
                                     <Select value={selectedTaxKey} onValueChange={(v) => { setSelectedTaxKey(v); setTaxValue(''); }}>
                                         <SelectTrigger className="w-[180px] rounded-xl">
-                                            <SelectValue placeholder="Tipo de ID" />
+                                            <SelectValue placeholder={t('clientModal.taxIdPlaceholder')} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="none">Ninguno</SelectItem>
+                                            <SelectItem value="none">{t('clientModal.taxIdNone')}</SelectItem>
                                             {taxOptions.map((t: any) => (
                                                 <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>
                                             ))}
@@ -436,10 +441,10 @@ export function ClientModal({ open, onOpenChange, onSuccess, initialData }: Clie
                             name="notes"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Notas internas</FormLabel>
+                                    <FormLabel>{t('clientModal.notesForm')}</FormLabel>
                                     <FormControl>
                                         <Textarea
-                                            placeholder="Cualquier nota interna sobre este cliente..."
+                                            placeholder={t('clientModal.notesPlaceholder')}
                                             {...field}
                                             value={field.value || ''}
                                             className="rounded-xl resize-none h-20"
@@ -456,7 +461,7 @@ export function ClientModal({ open, onOpenChange, onSuccess, initialData }: Clie
                                 disabled={isSubmitting}
                                 className="w-full rounded-full shadow-lg shadow-primary/20"
                             >
-                                {isSubmitting ? 'Guardando...' : (initialData ? 'Actualizar' : 'Crear Cliente')}
+                                {isSubmitting ? t('clientModal.saving') : (initialData ? t('clientModal.updateBtn') : t('clientModal.createBtn'))}
                             </Button>
                         </DialogFooter>
                     </form>

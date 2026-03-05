@@ -2,30 +2,34 @@
 
 import { useState, useEffect } from 'react';
 import { servicesApi } from '@/features/services/api';
-import { Service } from '@/features/services/types';
+import { Service, ServiceChargeType, ServiceUnitType } from '@/features/services/types';
 import { DashboardShell } from '@/components/layout/DashboardShell';
 import { Button } from '@/components/ui/button';
-import { Plus, Package, Edit2, Trash2, MoreHorizontal } from 'lucide-react';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow
-} from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { formatCurrency } from '@/lib/utils';
+import { Plus, Package, Edit2, Trash2, CheckCircle2, XCircle } from 'lucide-react';
+import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
 import { ServiceModal } from './_components/ServiceModal';
 import { toast } from 'sonner';
+import { DataTable, ColumnDef } from '@/components/common/DataTable';
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+const CHARGE_TYPE_LABEL: Record<ServiceChargeType, string> = {
+    [ServiceChargeType.ONE_TIME]: 'Único',
+    [ServiceChargeType.HOURLY]: 'Por hora',
+    [ServiceChargeType.RECURRING]: 'Recurrente',
+};
+
+const UNIT_TYPE_LABEL: Record<ServiceUnitType, string> = {
+    [ServiceUnitType.HOUR]: 'Hora',
+    [ServiceUnitType.PROJECT]: 'Proyecto',
+    [ServiceUnitType.MONTH]: 'Mes',
+    [ServiceUnitType.UNIT]: 'Unidad',
+};
+
+// ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function ServicesPage() {
+    const { formatCurrency, t } = useWorkspaceSettings();
     const [services, setServices] = useState<Service[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
@@ -55,10 +59,10 @@ export default function ServicesPage() {
         if (!confirm('¿Estás seguro de que quieres eliminar este servicio?')) return;
         try {
             await servicesApi.delete(id);
-            toast.success('Servicio eliminado');
+            toast.success(t('common.deleted') || 'Servicio eliminado');
             loadServices();
-        } catch (error) {
-            toast.error('Error al eliminar el servicio');
+        } catch {
+            toast.error(t('common.error') || 'Error al eliminar el servicio');
         }
     };
 
@@ -67,103 +71,118 @@ export default function ServicesPage() {
         setModalOpen(true);
     };
 
+    const columns: ColumnDef<Service>[] = [
+        {
+            key: 'name',
+            header: t('services.colName'),
+            render: (service) => (
+                <div>
+                    <div className={`font-medium group-hover:text-primary transition-colors ${!service.isActive ? 'text-muted-foreground' : ''}`}>
+                        {service.name}
+                        {!service.isActive && (
+                            <span className="ml-2 text-xs font-normal text-muted-foreground">(inactivo)</span>
+                        )}
+                    </div>
+                    {service.description && (
+                        <div className="text-xs text-muted-foreground truncate max-w-xs mt-0.5">
+                            {service.description}
+                        </div>
+                    )}
+                    {service.sku && (
+                        <div className="text-xs text-muted-foreground font-mono mt-0.5">
+                            SKU: {service.sku}
+                        </div>
+                    )}
+                </div>
+            ),
+        },
+        {
+            key: 'category',
+            header: t('services.colCategory'),
+            render: (service) => (
+                <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium">
+                    {service.category || 'General'}
+                </span>
+            ),
+        },
+        {
+            key: 'chargeType',
+            header: 'Tipo de cobro',
+            render: (service) => (
+                <div className="text-sm text-muted-foreground">
+                    <div>{CHARGE_TYPE_LABEL[service.chargeType] ?? service.chargeType}</div>
+                    <div className="text-xs">por {UNIT_TYPE_LABEL[service.unitType] ?? service.unitType}</div>
+                </div>
+            ),
+        },
+        {
+            key: 'status',
+            header: 'Estado',
+            render: (service) =>
+                service.isActive ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Activo
+                    </span>
+                ) : (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                        <XCircle className="w-3.5 h-3.5" /> Inactivo
+                    </span>
+                ),
+        },
+        {
+            key: 'price',
+            header: t('services.colPrice'),
+            className: 'text-right',
+            render: (service) => (
+                <span className="font-mono font-medium">
+                    {formatCurrency(service.basePrice, service.currency)}
+                </span>
+            ),
+        },
+    ];
+
     return (
         <DashboardShell>
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Servicios</h1>
-                    <p className="text-muted-foreground">
-                        Gestiona el catálogo de servicios que ofreces a tus clientes.
-                    </p>
+                    <h1 className="text-2xl font-bold tracking-tight">{t('services.title')}</h1>
+                    <p className="text-muted-foreground">{t('services.titleDesc')}</p>
                 </div>
                 <Button
+                    type="button"
                     onClick={handleCreate}
-                    className="rounded-full px-6 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95"
+                    className="relative z-10 rounded-full px-6 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 cursor-pointer"
                 >
-                    <Plus className="mr-2 h-4 w-4" /> Nuevo Servicio
+                    <Plus className="mr-2 h-4 w-4" /> {t('services.create')}
                 </Button>
             </div>
 
-            <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
-                {isLoading ? (
-                    <div className="p-8 space-y-4">
-                        {[1, 2, 3].map((i) => (
-                            <Skeleton key={i} className="h-12 w-full rounded-lg" />
-                        ))}
-                    </div>
-                ) : services.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center p-20 text-center">
-                        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                            <Package className="w-8 h-8 text-primary" />
-                        </div>
-                        <h3 className="text-lg font-semibold">No tienes servicios aún</h3>
-                        <p className="text-muted-foreground max-w-xs mb-6">
-                            Comienza agregando los servicios que quieres cobrar en tus cotizaciones.
-                        </p>
-                        <Button variant="outline" className="rounded-full" onClick={handleCreate}>
-                            Agregar mi primer servicio
-                        </Button>
-                    </div>
-                ) : (
-                    <Table>
-                        <TableHeader className="bg-muted/50">
-                            <TableRow>
-                                <TableHead>Nombre</TableHead>
-                                <TableHead>Categoría</TableHead>
-                                <TableHead className="text-right">Precio Base</TableHead>
-                                <TableHead className="w-12"></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {services.map((service) => (
-                                <TableRow key={service.id} className="hover:bg-muted/30 transition-colors group">
-                                    <TableCell>
-                                        <div className="font-medium group-hover:text-primary transition-colors">
-                                            {service.name}
-                                        </div>
-                                        {service.description && (
-                                            <div className="text-xs text-muted-foreground truncate max-w-xs">
-                                                {service.description}
-                                            </div>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium">
-                                            {service.category || 'General'}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="text-right font-mono">
-                                        {formatCurrency(service.basePrice, service.currency)}
-                                    </TableCell>
-                                    <TableCell>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="rounded-xl border-zinc-200 shadow-xl">
-                                                <DropdownMenuItem
-                                                    onClick={() => handleEdit(service)}
-                                                    className="flex items-center cursor-pointer"
-                                                >
-                                                    <Edit2 className="mr-2 h-4 w-4" /> Editar
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    onClick={() => handleDelete(service.id)}
-                                                    className="flex items-center text-destructive cursor-pointer focus:bg-destructive/10 focus:text-destructive"
-                                                >
-                                                    <Trash2 className="mr-2 h-4 w-4" /> Eliminar
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                )}
-            </div>
+            <DataTable
+                data={services}
+                columns={columns}
+                isLoading={isLoading}
+                emptyIcon={<Package className="w-8 h-8" />}
+                emptyTitle={t('services.emptyTitle')}
+                emptyDescription={t('services.emptyDesc')}
+                emptyAction={
+                    <Button variant="outline" className="rounded-full" onClick={handleCreate}>
+                        {t('services.emptyBtn')}
+                    </Button>
+                }
+                actions={(service) => [
+                    {
+                        label: t('common.edit') || 'Editar',
+                        icon: <Edit2 className="h-4 w-4" />,
+                        onClick: () => handleEdit(service),
+                    },
+                    {
+                        label: t('common.delete') || 'Eliminar',
+                        icon: <Trash2 className="h-4 w-4" />,
+                        onClick: () => handleDelete(service.id),
+                        destructive: true,
+                    },
+                ]}
+            />
 
             <ServiceModal
                 open={modalOpen}

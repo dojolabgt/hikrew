@@ -16,11 +16,12 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { WorkspacesService } from './workspaces.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WorkspaceGuard } from '../common/guards/workspace.guard';
+import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 
 @Controller('workspaces')
 @UseGuards(JwtAuthGuard)
 export class WorkspacesController {
-  constructor(private readonly workspacesService: WorkspacesService) {}
+  constructor(private readonly workspacesService: WorkspacesService) { }
 
   @Get('my-workspaces')
   async getMyWorkspaces(@Req() req) {
@@ -29,9 +30,9 @@ export class WorkspacesController {
 
   @Patch('current')
   @UseGuards(WorkspaceGuard)
-  async updateWorkspace(@Req() req, @Body() data: any) {
+  async updateWorkspace(@Req() req, @Body() data: UpdateWorkspaceDto) {
     // Note: Request.workspaceId is set by the WorkspaceGuard!
-    return this.workspacesService.updateWorkspace(req.workspaceId, data);
+    return this.workspacesService.updateWorkspace(req.workspaceId, data as any);
   }
 
   @Post('current/logo')

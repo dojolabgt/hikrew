@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 
 import { workspacesApi } from '@/features/workspaces/api';
+import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
 
 import {
     Form,
@@ -31,20 +32,21 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { PrimaryButton } from '@/components/common/PrimaryButton';
 
-const recurrenteSchema = z.object({
-    publicKey: z.string().min(1, 'La llave pública es requerida'),
-    privateKey: z.string().min(1, 'La llave privada es requerida'),
-});
-
-type RecurrenteFormValues = z.infer<typeof recurrenteSchema>;
-
 interface RecurrenteFormProps {
     isConfigured: boolean;
     onUpdateStatus: (status: boolean) => void;
 }
 
 export function RecurrenteForm({ isConfigured, onUpdateStatus }: RecurrenteFormProps) {
+    const { t } = useWorkspaceSettings();
     const [isLoading, setIsLoading] = useState(false);
+
+    const recurrenteSchema = z.object({
+        publicKey: z.string().min(1, t('recurrente.publicKeyRequired')),
+        privateKey: z.string().min(1, t('recurrente.privateKeyRequired')),
+    });
+
+    type RecurrenteFormValues = z.infer<typeof recurrenteSchema>;
 
     const form = useForm<RecurrenteFormValues>({
         resolver: zodResolver(recurrenteSchema),
@@ -58,12 +60,12 @@ export function RecurrenteForm({ isConfigured, onUpdateStatus }: RecurrenteFormP
         setIsLoading(true);
         try {
             await workspacesApi.updateRecurrenteKeys(data);
-            toast.success('Claves de Recurrente guardadas correctamente');
+            toast.success(t('recurrente.successMsg'));
             onUpdateStatus(true);
             form.reset(); // Limpiar el formulario por seguridad
         } catch (error) {
             console.error('Error updating keys:', error);
-            toast.error('Ocurrió un error al guardar las claves');
+            toast.error(t('recurrente.errorMsg'));
         } finally {
             setIsLoading(false);
         }
@@ -75,18 +77,17 @@ export function RecurrenteForm({ isConfigured, onUpdateStatus }: RecurrenteFormP
                 {isConfigured ? (
                     <Alert className="bg-emerald-50 text-emerald-900 border-emerald-200">
                         <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                        <AlertTitle>Recurrente Conectado</AlertTitle>
+                        <AlertTitle>{t('recurrente.connected')}</AlertTitle>
                         <AlertDescription className="text-emerald-800/80">
-                            Tus claves han sido configuradas y encriptadas de forma segura.
-                            Puedes ingresar nuevas claves si deseas actualizar tu conexión.
+                            {t('recurrente.connectedDesc')}
                         </AlertDescription>
                     </Alert>
                 ) : (
                     <Alert className="bg-amber-50 text-amber-900 border-amber-200">
                         <AlertCircle className="h-4 w-4 text-amber-600" />
-                        <AlertTitle>Falta Configuración</AlertTitle>
+                        <AlertTitle>{t('recurrente.missingConfig')}</AlertTitle>
                         <AlertDescription className="text-amber-800/80">
-                            No has configurado tus claves de Recurrente. No podrás cobrar hasta que lo hagas.
+                            {t('recurrente.missingConfigDesc')}
                         </AlertDescription>
                     </Alert>
                 )}
@@ -99,16 +100,16 @@ export function RecurrenteForm({ isConfigured, onUpdateStatus }: RecurrenteFormP
                         name="publicKey"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-zinc-700 dark:text-zinc-300">Llave Pública (Public Key)</FormLabel>
+                                <FormLabel className="text-zinc-700 dark:text-zinc-300">{t('recurrente.publicKeyLabel')}</FormLabel>
                                 <FormControl>
                                     <Input
-                                        placeholder="pk_test_..."
+                                        placeholder={t('recurrente.publicKeyPlaceholder')}
                                         className="h-11 rounded-lg"
                                         {...field}
                                     />
                                 </FormControl>
                                 <FormDescription className="text-xs">
-                                    Encuentra esta llave en Recurrente {'>'} Desarrolladores {'>'} API Keys.
+                                    {t('recurrente.publicKeyHelp')}
                                 </FormDescription>
                                 <FormMessage />
                             </FormItem>
@@ -120,17 +121,17 @@ export function RecurrenteForm({ isConfigured, onUpdateStatus }: RecurrenteFormP
                         name="privateKey"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-zinc-700 dark:text-zinc-300">Llave Privada (Private / Secret Key)</FormLabel>
+                                <FormLabel className="text-zinc-700 dark:text-zinc-300">{t('recurrente.privateKeyLabel')}</FormLabel>
                                 <FormControl>
                                     <Input
                                         type="password"
-                                        placeholder="sk_test_..."
+                                        placeholder={t('recurrente.privateKeyPlaceholder')}
                                         className="h-11 rounded-lg"
                                         {...field}
                                     />
                                 </FormControl>
                                 <FormDescription className="text-xs">
-                                    Esta llave nunca será mostrada de nuevo. Si la pierdes, deberás generar una nueva.
+                                    {t('recurrente.privateKeyHelp')}
                                 </FormDescription>
                                 <FormMessage />
                             </FormItem>
@@ -138,9 +139,9 @@ export function RecurrenteForm({ isConfigured, onUpdateStatus }: RecurrenteFormP
                     />
 
                     <div className="pt-6 border-t border-border mt-4 flex items-center justify-between">
-                        <p className="text-xs text-muted-foreground mr-4">Asegúrate de guardar tus cambios.</p>
+                        <p className="text-xs text-muted-foreground mr-4">{t('recurrente.saveReminder')}</p>
                         <PrimaryButton compact type="submit" disabled={isLoading}>
-                            {isLoading ? 'Guardando...' : 'Guardar Claves'}
+                            {isLoading ? t('recurrente.saving') : t('recurrente.saveBtn')}
                         </PrimaryButton>
                     </div>
                 </form>

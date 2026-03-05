@@ -19,8 +19,8 @@ export function getImageUrl(path: string | null | undefined): string | undefined
   return `${cleanBaseUrl}/${cleanPath}`;
 }
 
-export function formatCurrency(amount: number, currency: string = 'GTQ') {
-  return new Intl.NumberFormat('es-GT', {
+export function formatCurrency(amount: number, currency: string = 'GTQ', locale: string = 'es-GT') {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currency,
   }).format(amount);

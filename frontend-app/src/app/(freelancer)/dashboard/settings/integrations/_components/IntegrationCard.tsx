@@ -8,10 +8,11 @@ import {
     Card,
     CardContent,
     CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle,
+    CardFooter,
 } from '@/components/ui/card';
+import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
 
 interface IntegrationCardProps {
     logo: React.ReactNode;
@@ -38,6 +39,7 @@ export function IntegrationCard({
     badges,
     disabledReason,
 }: IntegrationCardProps) {
+    const { t } = useWorkspaceSettings();
     const isLocked = (proOnly && !userIsPro) || !!disabledReason;
 
     return (
@@ -57,11 +59,11 @@ export function IntegrationCard({
                     ) : isConfigured ? (
                         <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/30 gap-1 text-[10px] font-medium px-2 py-0.5 shadow-sm uppercase tracking-wider">
                             <CheckCircle2 className="w-3 h-3" />
-                            Conectado
+                            {t('integrations.connected')}
                         </Badge>
                     ) : (
                         <Badge variant="outline" className="text-muted-foreground gap-1 text-[10px] font-medium px-2 py-0.5 uppercase tracking-wider shadow-sm border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
-                            Inactivo
+                            {t('integrations.inactive')}
                         </Badge>
                     )}
                 </div>
@@ -98,14 +100,14 @@ export function IntegrationCard({
                         onClick={onConfigure}
                         disabled={comingSoon || isLocked}
                     >
-                        {isLocked ? (disabledReason || 'Requiere Plan Pro') : comingSoon ? 'No disponible aún' : 'Configuración'}
+                        {isLocked ? (disabledReason || t('integrations.requiresPro')) : comingSoon ? t('integrations.notAvailableYet') : t('integrations.configuration')}
                     </Button>
                 ) : (
                     <PrimaryButton
                         className="w-full gap-2"
                         onClick={onConfigure}
                     >
-                        Conectar cuenta
+                        {t('integrations.connectAccount')}
                         <ChevronRight className="w-4 h-4 ml-auto" />
                     </PrimaryButton>
                 )}

@@ -8,9 +8,10 @@ import {
     Card,
     CardContent,
     CardDescription,
-    CardFooter,
     CardHeader,
+    CardFooter,
 } from '@/components/ui/card';
+import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
 
 // ─── Plan access levels ───────────────────────────────────────────────────────
 
@@ -62,6 +63,7 @@ export function ModuleCard({
     userPlan,
     onActivate,
 }: ModuleCardProps) {
+    const { t } = useWorkspaceSettings();
     // Access logic
     const planRank: Record<WorkspacePlan, number> = { free: 0, pro: 1, premium: 2 };
     const requiredRank = planRank[requiredPlan];
@@ -73,29 +75,29 @@ export function ModuleCard({
 
     const isLocked = !hasRequiredPlan || proLimitReached;
 
-    let ctaLabel = 'Activar módulo';
+    let ctaLabel = t('modules.activateModule');
     let lockReason = '';
     if (!hasRequiredPlan) {
-        lockReason = requiredPlan === 'premium' ? 'Requiere Premium' : 'Requiere Pro';
+        lockReason = requiredPlan === 'premium' ? t('modules.requiresPremium') : t('modules.requiresPro');
     } else if (proLimitReached) {
-        lockReason = 'Límite de módulos Pro (1)';
+        lockReason = t('modules.proModulesLimit');
     }
 
     return (
         <Card
             className={`flex flex-col transition-all duration-300 ${isActive
-                    ? 'border-primary/40 bg-primary/[0.02] shadow-sm shadow-primary/10'
-                    : isLocked
-                        ? 'opacity-75'
-                        : 'hover:shadow-md hover:-translate-y-0.5 hover:border-zinc-300 dark:hover:border-zinc-700'
+                ? 'border-primary/40 bg-primary/[0.02] shadow-sm shadow-primary/10'
+                : isLocked
+                    ? 'opacity-75'
+                    : 'hover:shadow-md hover:-translate-y-0.5 hover:border-zinc-300 dark:hover:border-zinc-700'
                 }`}
         >
             <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-3">
                     {/* Icon */}
                     <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-2xl border shadow-sm transition-all ${isActive
-                            ? 'bg-primary/10 border-primary/20'
-                            : 'bg-zinc-50 dark:bg-zinc-800/80 border-zinc-100 dark:border-zinc-800'
+                        ? 'bg-primary/10 border-primary/20'
+                        : 'bg-zinc-50 dark:bg-zinc-800/80 border-zinc-100 dark:border-zinc-800'
                         } ${isLocked ? 'grayscale' : ''}`}>
                         {icon}
                     </div>
@@ -105,7 +107,7 @@ export function ModuleCard({
                         {isActive && (
                             <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/30 gap-1 text-[10px] font-medium px-2 py-0.5 shadow-none uppercase tracking-wider">
                                 <Zap className="w-2.5 h-2.5" />
-                                Activo
+                                {t('modules.active')}
                             </Badge>
                         )}
                     </div>
@@ -154,7 +156,7 @@ export function ModuleCard({
                         className="w-full gap-2 h-10 rounded-xl"
                         onClick={onActivate}
                     >
-                        Ver configuración
+                        {t('modules.viewConfig')}
                         <ChevronRight className="w-4 h-4 ml-auto" />
                     </Button>
                 ) : (

@@ -9,6 +9,7 @@ import { Loader2, Key, Link as LinkIcon, CheckCircle2 } from 'lucide-react';
 
 import { usersApi } from '@/features/users/api';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
 
 import {
     Form,
@@ -32,18 +33,19 @@ import { PrimaryButton } from '@/components/common/PrimaryButton';
 
 export function SecurityForm() {
     const { user } = useAuth();
+    const { t } = useWorkspaceSettings();
     const [isSaving, setIsSaving] = useState(false);
 
     const hasGoogle = user?.authProviders?.includes('google') || false;
     const hasPassword = user?.hasPassword !== false && (user?.authProviders?.includes('password') || !user?.authProviders);
 
     const securitySchema = z.object({
-        currentPassword: hasPassword ? z.string().min(1, 'La contraseña actual es requerida') : z.string().optional(),
-        newPassword: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres')
-            .regex(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, 'Debe contener mayúscula, minúscula, y número o símbolo'),
-        confirmPassword: z.string().min(1, 'Por favor confirma tu contraseña'),
+        currentPassword: hasPassword ? z.string().min(1, t('security.valCurrentReq')) : z.string().optional(),
+        newPassword: z.string().min(8, t('security.valNewReq'))
+            .regex(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, t('security.valNewRegex')),
+        confirmPassword: z.string().min(1, t('security.valConfirmReq')),
     }).refine((data) => data.newPassword === data.confirmPassword, {
-        message: 'Las nuevas contraseñas no coinciden',
+        message: t('security.valMatch'),
         path: ['confirmPassword'],
     });
 
@@ -66,12 +68,12 @@ export function SecurityForm() {
                 password: values.newPassword,
             });
             form.reset();
-            toast.success(hasPassword ? 'Contraseña actualizada correctamente' : 'Contraseña asignada correctamente');
+            toast.success(hasPassword ? t('security.successUpdate') : t('security.successAssign'));
         } catch (error: any) {
             console.error('Error changing password', error);
             const msg = error?.response?.data?.message === 'Invalid current password'
-                ? 'La contraseña actual es incorrecta'
-                : (error?.response?.data?.message || 'Error al actualizar la contraseña');
+                ? t('security.errorCurrent')
+                : (error?.response?.data?.message || t('security.errorUpdate'));
             toast.error(msg);
         } finally {
             setIsSaving(false);
@@ -92,12 +94,12 @@ export function SecurityForm() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Key className="h-5 w-5 text-zinc-500" />
-                                {hasPassword ? 'Cambiar Contraseña' : 'Asignar Contraseña'}
+                                {hasPassword ? t('security.cardTitleChange') : t('security.cardTitleAssign')}
                             </CardTitle>
                             <CardDescription>
                                 {hasPassword
-                                    ? 'Actualiza la contraseña de tu cuenta de Blend para mantenerla segura.'
-                                    : 'Aún no tienes una contraseña porque te registraste con Google. Asigna una para poder iniciar sesión con tu correo.'}
+                                    ? t('security.cardDescChange')
+                                    : t('security.cardDescAssign')}
                             </CardDescription>
                         </CardHeader>
 
@@ -109,7 +111,7 @@ export function SecurityForm() {
                                         name="currentPassword"
                                         render={({ field }) => (
                                             <FormItem className="sm:col-span-2">
-                                                <FormLabel>Contraseña actual</FormLabel>
+                                                <FormLabel>{t('security.currentLabel')}</FormLabel>
                                                 <FormControl>
                                                     <AppInput type="password" placeholder="••••••••" {...field} />
                                                 </FormControl>
@@ -123,7 +125,7 @@ export function SecurityForm() {
                                     name="newPassword"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Nueva contraseña</FormLabel>
+                                            <FormLabel>{t('security.newLabel')}</FormLabel>
                                             <FormControl>
                                                 <AppInput type="password" placeholder="••••••••" {...field} />
                                             </FormControl>
@@ -136,7 +138,7 @@ export function SecurityForm() {
                                     name="confirmPassword"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Confirmar contraseña</FormLabel>
+                                            <FormLabel>{t('security.confirmLabel')}</FormLabel>
                                             <FormControl>
                                                 <AppInput type="password" placeholder="••••••••" {...field} />
                                             </FormControl>
@@ -148,15 +150,15 @@ export function SecurityForm() {
                         </CardContent>
 
                         <CardFooter className="justify-between border-t border-border/40 pt-6">
-                            <p className="text-xs text-muted-foreground">Utiliza una contraseña fuerte que no uses en otro sitio.</p>
+                            <p className="text-xs text-muted-foreground">{t('security.footerNote')}</p>
                             <PrimaryButton compact type="submit" disabled={isSaving}>
                                 {isSaving ? (
                                     <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Guardando...
+                                        {t('security.btnSaving')}
                                     </>
                                 ) : (
-                                    hasPassword ? 'Cambiar contraseña' : 'Guardar contraseña'
+                                    hasPassword ? t('security.btnChange') : t('security.btnAssign')
                                 )}
                             </PrimaryButton>
                         </CardFooter>
@@ -169,10 +171,10 @@ export function SecurityForm() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <LinkIcon className="h-5 w-5 text-zinc-500" />
-                        Cuentas Vinculadas
+                        {t('security.linkedTitle')}
                     </CardTitle>
                     <CardDescription>
-                        Conecta cuentas de terceros para acceder más rápido a tu panel.
+                        {t('security.linkedDesc')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -189,17 +191,17 @@ export function SecurityForm() {
                             </div>
                             <div>
                                 <p className="text-sm font-medium">Google Workspace</p>
-                                <p className="text-xs text-muted-foreground">Inicia sesión con un solo clic usando tu cuenta de Google.</p>
+                                <p className="text-xs text-muted-foreground">{t('security.googleDesc')}</p>
                             </div>
                         </div>
                         {hasGoogle ? (
                             <div className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-500 bg-green-50 dark:bg-green-900/20 px-3 py-1.5 rounded-full font-medium">
                                 <CheckCircle2 className="h-3.5 w-3.5" />
-                                Vinculada
+                                {t('security.linkedStatus')}
                             </div>
                         ) : (
                             <Button variant="outline" size="sm" onClick={handleGoogleLink}>
-                                Vincular cuenta
+                                {t('security.btnLink')}
                             </Button>
                         )}
                     </div>

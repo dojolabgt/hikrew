@@ -11,20 +11,22 @@ import { Settings } from 'lucide-react';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-const freelancerNavItems: NavItemConfig[] = [
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, section: 'GENERAL' },
-    { href: '/dashboard/clients', label: 'Directorio', icon: Users, section: 'NEGOCIO' },
-    { href: '/dashboard/services', label: 'Servicios', icon: Briefcase, section: 'NEGOCIO' },
-    { href: '/dashboard/quotes', label: 'Cotizaciones', icon: FileText, section: 'COBROS' },
-    { href: '/dashboard/payments', label: 'Pagos', icon: CreditCard, section: 'COBROS' },
-    // Use strongly typed route to default settings page
-    { href: '/dashboard/settings/personal-info', label: 'Configuración', icon: Settings, section: 'CONFIGURACIÓN' },
-];
+import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
 
 export default function FreelancerLayout({ children }: { children: React.ReactNode }) {
     const { isAuthorized, isLoading } = useRequireRole(UserRole.FREELANCER);
     const { user, activeWorkspace } = useAuth();
     const router = useRouter();
+    const { t } = useWorkspaceSettings();
+
+    const freelancerNavItems: NavItemConfig[] = [
+        { href: '/dashboard', label: t('sidebar.dashboard'), icon: LayoutDashboard, section: t('sidebar.mainSection') },
+        { href: '/dashboard/clients', label: t('sidebar.clients'), icon: Users, section: t('sidebar.businessSection') },
+        { href: '/dashboard/services', label: t('sidebar.services'), icon: Briefcase, section: t('sidebar.businessSection') },
+        { href: '/dashboard/deals', label: t('sidebar.deals'), icon: FileText, section: t('sidebar.billingSection') },
+        { href: '/dashboard/payments', label: t('sidebar.payments'), icon: CreditCard, section: t('sidebar.billingSection') },
+        { href: '/dashboard/settings/personal-info', label: t('sidebar.settings'), icon: Settings, section: t('sidebar.settingsSection') },
+    ];
 
     // Guard: redirect to onboarding if not completed yet
     useEffect(() => {

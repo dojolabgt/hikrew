@@ -8,10 +8,7 @@ import {
 } from 'typeorm';
 import { Workspace } from '../workspaces/workspace.entity';
 
-export enum ServiceCurrency {
-  GTQ = 'GTQ',
-  USD = 'USD',
-}
+
 
 export enum ServiceUnitType {
   HOUR = 'HOUR',
@@ -81,8 +78,8 @@ export class Service {
   @Column({ type: 'jsonb', nullable: true })
   metadata: Record<string, any>;
 
-  @Column({ type: 'enum', enum: ServiceCurrency, default: ServiceCurrency.GTQ })
-  currency: ServiceCurrency;
+  @Column({ type: 'varchar', length: 3, default: 'GTQ' })
+  currency: string;
 
   @Column({ nullable: true })
   category: string;

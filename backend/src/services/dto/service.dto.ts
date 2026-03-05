@@ -8,7 +8,6 @@ import {
   IsObject,
 } from 'class-validator';
 import {
-  ServiceCurrency,
   ServiceUnitType,
   ServiceChargeType,
 } from '../service.entity';
@@ -28,8 +27,8 @@ export class CreateServiceDto {
   @IsNumber()
   basePrice: number;
 
-  @IsEnum(ServiceCurrency)
-  currency: ServiceCurrency;
+  @IsString()
+  currency: string;
 
   @IsOptional()
   @IsEnum(ServiceUnitType)
@@ -86,8 +85,8 @@ export class UpdateServiceDto {
   basePrice?: number;
 
   @IsOptional()
-  @IsEnum(ServiceCurrency)
-  currency?: ServiceCurrency;
+  @IsString()
+  currency?: string;
 
   @IsOptional()
   @IsEnum(ServiceUnitType)

@@ -23,6 +23,7 @@ export interface Workspace {
     currencies?: { code: string; name: string; symbol: string; isDefault: boolean }[] | null;
     useCases?: string[] | null;
     onboardingCompleted?: boolean;
+    taxes?: any[];
 }
 
 export interface WorkspaceMember {

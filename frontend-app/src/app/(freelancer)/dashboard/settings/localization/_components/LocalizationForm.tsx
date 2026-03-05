@@ -9,6 +9,7 @@ import { Globe, Hash, Plus, Trash2, Star, Check, Loader2 } from 'lucide-react';
 
 import { Workspace } from '@/features/workspaces/types';
 import { workspacesApi } from '@/features/workspaces/api';
+import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
 
 import {
     Form,
@@ -128,18 +129,16 @@ const ALL_CURRENCIES: CurrencyEntry[] = [
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
-const localizationSchema = z.object({
-    country: z.string().min(1, 'El país es requerido'),
-    language: z.string().min(1),
-    timezone: z.string().min(1),
-    firstDayOfWeek: z.string(),
-    dateFormat: z.string(),
-    timeFormat: z.string(),
-    numberFormat: z.string(),
-    currencyFormat: z.string(),
-});
-
-type LocalizationFormValues = z.infer<typeof localizationSchema>;
+type LocalizationFormValues = {
+    country: string;
+    language: string;
+    timezone: string;
+    firstDayOfWeek: string;
+    dateFormat: string;
+    timeFormat: string;
+    numberFormat: string;
+    currencyFormat: string;
+};
 
 interface LocalizationFormProps {
     initialData: Workspace | null;
@@ -187,11 +186,23 @@ function previewCurrency(fmt: string, numFmt: string) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function LocalizationForm({ initialData, onUpdate }: LocalizationFormProps) {
+    const { t } = useWorkspaceSettings();
     const [isLoading, setIsLoading] = useState(false);
     const [currencies, setCurrencies] = useState<CurrencyEntry[]>(
         () => (initialData?.currencies ?? []) as CurrencyEntry[]
     );
     const [selectedCurrencyCode, setSelectedCurrencyCode] = useState<string>('');
+
+    const localizationSchema = z.object({
+        country: z.string().min(1, t('localization.valCountryReq')),
+        language: z.string().min(1),
+        timezone: z.string().min(1),
+        firstDayOfWeek: z.string(),
+        dateFormat: z.string(),
+        timeFormat: z.string(),
+        numberFormat: z.string(),
+        currencyFormat: z.string(),
+    });
 
     const form = useForm<LocalizationFormValues>({
         resolver: zodResolver(localizationSchema),
@@ -249,11 +260,11 @@ export function LocalizationForm({ initialData, onUpdate }: LocalizationFormProp
                 ...data,
                 currencies,
             } as Partial<Workspace>);
-            toast.success('Configuración guardada');
+            toast.success(t('localization.successSave'));
             onUpdate(updatedProfile);
         } catch (error) {
             console.error('Error updating localization:', error);
-            toast.error('Error al guardar la configuración');
+            toast.error(t('localization.errorSave'));
         } finally {
             setIsLoading(false);
         }
@@ -268,10 +279,10 @@ export function LocalizationForm({ initialData, onUpdate }: LocalizationFormProp
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-base">
                             <Globe className="w-4 h-4 text-primary" />
-                            Ubicación
+                            {t('localization.cardTitleLoc')}
                         </CardTitle>
                         <CardDescription>
-                            Define el país principal de operación de tu negocio.
+                            {t('localization.cardDescLoc')}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -281,13 +292,13 @@ export function LocalizationForm({ initialData, onUpdate }: LocalizationFormProp
                                 name="country"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>País</FormLabel>
+                                        <FormLabel>{t('localization.countryLabel')}</FormLabel>
                                         <FormControl>
                                             <AppSelect
                                                 value={field.value}
                                                 onValueChange={field.onChange}
                                                 options={countryOptions}
-                                                placeholder="Selecciona un país"
+                                                placeholder={t('localization.countryPlaceholder')}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -303,10 +314,10 @@ export function LocalizationForm({ initialData, onUpdate }: LocalizationFormProp
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-base">
                             <Globe className="w-4 h-4 text-primary" />
-                            Idioma y Región
+                            {t('localization.cardTitleLang')}
                         </CardTitle>
                         <CardDescription>
-                            Ajusta el idioma, zona horaria y primer día de la semana.
+                            {t('localization.cardDescLang')}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -316,7 +327,7 @@ export function LocalizationForm({ initialData, onUpdate }: LocalizationFormProp
                                 name="language"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Idioma</FormLabel>
+                                        <FormLabel>{t('localization.langLabel')}</FormLabel>
                                         <FormControl>
                                             <AppSelect
                                                 value={field.value}
@@ -333,7 +344,7 @@ export function LocalizationForm({ initialData, onUpdate }: LocalizationFormProp
                                 name="firstDayOfWeek"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Inicio de Semana</FormLabel>
+                                        <FormLabel>{t('localization.startWeekLabel')}</FormLabel>
                                         <FormControl>
                                             <AppSelect
                                                 value={field.value}
@@ -350,7 +361,7 @@ export function LocalizationForm({ initialData, onUpdate }: LocalizationFormProp
                                 name="timezone"
                                 render={({ field }) => (
                                     <FormItem className="sm:col-span-2">
-                                        <FormLabel>Zona Horaria</FormLabel>
+                                        <FormLabel>{t('localization.timezoneLabel')}</FormLabel>
                                         <FormControl>
                                             <AppSelect
                                                 value={field.value}
@@ -371,10 +382,10 @@ export function LocalizationForm({ initialData, onUpdate }: LocalizationFormProp
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-base">
                             <Hash className="w-4 h-4 text-primary" />
-                            Formatos de Visualización
+                            {t('localization.cardTitleFormats')}
                         </CardTitle>
                         <CardDescription>
-                            Controla cómo se muestran fechas, horas, números y montos.
+                            {t('localization.cardDescFormats')}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
@@ -384,7 +395,7 @@ export function LocalizationForm({ initialData, onUpdate }: LocalizationFormProp
                                 name="dateFormat"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Formato de Fecha</FormLabel>
+                                        <FormLabel>{t('localization.dateFormatLabel')}</FormLabel>
                                         <FormControl>
                                             <AppSelect
                                                 value={field.value}
@@ -401,7 +412,7 @@ export function LocalizationForm({ initialData, onUpdate }: LocalizationFormProp
                                 name="timeFormat"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Formato de Hora</FormLabel>
+                                        <FormLabel>{t('localization.timeFormatLabel')}</FormLabel>
                                         <FormControl>
                                             <AppSelect
                                                 value={field.value}
@@ -418,7 +429,7 @@ export function LocalizationForm({ initialData, onUpdate }: LocalizationFormProp
                                 name="numberFormat"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Formato de Número</FormLabel>
+                                        <FormLabel>{t('localization.numberFormatLabel')}</FormLabel>
                                         <FormControl>
                                             <AppSelect
                                                 value={field.value}
@@ -435,7 +446,7 @@ export function LocalizationForm({ initialData, onUpdate }: LocalizationFormProp
                                 name="currencyFormat"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Formato de Moneda</FormLabel>
+                                        <FormLabel>{t('localization.currencyFormatLabel')}</FormLabel>
                                         <FormControl>
                                             <AppSelect
                                                 value={field.value}
@@ -452,16 +463,16 @@ export function LocalizationForm({ initialData, onUpdate }: LocalizationFormProp
                         {/* Live preview */}
                         <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
                             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                                Vista Previa
+                                {t('localization.previewTitle')}
                             </p>
                             <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 text-sm">
-                                <span className="text-muted-foreground">Fecha</span>
+                                <span className="text-muted-foreground">{t('localization.previewDate')}</span>
                                 <span className="font-medium">{previewDate(watchDate)}</span>
-                                <span className="text-muted-foreground">Hora</span>
+                                <span className="text-muted-foreground">{t('localization.previewTime')}</span>
                                 <span className="font-medium">{previewTime(watchTime)}</span>
-                                <span className="text-muted-foreground">Número</span>
+                                <span className="text-muted-foreground">{t('localization.previewNum')}</span>
                                 <span className="font-medium">{previewNumber(watchNum)}</span>
-                                <span className="text-muted-foreground">Moneda</span>
+                                <span className="text-muted-foreground">{t('localization.previewCurr')}</span>
                                 <span className="font-medium">{previewCurrency(watchCurr, watchNum)}</span>
                             </div>
                         </div>
@@ -473,10 +484,10 @@ export function LocalizationForm({ initialData, onUpdate }: LocalizationFormProp
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-base">
                             <span className="text-primary font-semibold text-sm">$</span>
-                            Monedas Activas
+                            {t('localization.cardTitleCurrencies')}
                         </CardTitle>
                         <CardDescription>
-                            Define las monedas habilitadas para tus cotizaciones. La moneda predeterminada se usa en documentos nuevos.
+                            {t('localization.cardDescCurrencies')}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -486,7 +497,7 @@ export function LocalizationForm({ initialData, onUpdate }: LocalizationFormProp
                                     value={selectedCurrencyCode}
                                     onValueChange={setSelectedCurrencyCode}
                                     options={availableCurrencyOptions}
-                                    placeholder="Agregar moneda..."
+                                    placeholder={t('localization.addCurrencyPlaceholder')}
                                 />
                             </div>
                             <Button
@@ -498,7 +509,7 @@ export function LocalizationForm({ initialData, onUpdate }: LocalizationFormProp
                                 className="gap-1.5 h-10"
                             >
                                 <Plus className="w-3.5 h-3.5" />
-                                Agregar
+                                {t('localization.btnAdd')}
                             </Button>
                         </div>
 
@@ -507,10 +518,10 @@ export function LocalizationForm({ initialData, onUpdate }: LocalizationFormProp
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="bg-muted/40 border-b border-border/40">
-                                            <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs uppercase tracking-wide">Código</th>
-                                            <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs uppercase tracking-wide">Moneda</th>
-                                            <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs uppercase tracking-wide">Símbolo</th>
-                                            <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs uppercase tracking-wide">Por defecto</th>
+                                            <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs uppercase tracking-wide">{t('localization.colCode')}</th>
+                                            <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs uppercase tracking-wide">{t('localization.colCurrency')}</th>
+                                            <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs uppercase tracking-wide">{t('localization.colSymbol')}</th>
+                                            <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs uppercase tracking-wide">{t('localization.colDefault')}</th>
                                             <th className="px-4 py-2.5" />
                                         </tr>
                                     </thead>
@@ -529,7 +540,7 @@ export function LocalizationForm({ initialData, onUpdate }: LocalizationFormProp
                                                     {c.isDefault ? (
                                                         <Badge variant="default" className="gap-1 text-xs py-0.5">
                                                             <Check className="w-3 h-3" />
-                                                            Predeterminada
+                                                            {t('localization.badgeDefault')}
                                                         </Badge>
                                                     ) : (
                                                         <Button
@@ -540,7 +551,7 @@ export function LocalizationForm({ initialData, onUpdate }: LocalizationFormProp
                                                             onClick={() => setDefault(c.code)}
                                                         >
                                                             <Star className="w-3 h-3" />
-                                                            Establecer
+                                                            {t('localization.btnSetDefault')}
                                                         </Button>
                                                     )}
                                                 </td>
@@ -564,21 +575,21 @@ export function LocalizationForm({ initialData, onUpdate }: LocalizationFormProp
                         ) : (
                             <div className="rounded-lg border border-dashed border-border/60 p-8 text-center">
                                 <p className="text-sm text-muted-foreground">
-                                    No hay monedas configuradas. Agrega al menos una para usar en tus cotizaciones.
+                                    {t('localization.emptyCurrencies')}
                                 </p>
                             </div>
                         )}
                     </CardContent>
                     <CardFooter className="justify-between border-t border-border/40 pt-6">
-                        <p className="text-xs text-muted-foreground">Asegúrate de guardar tus cambios.</p>
+                        <p className="text-xs text-muted-foreground">{t('localization.footerNote')}</p>
                         <PrimaryButton compact type="submit" disabled={isLoading}>
                             {isLoading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Guardando...
+                                    {t('localization.btnSaving')}
                                 </>
                             ) : (
-                                'Guardar Configuración'
+                                t('localization.btnSave')
                             )}
                         </PrimaryButton>
                     </CardFooter>

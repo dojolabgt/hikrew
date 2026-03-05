@@ -13,34 +13,37 @@ import {
     Puzzle
 } from 'lucide-react';
 
-const settingsNavItems = [
-    {
-        title: 'General',
-        items: [
-            { href: '/dashboard/settings/personal-info', label: 'Información Personal', icon: User },
-            { href: '/dashboard/settings/security', label: 'Seguridad', icon: Shield },
-            { href: '/dashboard/settings/branding', label: 'Branding', icon: Palette },
-            { href: '/dashboard/settings/localization', label: 'Localización', icon: MapPin },
-        ]
-    },
-    {
-        title: 'Pagos y Facturación',
-        items: [
-            { href: '/dashboard/settings/billing', label: 'Mi Plan', icon: CreditCard },
-            { href: '/dashboard/settings/integrations', label: 'Integraciones', icon: Link2 },
-            { href: '/dashboard/settings/taxes', label: 'Impuestos', icon: FileDigit },
-        ]
-    },
-    {
-        title: 'Avanzado',
-        items: [
-            { href: '/dashboard/settings/modules', label: 'Módulos', icon: Puzzle },
-            { href: '/dashboard/settings/domains', label: 'Dominios', icon: Globe },
-        ]
-    }
-];
+import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
+    const { t } = useWorkspaceSettings();
+
+    const settingsNavItems = [
+        {
+            title: t('settingsLayout.general'),
+            items: [
+                { href: '/dashboard/settings/personal-info', label: t('settingsLayout.personalInfo'), icon: User },
+                { href: '/dashboard/settings/security', label: t('settingsLayout.security'), icon: Shield },
+                { href: '/dashboard/settings/branding', label: t('settingsLayout.branding'), icon: Palette },
+                { href: '/dashboard/settings/localization', label: t('settingsLayout.localization'), icon: MapPin },
+            ]
+        },
+        {
+            title: t('settingsLayout.billing'),
+            items: [
+                { href: '/dashboard/settings/billing', label: t('settingsLayout.plan'), icon: CreditCard },
+                { href: '/dashboard/settings/taxes', label: t('settingsLayout.taxes'), icon: FileDigit },
+            ]
+        },
+        {
+            title: t('settingsLayout.advanced'),
+            items: [
+                { href: '/dashboard/settings/integrations', label: t('settingsLayout.integrations'), icon: Link2 },
+                { href: '/dashboard/settings/modules', label: t('settingsLayout.modules'), icon: Puzzle },
+                { href: '/dashboard/settings/domains', label: t('settingsLayout.domains'), icon: Globe },
+            ]
+        }
+    ];
     return (
         <div className="flex flex-col md:flex-row min-h-full bg-[#FDFDFD] dark:bg-[#0A0A0A] text-zinc-900 dark:text-zinc-100 w-full relative">
 
@@ -48,9 +51,9 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
             <aside className="w-full md:w-64 border-b md:border-b-0 md:border-r border-zinc-200 dark:border-zinc-800 shrink-0 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-xl">
                 <div className="h-full px-4 py-8 overflow-y-auto">
                     <div className="mb-8 px-2">
-                        <h2 className="text-xl font-semibold tracking-tight">Configuración</h2>
+                        <h2 className="text-xl font-semibold tracking-tight">{t('settingsLayout.title')}</h2>
                         <p className="text-sm text-muted-foreground mt-1">
-                            Administra las preferencias de tu negocio y cuenta.
+                            {t('settingsLayout.desc')}
                         </p>
                     </div>
 

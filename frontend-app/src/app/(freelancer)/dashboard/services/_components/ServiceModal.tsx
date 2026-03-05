@@ -26,7 +26,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ServiceCurrency, ServiceUnitType, ServiceChargeType } from '@/features/services/types';
+import { ServiceUnitType, ServiceChargeType } from '@/features/services/types';
+import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
 import { servicesApi } from '@/features/services/api';
 import { toast } from 'sonner';
 
@@ -35,7 +36,7 @@ const serviceSchema = z.object({
     sku: z.string().optional().nullable(),
     description: z.string().optional().nullable(),
     basePrice: z.coerce.number().min(0, 'El precio no puede ser negativo'),
-    currency: z.nativeEnum(ServiceCurrency),
+    currency: z.string(),
     unitType: z.nativeEnum(ServiceUnitType),
     chargeType: z.nativeEnum(ServiceChargeType),
     internalCost: z.coerce.number().min(0).optional(),
@@ -57,6 +58,8 @@ interface ServiceModalProps {
 
 export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: ServiceModalProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const { workspace, defaultCurrencyCode, t } = useWorkspaceSettings();
+    const currencies = workspace?.currencies || [{ code: 'GTQ', name: 'Quetzales', symbol: 'Q', isDefault: true }];
 
     const form = useForm<ServiceFormInput, any, ServiceFormValues>({
         resolver: zodResolver(serviceSchema),
@@ -65,7 +68,7 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
             sku: '',
             description: '',
             basePrice: 0,
-            currency: ServiceCurrency.GTQ,
+            currency: defaultCurrencyCode,
             unitType: ServiceUnitType.UNIT,
             chargeType: ServiceChargeType.ONE_TIME,
             internalCost: 0,
@@ -83,8 +86,7 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                 name: initialData.name,
                 sku: initialData.sku || '',
                 description: initialData.description || '',
-                basePrice: Number(initialData.basePrice || 0),
-                currency: initialData.currency || ServiceCurrency.GTQ,
+                currency: initialData.currency || defaultCurrencyCode,
                 unitType: initialData.unitType || ServiceUnitType.UNIT,
                 chargeType: initialData.chargeType || ServiceChargeType.ONE_TIME,
                 internalCost: Number(initialData.internalCost || 0),
@@ -99,7 +101,7 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                 sku: '',
                 description: '',
                 basePrice: 0,
-                currency: ServiceCurrency.GTQ,
+                currency: defaultCurrencyCode,
                 unitType: ServiceUnitType.UNIT,
                 chargeType: ServiceChargeType.ONE_TIME,
                 internalCost: 0,
@@ -135,16 +137,16 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px] rounded-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>{initialData ? 'Editar Servicio' : 'Nuevo Servicio'}</DialogTitle>
+                    <DialogTitle>{initialData ? t('serviceModal.editTitle') : t('serviceModal.newTitle')}</DialogTitle>
                 </DialogHeader>
 
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
                         <Tabs defaultValue="basic" className="w-full">
                             <TabsList className="grid w-full grid-cols-3 mb-4 rounded-xl">
-                                <TabsTrigger value="basic" className="rounded-lg">Básico</TabsTrigger>
-                                <TabsTrigger value="pricing" className="rounded-lg">Costos</TabsTrigger>
-                                <TabsTrigger value="advanced" className="rounded-lg">Avanzado</TabsTrigger>
+                                <TabsTrigger value="basic" className="rounded-lg">{t('serviceModal.tabBasic')}</TabsTrigger>
+                                <TabsTrigger value="pricing" className="rounded-lg">{t('serviceModal.tabPricing')}</TabsTrigger>
+                                <TabsTrigger value="advanced" className="rounded-lg">{t('serviceModal.tabAdvanced')}</TabsTrigger>
                             </TabsList>
 
                             {/* BÁSICO TAB */}
@@ -154,9 +156,9 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                                     name="name"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Nombre del Servicio</FormLabel>
+                                            <FormLabel>{t('serviceModal.nameLabel')}</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Ej. Diseño de Logotipo" {...field} value={field.value || ''} className="rounded-xl" />
+                                                <Input placeholder={t('serviceModal.namePlaceholder')} {...field} value={field.value || ''} className="rounded-xl" />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -169,9 +171,9 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                                         name="sku"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Código / SKU (Opcional)</FormLabel>
+                                                <FormLabel>{t('serviceModal.skuLabel')}</FormLabel>
                                                 <FormControl>
-                                                    <Input placeholder="Ej. DEV-WEB-01" {...field} value={field.value || ''} className="rounded-xl" />
+                                                    <Input placeholder={t('serviceModal.skuPlaceholder')} {...field} value={field.value || ''} className="rounded-xl" />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -182,9 +184,9 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                                         name="category"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Categoría</FormLabel>
+                                                <FormLabel>{t('serviceModal.categoryLabel')}</FormLabel>
                                                 <FormControl>
-                                                    <Input placeholder="Ej. Diseño Gráfico" {...field} value={field.value || ''} className="rounded-xl" />
+                                                    <Input placeholder={t('serviceModal.categoryPlaceholder')} {...field} value={field.value || ''} className="rounded-xl" />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -197,10 +199,10 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                                     name="description"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Descripción / Alcance</FormLabel>
+                                            <FormLabel>{t('serviceModal.descLabel')}</FormLabel>
                                             <FormControl>
                                                 <Textarea
-                                                    placeholder="Detalla qué incluye este servicio en la propuesta comercial..."
+                                                    placeholder={t('serviceModal.descPlaceholder')}
                                                     {...field}
                                                     value={field.value || ''}
                                                     className="rounded-xl resize-none h-24"
@@ -220,7 +222,7 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                                         name="basePrice"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Precio Venta</FormLabel>
+                                                <FormLabel>{t('serviceModal.priceLabel')}</FormLabel>
                                                 <FormControl>
                                                     <Input type="number" {...field} value={field.value as string | number | undefined} className="rounded-xl" />
                                                 </FormControl>
@@ -233,11 +235,11 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                                         name="internalCost"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Costo Interno (Opcional)</FormLabel>
+                                                <FormLabel>{t('serviceModal.costLabel')}</FormLabel>
                                                 <FormControl>
                                                     <Input type="number" {...field} value={(field.value === null ? '' : field.value) as string | number | undefined} className="rounded-xl" />
                                                 </FormControl>
-                                                <FormDescription className="text-xs">Para calcular margen</FormDescription>
+                                                <FormDescription className="text-xs">{t('serviceModal.costDesc')}</FormDescription>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -250,7 +252,7 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                                         name="chargeType"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Tipo de Cobro</FormLabel>
+                                                <FormLabel>{t('serviceModal.chargeTypeLabel')}</FormLabel>
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                     <FormControl>
                                                         <SelectTrigger className="rounded-xl">
@@ -258,9 +260,9 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                                                         </SelectTrigger>
                                                     </FormControl>
                                                     <SelectContent className="rounded-xl">
-                                                        <SelectItem value={ServiceChargeType.ONE_TIME}>Unitario (Fijo)</SelectItem>
-                                                        <SelectItem value={ServiceChargeType.HOURLY}>Por Hora</SelectItem>
-                                                        <SelectItem value={ServiceChargeType.RECURRING}>Recurrente (Mensual)</SelectItem>
+                                                        <SelectItem value={ServiceChargeType.ONE_TIME}>{t('serviceModal.chargeOneTime')}</SelectItem>
+                                                        <SelectItem value={ServiceChargeType.HOURLY}>{t('serviceModal.chargeHourly')}</SelectItem>
+                                                        <SelectItem value={ServiceChargeType.RECURRING}>{t('serviceModal.chargeRecurring')}</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                                 <FormMessage />
@@ -272,7 +274,7 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                                         name="unitType"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Unidad de Medida</FormLabel>
+                                                <FormLabel>{t('serviceModal.unitLabel')}</FormLabel>
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                     <FormControl>
                                                         <SelectTrigger className="rounded-xl">
@@ -280,10 +282,10 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                                                         </SelectTrigger>
                                                     </FormControl>
                                                     <SelectContent className="rounded-xl">
-                                                        <SelectItem value={ServiceUnitType.UNIT}>Unidad</SelectItem>
-                                                        <SelectItem value={ServiceUnitType.HOUR}>Hora</SelectItem>
-                                                        <SelectItem value={ServiceUnitType.PROJECT}>Proyecto</SelectItem>
-                                                        <SelectItem value={ServiceUnitType.MONTH}>Mes</SelectItem>
+                                                        <SelectItem value={ServiceUnitType.UNIT}>{t('serviceModal.unitUnit')}</SelectItem>
+                                                        <SelectItem value={ServiceUnitType.HOUR}>{t('serviceModal.unitHour')}</SelectItem>
+                                                        <SelectItem value={ServiceUnitType.PROJECT}>{t('serviceModal.unitProject')}</SelectItem>
+                                                        <SelectItem value={ServiceUnitType.MONTH}>{t('serviceModal.unitMonth')}</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                                 <FormMessage />
@@ -298,7 +300,7 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                                         name="currency"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Moneda</FormLabel>
+                                                <FormLabel>{t('serviceModal.currencyLabel')}</FormLabel>
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                     <FormControl>
                                                         <SelectTrigger className="rounded-xl">
@@ -306,8 +308,11 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                                                         </SelectTrigger>
                                                     </FormControl>
                                                     <SelectContent className="rounded-xl">
-                                                        <SelectItem value={ServiceCurrency.GTQ}>GTQ (Q)</SelectItem>
-                                                        <SelectItem value={ServiceCurrency.USD}>USD ($)</SelectItem>
+                                                        {currencies.map((c: any) => (
+                                                            <SelectItem key={c.code} value={c.code}>
+                                                                {c.code} ({c.symbol})
+                                                            </SelectItem>
+                                                        ))}
                                                     </SelectContent>
                                                 </Select>
                                                 <FormMessage />
@@ -321,7 +326,7 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                                         render={({ field }) => (
                                             <FormItem className="flex flex-row items-center justify-between rounded-xl border p-3 shadow-sm mt-6">
                                                 <div className="space-y-0.5">
-                                                    <FormLabel className="text-sm font-medium">Aplica Impuestos</FormLabel>
+                                                    <FormLabel className="text-sm font-medium">{t('serviceModal.taxableLabel')}</FormLabel>
                                                 </div>
                                                 <FormControl>
                                                     <Switch
@@ -342,17 +347,17 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                                     name="estimatedDeliveryDays"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Días Estimados de Entrega</FormLabel>
+                                            <FormLabel>{t('serviceModal.deliveryDaysLabel')}</FormLabel>
                                             <FormControl>
                                                 <Input
                                                     type="number"
-                                                    placeholder="Ej. 14"
+                                                    placeholder={t('serviceModal.deliveryDaysPlaceholder')}
                                                     {...field}
                                                     value={(field.value === null ? '' : field.value) as string | number | undefined}
                                                     className="rounded-xl"
                                                 />
                                             </FormControl>
-                                            <FormDescription className="text-xs">Ayuda a generar cronogramas automáticos.</FormDescription>
+                                            <FormDescription className="text-xs">{t('serviceModal.deliveryDaysDesc')}</FormDescription>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -362,10 +367,10 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                                     name="specificTerms"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Términos Específicos</FormLabel>
+                                            <FormLabel>{t('serviceModal.termsLabel')}</FormLabel>
                                             <FormControl>
                                                 <Textarea
-                                                    placeholder="Ej. 'No incluye compra de tipografías' o 'Sujeto a 3 rondas de cambios'."
+                                                    placeholder={t('serviceModal.termsPlaceholder')}
                                                     {...field}
                                                     value={field.value || ''}
                                                     className="rounded-xl resize-none h-24"
@@ -384,7 +389,7 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                                 disabled={isSubmitting}
                                 className="w-full rounded-full shadow-lg shadow-primary/20"
                             >
-                                {isSubmitting ? 'Guardando...' : (initialData ? 'Actualizar' : 'Crear Servicio')}
+                                {isSubmitting ? t('serviceModal.btnSaving') : (initialData ? t('serviceModal.btnUpdate') : t('serviceModal.btnCreate'))}
                             </Button>
                         </DialogFooter>
                     </form>

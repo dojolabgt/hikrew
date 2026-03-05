@@ -24,10 +24,11 @@ export function TopHeader() {
 
     const { activeWorkspace } = useAuth();
     const isProOrPremium = activeWorkspace?.plan === 'pro' || activeWorkspace?.plan === 'premium';
-    const businessName = isProOrPremium ? (activeWorkspace?.businessName || user.name || 'Mi Espacio') : (user.name || 'Usuario');
+    const userFullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Usuario';
+    const businessName = isProOrPremium ? (activeWorkspace?.businessName || userFullName || 'Mi Espacio') : (userFullName || 'Usuario');
     const initials = isProOrPremium
         ? businessName.substring(0, 2).toUpperCase()
-        : (user.name?.[0] || user.email[0]).toUpperCase();
+        : (user.firstName?.[0] || user.email[0]).toUpperCase();
     const displayUserImage = isProOrPremium ? (activeWorkspace?.logo || user.profileImage) : user.profileImage;
 
     return (

@@ -10,6 +10,7 @@ import { Camera, Loader2 } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { usersApi } from '@/features/users/api';
 import { getImageUrl } from '@/lib/utils';
+import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
 
 import {
     Form,
@@ -42,6 +43,7 @@ type AccountFormValues = z.infer<typeof accountSchema>;
 
 export function AccountDetailsForm() {
     const { user, checkAuth } = useAuth();
+    const { t } = useWorkspaceSettings();
     const [isUploadingImage, setIsUploadingImage] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -61,7 +63,7 @@ export function AccountDetailsForm() {
 
         const MAX_SIZE_MB = 2;
         if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-            toast.error(`La imagen excede el límite de ${MAX_SIZE_MB}MB. Por favor, elige una más pequeña.`);
+            toast.error(t('personalInfo.photoErrorSize'));
             if (fileInputRef.current) fileInputRef.current.value = '';
             return;
         }
@@ -69,13 +71,13 @@ export function AccountDetailsForm() {
         setIsUploadingImage(true);
         try {
             await usersApi.uploadProfileImage(file);
-            toast.success('Foto de perfil actualizada correctamente');
+            toast.success(t('personalInfo.photoSuccess'));
             await checkAuth();
         } catch (error: any) {
             console.error('Error uploading profile image', error);
             const backendMsg = error?.response?.data?.message;
             const msg = typeof backendMsg === 'string' ? backendMsg :
-                (error?.response?.status === 413 ? 'El archivo es demasiado grande para el servidor.' : 'Error al subir la imagen');
+                (error?.response?.status === 413 ? t('personalInfo.photoErrorLarge') : t('personalInfo.photoError'));
             toast.error(msg);
         } finally {
             setIsUploadingImage(false);
@@ -91,11 +93,11 @@ export function AccountDetailsForm() {
                 lastName: values.lastName,
                 ...(values.email !== user?.email ? { email: values.email } : {})
             });
-            toast.success('Detalles de cuenta guardados');
+            toast.success(t('personalInfo.successSave'));
             await checkAuth();
         } catch (error: any) {
             console.error('Error updating profile', error);
-            toast.error(error?.response?.data?.message || 'Error al guardar los cambios');
+            toast.error(error?.response?.data?.message || t('personalInfo.errorSave'));
         } finally {
             setIsSaving(false);
         }
@@ -110,9 +112,9 @@ export function AccountDetailsForm() {
             {/* ── Foto Personal ─────────────────────────────────── */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Foto Personal</CardTitle>
+                    <CardTitle>{t('personalInfo.photoTitle')}</CardTitle>
                     <CardDescription>
-                        Esta foto es para tu identificación interna. No se mostrará a tus clientes. Recomendamos JPG, PNG o WebP. Máximo 2MB.
+                        {t('personalInfo.photoDesc')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -156,9 +158,9 @@ export function AccountDetailsForm() {
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <Card>
                         <CardHeader>
-                            <CardTitle>Información Personal</CardTitle>
+                            <CardTitle>{t('personalInfo.formTitle')}</CardTitle>
                             <CardDescription>
-                                Actualiza tu nombre y correo electrónico con el que accedes a Blend.
+                                {t('personalInfo.formDesc')}
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -168,9 +170,9 @@ export function AccountDetailsForm() {
                                     name="firstName"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Nombre</FormLabel>
+                                            <FormLabel>{t('personalInfo.firstNameLabel')}</FormLabel>
                                             <FormControl>
-                                                <AppInput placeholder="Pablo" {...field} />
+                                                <AppInput placeholder={t('personalInfo.firstNamePlaceholder')} {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -181,9 +183,9 @@ export function AccountDetailsForm() {
                                     name="lastName"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Apellido</FormLabel>
+                                            <FormLabel>{t('personalInfo.lastNameLabel')}</FormLabel>
                                             <FormControl>
-                                                <AppInput placeholder="Lacán" {...field} />
+                                                <AppInput placeholder={t('personalInfo.lastNamePlaceholder')} {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -194,16 +196,16 @@ export function AccountDetailsForm() {
                                     name="email"
                                     render={({ field }) => (
                                         <FormItem className="sm:col-span-2">
-                                            <FormLabel>Correo electrónico</FormLabel>
+                                            <FormLabel>{t('personalInfo.emailLabel')}</FormLabel>
                                             <FormControl>
                                                 <AppInput
-                                                    placeholder="pablo@ejemplo.com"
+                                                    placeholder={t('personalInfo.emailPlaceholder')}
                                                     type="email"
                                                     {...field}
                                                 />
                                             </FormControl>
                                             <FormDescription className="text-xs">
-                                                Cambiar tu correo alterará las credenciales con las que accedes a Blend.
+                                                {t('personalInfo.emailDesc')}
                                             </FormDescription>
                                             <FormMessage />
                                         </FormItem>
@@ -212,15 +214,15 @@ export function AccountDetailsForm() {
                             </div>
                         </CardContent>
                         <CardFooter className="justify-between border-t border-border/40 pt-6">
-                            <p className="text-xs text-muted-foreground">Asegúrate de guardar tus cambios.</p>
+                            <p className="text-xs text-muted-foreground">{t('personalInfo.footerNote')}</p>
                             <PrimaryButton compact type="submit" disabled={isSaving}>
                                 {isSaving ? (
                                     <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Guardando...
+                                        {t('personalInfo.btnSaving')}
                                     </>
                                 ) : (
-                                    'Guardar cambios'
+                                    t('personalInfo.btnSave')
                                 )}
                             </PrimaryButton>
                         </CardFooter>

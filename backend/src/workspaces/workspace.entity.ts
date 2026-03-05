@@ -7,6 +7,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { WorkspaceMember } from './workspace-member.entity';
+import { WorkspaceTax } from './workspace-tax.entity';
 import { BillingSubscription } from '../billing/billing-subscription.entity';
 
 export enum WorkspacePlan {
@@ -98,11 +99,22 @@ export class Workspace {
   @Column({ default: false })
   onboardingCompleted: boolean;
 
+  /** Los precios en cotizaciones/cobros ya incluyen el impuesto principal */
+  @Column({ name: 'tax_inclusive_pricing', default: false })
+  taxInclusivePricing: boolean;
+
+  /** El usuario quiere recibir resúmenes mensuales de impuestos */
+  @Column({ name: 'tax_reporting', default: false })
+  taxReporting: boolean;
+
   @OneToMany(() => WorkspaceMember, (member) => member.workspace)
   members: WorkspaceMember[];
 
   @OneToMany(() => BillingSubscription, (sub) => sub.workspace)
   billingSubscriptions: BillingSubscription[];
+
+  @OneToMany(() => WorkspaceTax, (tax) => tax.workspace)
+  taxes: WorkspaceTax[];
 
   @CreateDateColumn()
   createdAt: Date;

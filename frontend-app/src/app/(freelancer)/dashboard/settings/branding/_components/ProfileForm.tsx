@@ -9,6 +9,7 @@ import { Camera, Loader2 } from 'lucide-react';
 
 import { Workspace } from '@/features/workspaces/types';
 import { workspacesApi } from '@/features/workspaces/api';
+import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
 
 import {
     Form,
@@ -32,13 +33,11 @@ import {
 import { AppInput } from '@/components/common/AppInput';
 import { PrimaryButton } from '@/components/common/PrimaryButton';
 
-const profileSchema = z.object({
-    businessName: z.string().max(100, 'El nombre no puede exceder 100 caracteres').optional(),
-    brandColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Color hexadecimal inválido').optional().or(z.literal('')),
-    logo: z.string().optional().or(z.literal('')),
-});
-
-type ProfileFormValues = z.infer<typeof profileSchema>;
+type ProfileFormValues = {
+    businessName?: string;
+    brandColor?: string;
+    logo?: string;
+};
 
 interface ProfileFormProps {
     initialData: Workspace | null;
@@ -46,9 +45,16 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
+    const { t } = useWorkspaceSettings();
     const [isLoading, setIsLoading] = useState(false);
     const [isUploadingLogo, setIsUploadingLogo] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const profileSchema = z.object({
+        businessName: z.string().max(100, t('branding.valNameMax')).optional(),
+        brandColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, t('branding.valColorRegex')).optional().or(z.literal('')),
+        logo: z.string().optional().or(z.literal('')),
+    });
 
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
@@ -72,11 +78,11 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
             if (data.logo) payload.logo = data.logo;
 
             const updatedProfile = await workspacesApi.updateWorkspace(payload);
-            toast.success('Perfil comercial actualizado');
+            toast.success(t('branding.successUpdate'));
             onUpdate(updatedProfile);
         } catch (error) {
             console.error('Error updating profile:', error);
-            toast.error('Ocurrió un error al actualizar los datos');
+            toast.error(t('branding.errorUpdate'));
         } finally {
             setIsLoading(false);
         }
@@ -88,7 +94,7 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
 
         const MAX_SIZE_MB = 2;
         if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-            toast.error(`La imagen excede el límite de ${MAX_SIZE_MB}MB. Por favor, elige una más pequeña.`);
+            toast.error(t('branding.photoErrorSize'));
             if (fileInputRef.current) fileInputRef.current.value = '';
             return;
         }
@@ -97,13 +103,13 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
         try {
             const updatedProfile = await workspacesApi.uploadLogo(file);
             form.setValue('logo', updatedProfile.logo ?? '');
-            toast.success('Logo subido correctamente');
+            toast.success(t('branding.photoSuccess'));
             onUpdate(updatedProfile);
         } catch (error: any) {
             console.error('Error uploading logo', error);
             const backendMsg = error?.response?.data?.message;
             const msg = typeof backendMsg === 'string' ? backendMsg :
-                (error?.response?.status === 413 ? 'El archivo es demasiado grande para el servidor.' : 'Error al subir el logo');
+                (error?.response?.status === 413 ? t('branding.photoErrorLarge') : t('branding.photoError'));
             toast.error(msg);
         } finally {
             setIsUploadingLogo(false);
@@ -117,9 +123,9 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
             {/* ── Identidad Visual ───────────────────────────────── */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Identidad Visual</CardTitle>
+                    <CardTitle>{t('branding.cardTitleIdentity')}</CardTitle>
                     <CardDescription>
-                        Sube el logo de tu negocio. Recomendamos una imagen cuadrada (JPG, PNG o WEBP) de al menos 400×400px, máx. 2MB.
+                        {t('branding.cardDescIdentity')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -158,7 +164,7 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
                             onClick={() => fileInputRef.current?.click()}
                             className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                         >
-                            {isUploadingLogo ? 'Subiendo...' : 'Cambiar logo'}
+                            {isUploadingLogo ? t('branding.btnUploading') : t('branding.btnChangeLogo')}
                         </button>
                     </div>
                 </CardContent>
@@ -169,9 +175,9 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <Card>
                         <CardHeader>
-                            <CardTitle>Detalles de Marca</CardTitle>
+                            <CardTitle>{t('branding.cardTitleDetails')}</CardTitle>
                             <CardDescription>
-                                Configura cómo se ve tu marca en cotizaciones y perfiles de clientes.
+                                {t('branding.cardDescDetails')}
                             </CardDescription>
                         </CardHeader>
 
@@ -182,15 +188,15 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
                                     name="businessName"
                                     render={({ field }) => (
                                         <FormItem className="sm:col-span-2">
-                                            <FormLabel>Nombre Comercial</FormLabel>
+                                            <FormLabel>{t('branding.nameLabel')}</FormLabel>
                                             <FormControl>
                                                 <AppInput
-                                                    placeholder="Ej. Agencia Creativa Blend"
+                                                    placeholder={t('branding.namePlaceholder')}
                                                     {...field}
                                                 />
                                             </FormControl>
                                             <FormDescription className="text-xs">
-                                                Este nombre aparecerá en tus cotizaciones y portales de pago.
+                                                {t('branding.nameDesc')}
                                             </FormDescription>
                                             <FormMessage />
                                         </FormItem>
@@ -202,7 +208,7 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
                                     name="brandColor"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Color de Marca</FormLabel>
+                                            <FormLabel>{t('branding.colorLabel')}</FormLabel>
                                             <FormControl>
                                                 <div className="flex items-center gap-2">
                                                     <div
@@ -230,7 +236,7 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
                                                 </div>
                                             </FormControl>
                                             <FormDescription className="text-xs">
-                                                Color principal de tus botones y enlaces.
+                                                {t('branding.colorDesc')}
                                             </FormDescription>
                                             <FormMessage />
                                         </FormItem>
@@ -240,15 +246,15 @@ export function ProfileForm({ initialData, onUpdate }: ProfileFormProps) {
                         </CardContent>
 
                         <CardFooter className="justify-between border-t border-border/40 pt-6">
-                            <p className="text-xs text-muted-foreground">Asegúrate de guardar tus cambios.</p>
+                            <p className="text-xs text-muted-foreground">{t('branding.footerNote')}</p>
                             <PrimaryButton compact type="submit" disabled={isLoading}>
                                 {isLoading ? (
                                     <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Guardando...
+                                        {t('branding.btnSaving')}
                                     </>
                                 ) : (
-                                    'Guardar cambios'
+                                    t('branding.btnSave')
                                 )}
                             </PrimaryButton>
                         </CardFooter>
