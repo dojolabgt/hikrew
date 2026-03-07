@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Patch, Body, Param, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { DealsService } from './deals.service';
 import { CreateDealDto } from './dto/create-deal.dto';
 import { CreateBriefTemplateDto } from './dto/create-brief-template.dto';
+import { UpdateDealDto } from './dto/update-deal.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @UseGuards(JwtAuthGuard)
@@ -62,6 +63,15 @@ export class DealsController {
         @Param('id') id: string,
     ) {
         return this.dealsService.findOne(workspaceId, id);
+    }
+
+    @Patch(':id')
+    update(
+        @Param('workspaceId') workspaceId: string,
+        @Param('id') id: string,
+        @Body() updateDealDto: UpdateDealDto,
+    ) {
+        return this.dealsService.update(workspaceId, id, updateDealDto);
     }
 
     @Delete(':id')

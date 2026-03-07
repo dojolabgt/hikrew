@@ -43,7 +43,9 @@ export function DealRoadmapSidebar({ dealData, activeStep, onStepChange }: Sideb
             id: 'quotation' as DealStep,
             label: 'Configurar Cotización',
             desc: dealData.quotation.approved ? 'Opción B aprobada' : 'Seleccionando opciones',
-            amount: dealData.quotation.total ? `$${dealData.quotation.total.toLocaleString()} USD` : 'Calculando...',
+            amount: dealData.quotation.total 
+                ? `$${dealData.quotation.total.toLocaleString()} USD` 
+                : (dealData.currentStep === 'brief' ? null : 'Calculando...'),
             canEdit: dealData.status !== 'won',
         },
         {

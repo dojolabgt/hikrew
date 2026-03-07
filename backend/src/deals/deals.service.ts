@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Deal } from './entities/deal.entity';
@@ -7,7 +7,9 @@ import { Workspace } from '../workspaces/workspace.entity';
 import { Client } from '../clients/client.entity';
 import { CreateDealDto } from './dto/create-deal.dto';
 import { CreateBriefTemplateDto } from './dto/create-brief-template.dto';
+import { UpdateDealDto } from './dto/update-deal.dto';
 import { DealStatus } from './enums/deal-status.enum';
+import { WorkspacePlan } from '../workspaces/workspace.entity';
 
 @Injectable()
 export class DealsService {
@@ -82,9 +84,43 @@ export class DealsService {
         return deal;
     }
 
+    async update(workspaceId: string, dealId: string, updateDealDto: UpdateDealDto): Promise<Deal> {
+        const deal = await this.findOne(workspaceId, dealId);
+
+        if (updateDealDto.name !== undefined) deal.name = updateDealDto.name;
+        if (updateDealDto.status !== undefined) deal.status = updateDealDto.status;
+
+        // If a briefTemplateId is passed, we update the relationship or create a brief if necessary
+        // In a real application, you might create the full 'Brief' entity here rather than just keeping a reference.
+        // For now, depending on your schema design, you might just want to store currentStep on the Deal or Brief.
+        // Let's assume you save it to the deal entity later or create the Brief entity.
+
+        return await this.dealsRepository.save(deal);
+    }
+
     // --- BRIEF TEMPLATES ---
 
     async createBriefTemplate(workspaceId: string, dto: CreateBriefTemplateDto): Promise<BriefTemplate> {
+        const workspace = await this.workspacesRepository.findOne({ where: { id: workspaceId } });
+        if (!workspace) throw new NotFoundException('Workspace not found');
+
+        const currentTemplatesCount = await this.briefTemplatesRepository.count({
+            where: { workspace: { id: workspaceId } }
+        });
+
+        // Limits based on plan
+        const planLimits = {
+            [WorkspacePlan.FREE]: 2,
+            [WorkspacePlan.PRO]: 12,
+            [WorkspacePlan.PREMIUM]: 30,
+        };
+
+        const limit = planLimits[workspace.plan] || planLimits[WorkspacePlan.FREE];
+
+        if (currentTemplatesCount >= limit) {
+            throw new BadRequestException(`Límite de plantillas alcanzado para el plan ${workspace.plan}. Máximo permitido: ${limit}`);
+        }
+
         const template = this.briefTemplatesRepository.create({
             ...dto,
             workspace: { id: workspaceId }

@@ -5,12 +5,13 @@ import { DealDataMock, DealStep } from './DealBuilder';
 import { Button } from '@/components/ui/button';
 import { ChevronRight, Save, ShieldAlert, FileEdit } from 'lucide-react';
 import { BriefStep } from './steps/BriefStep';
+import { toast } from 'sonner';
 
 interface CanvasProps {
     dealData: DealDataMock;
     activeStep: DealStep;
     onNextStep: (step: DealStep) => void;
-    onUpdateBrief: (templateId: string) => void;
+    onUpdateBrief: (templateId: string | null) => void;
     onWon: () => void;
 }
 
@@ -18,13 +19,19 @@ export function DealCanvas({ dealData, activeStep, onNextStep, onUpdateBrief, on
     const isWon = dealData.status === 'won';
     const [localSelectedTemplateId, setLocalSelectedTemplateId] = React.useState<string | null>(dealData.brief.templateId || null);
 
+    // Sync if external data changes (e.g. loaded from local storage)
+    React.useEffect(() => {
+        setLocalSelectedTemplateId(dealData.brief.templateId || null);
+    }, [dealData.brief.templateId]);
+
     // Determine if we are viewing a past step
     const indexMap: Record<DealStep, number> = { 'brief': 0, 'quotation': 1, 'payment_plan': 2, 'won': 3 };
     const currentIndex = indexMap[activeStep];
     const dealStepIndex = indexMap[dealData.currentStep];
 
-    // It's considered a snapshot if we are viewing a completed step and the deal is further along
-    const isSnapshot = currentIndex < dealStepIndex && !isWon;
+    // En Blend, los tratos en borrador pueden ser editados libremente en pasos anteriores.
+    // Solo bloqueamos/mostramos snapshot si el trato ya fue enviado o ganado (por ahora solo ganado).
+    const isSnapshot = isWon && activeStep !== 'won';
 
     const renderHeader = () => {
         let title = '';
@@ -89,7 +96,7 @@ export function DealCanvas({ dealData, activeStep, onNextStep, onUpdateBrief, on
                                     onUpdateBrief(localSelectedTemplateId);
                                     onNextStep('quotation');
                                 } else {
-                                    alert('Por favor selecciona o guarda una plantilla primero.');
+                                    toast.error('Por favor selecciona una plantilla de Brief primero.');
                                 }
                             }
                             else if (activeStep === 'quotation') onNextStep('payment_plan');
@@ -113,7 +120,12 @@ export function DealCanvas({ dealData, activeStep, onNextStep, onUpdateBrief, on
                     {activeStep === 'brief' && (
                         <BriefStep
                             initialSelectedTemplateId={localSelectedTemplateId}
-                            onSelectTemplate={setLocalSelectedTemplateId}
+                            onSelectTemplate={(id) => {
+                                setLocalSelectedTemplateId(id);
+                                if (id === null) {
+                                    onUpdateBrief(null);
+                                }
+                            }}
                         />
                     )}
 
@@ -151,7 +163,7 @@ export function DealCanvas({ dealData, activeStep, onNextStep, onUpdateBrief, on
 
             {/* Read-Only Watermark Overlay (Optional visual effect) */}
             {isSnapshot && (
-                <div className="absolute inset-0 pointer-events-none bg-zinc-50/30 dark:bg-zinc-900/10 backdrop-blur-[1px] z-10" />
+                <div className="absolute inset-0 pointer-events-none bg-zinc-50/10 dark:bg-zinc-900/10 z-10" />
             )}
         </div>
     );

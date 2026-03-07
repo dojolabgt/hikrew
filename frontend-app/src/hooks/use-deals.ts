@@ -8,6 +8,13 @@ export interface CreateDealPayload {
     notes?: string;
 }
 
+export interface UpdateDealPayload {
+    name?: string;
+    status?: 'draft' | 'pending' | 'won' | 'lost';
+    briefTemplateId?: string;
+    currentStep?: string;
+}
+
 export function useDeals() {
     const { activeWorkspace } = useAuth();
     const [deals, setDeals] = useState<any[]>([]);
@@ -47,6 +54,21 @@ export function useDeals() {
         }
     }, [activeWorkspace]);
 
+    const updateDeal = useCallback(async (dealId: string, payload: UpdateDealPayload) => {
+        if (!activeWorkspace) return null;
+        setIsLoading(true);
+        try {
+            const res = await api.patch(`/workspaces/${activeWorkspace.id}/deals/${dealId}`, payload);
+            setDeals((prev) => prev.map((d) => d.id === dealId ? res.data : d));
+            return res.data;
+        } catch (err: any) {
+            setError(err.response?.data?.message || err.message);
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    }, [activeWorkspace]);
+
     const deleteDeal = useCallback(async (dealId: string) => {
         if (!activeWorkspace) return false;
         try {
@@ -63,6 +85,7 @@ export function useDeals() {
         deals,
         fetchDeals,
         createDeal,
+        updateDeal,
         deleteDeal,
         isLoading,
         error

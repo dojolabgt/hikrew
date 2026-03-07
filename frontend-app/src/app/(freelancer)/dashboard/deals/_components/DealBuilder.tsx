@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DealRoadmapSidebar } from './DealRoadmapSidebar';
 import { DealCanvas } from './DealCanvas';
+import { useDeals } from '@/hooks/use-deals';
+import { toast } from 'sonner';
 
 export type DealStep = 'brief' | 'quotation' | 'payment_plan' | 'won';
 
@@ -36,21 +38,63 @@ export function DealBuilder({ dealId }: DealBuilderProps) {
     });
 
     const [activeStep, setActiveStep] = useState<DealStep>(dealData.currentStep);
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    // Load from local storage
+    React.useEffect(() => {
+        const savedData = localStorage.getItem(`deal_mock_${dealId}`);
+        if (savedData) {
+            try {
+                const parsed = JSON.parse(savedData);
+                setDealData(parsed);
+                setActiveStep(parsed.currentStep);
+            } catch (e) {
+                console.error("Failed to parse saved deal data", e);
+            }
+        }
+        setIsLoaded(true);
+    }, [dealId]);
+
+    // Save to local storage on change
+    React.useEffect(() => {
+        if (isLoaded) {
+            localStorage.setItem(`deal_mock_${dealId}`, JSON.stringify(dealData));
+        }
+    }, [dealData, dealId, isLoaded]);
+
+    const { updateDeal } = useDeals();
 
     // This checks if the user clicks a step in the sidebar
-    const handleStepChange = (step: DealStep) => {
+    const handleStepChange = async (step: DealStep) => {
         // Enforce logic if step is locked, etc...
         setActiveStep(step);
+        if (dealId !== 'new') {
+            await updateDeal(dealId, { currentStep: step });
+        }
     };
 
-    const handleWon = () => {
+    const handleWon = async () => {
         setDealData(prev => ({ ...prev, status: 'won', currentStep: 'won' }));
         setActiveStep('won');
+        if (dealId !== 'new') {
+            await updateDeal(dealId, { status: 'won', currentStep: 'won' });
+            toast.success('¡Trato marcado como ganado!');
+        }
     };
 
-    const handleUpdateBrief = (templateId: string) => {
-        setDealData(prev => ({ ...prev, brief: { ...prev.brief, templateId, completed: true } }));
+    const handleUpdateBrief = async (templateId: string | null) => {
+        setDealData(prev => ({
+            ...prev,
+            brief: { ...prev.brief, templateId: templateId || undefined, completed: !!templateId },
+            currentStep: templateId ? 'quotation' : 'brief'
+        }));
+
+        if (dealId !== 'new') {
+            await updateDeal(dealId, { briefTemplateId: templateId || undefined, currentStep: templateId ? 'quotation' : 'brief' });
+        }
     };
+
+    if (!isLoaded) return null; // Wait for hydration
 
     return (
         <div className="flex flex-col md:flex-row h-[calc(100vh-64px)] w-full overflow-hidden bg-white dark:bg-zinc-950">

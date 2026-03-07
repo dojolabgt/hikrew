@@ -13,6 +13,13 @@
         "localization": "Localización",
         "taxes": "Impuestos"
     },
+    "templates": {
+        "title": "Plantillas",
+        "desc": "Administra tus formatos, cuestionarios y documentos recurrentes.",
+        "briefs": "Briefs / Cuestionarios",
+        "quotes": "Cotizadores (Próximamente)",
+        "contracts": "Contratos (Próximamente)"
+    },
     "deals": {
         "title": "Propuestas",
         "create": "Crear Propuesta",
@@ -117,6 +124,7 @@
         "clients": "Directorio",
         "services": "Servicios",
         "deals": "Propuestas",
+        "templates": "Plantillas",
         "payments": "Pagos",
         "settings": "Configuración"
     },
