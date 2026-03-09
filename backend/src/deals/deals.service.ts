@@ -2,52 +2,74 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Deal } from './entities/deal.entity';
+import { Brief } from './entities/brief.entity';
 import { BriefTemplate } from './entities/brief-template.entity';
+import { Quotation } from './entities/quotation.entity';
+import { QuotationItem } from './entities/quotation-item.entity';
+import { PaymentPlan } from './entities/payment-plan.entity';
+import { PaymentMilestone } from './entities/payment-milestone.entity';
 import { Workspace } from '../workspaces/workspace.entity';
 import { Client } from '../clients/client.entity';
+import { Service } from '../services/service.entity';
 import { CreateDealDto } from './dto/create-deal.dto';
 import { CreateBriefTemplateDto } from './dto/create-brief-template.dto';
 import { UpdateDealDto } from './dto/update-deal.dto';
 import { DealStatus } from './enums/deal-status.enum';
 import { WorkspacePlan } from '../workspaces/workspace.entity';
+import { CreateQuotationDto } from './dto/create-quotation.dto';
+import { UpdateQuotationDto } from './dto/update-quotation.dto';
+import { AddQuotationItemDto } from './dto/add-quotation-item.dto';
+import { UpdateQuotationItemDto } from './dto/update-quotation-item.dto';
+import { CreatePaymentPlanDto, UpdateMilestoneDto, CreateMilestoneDto } from './dto/payment-plan.dto';
 
 @Injectable()
 export class DealsService {
     constructor(
         @InjectRepository(Deal)
         private readonly dealsRepository: Repository<Deal>,
+        @InjectRepository(Brief)
+        private readonly briefsRepository: Repository<Brief>,
         @InjectRepository(BriefTemplate)
         private readonly briefTemplatesRepository: Repository<BriefTemplate>,
+        @InjectRepository(Quotation)
+        private readonly quotationsRepository: Repository<Quotation>,
+        @InjectRepository(QuotationItem)
+        private readonly quotationItemsRepository: Repository<QuotationItem>,
+        @InjectRepository(PaymentPlan)
+        private readonly paymentPlansRepository: Repository<PaymentPlan>,
+        @InjectRepository(PaymentMilestone)
+        private readonly paymentMilestonesRepository: Repository<PaymentMilestone>,
         @InjectRepository(Workspace)
         private readonly workspacesRepository: Repository<Workspace>,
         @InjectRepository(Client)
         private readonly clientsRepository: Repository<Client>,
+        @InjectRepository(Service)
+        private readonly servicesRepository: Repository<Service>,
     ) { }
+
+    // ─── DEALS ───────────────────────────────────────────────────────────────
 
     async create(workspaceId: string, createDealDto: CreateDealDto): Promise<Deal> {
         const workspace = await this.workspacesRepository.findOne({
             where: { id: workspaceId },
-            relations: ['taxes'], // Need to snapshot active taxes
+            relations: ['taxes'],
         });
 
-        if (!workspace) {
-            throw new NotFoundException('Workspace not found');
-        }
+        if (!workspace) throw new NotFoundException('Workspace not found');
 
         const client = await this.clientsRepository.findOne({
             where: { id: createDealDto.clientId, workspace: { id: workspaceId } },
         });
 
-        if (!client) {
-            throw new NotFoundException('Client not found in this workspace');
-        }
+        if (!client) throw new NotFoundException('Client not found in this workspace');
 
-        // Build the immutable snapshot from current active workspace settings
         const activeTaxes = workspace.taxes?.filter(t => t.isActive) || [];
 
         const deal = this.dealsRepository.create({
-            name: createDealDto.title, // Client sees it as title in DTO, DB uses name
+            name: createDealDto.title,
+            notes: createDealDto.notes,
             status: DealStatus.DRAFT,
+            currentStep: 'brief',
             workspace: { id: workspaceId },
             client: { id: createDealDto.clientId },
             currency: { code: 'USD', symbol: '$' },
@@ -74,13 +96,18 @@ export class DealsService {
     async findOne(workspaceId: string, dealId: string): Promise<Deal> {
         const deal = await this.dealsRepository.findOne({
             where: { id: dealId, workspace: { id: workspaceId } },
-            relations: ['client', 'brief', 'quotations', 'quotations.items', 'paymentPlan', 'paymentPlan.milestones'],
+            relations: [
+                'client',
+                'brief',
+                'brief.template',
+                'quotations',
+                'quotations.items',
+                'paymentPlan',
+                'paymentPlan.milestones',
+            ],
         });
 
-        if (!deal) {
-            throw new NotFoundException('Deal not found');
-        }
-
+        if (!deal) throw new NotFoundException('Deal not found');
         return deal;
     }
 
@@ -89,16 +116,316 @@ export class DealsService {
 
         if (updateDealDto.name !== undefined) deal.name = updateDealDto.name;
         if (updateDealDto.status !== undefined) deal.status = updateDealDto.status;
+        if (updateDealDto.notes !== undefined) deal.notes = updateDealDto.notes;
+        if (updateDealDto.currentStep !== undefined) deal.currentStep = updateDealDto.currentStep;
 
-        // If a briefTemplateId is passed, we update the relationship or create a brief if necessary
-        // In a real application, you might create the full 'Brief' entity here rather than just keeping a reference.
-        // For now, depending on your schema design, you might just want to store currentStep on the Deal or Brief.
-        // Let's assume you save it to the deal entity later or create the Brief entity.
+        if (updateDealDto.briefTemplateId !== undefined) {
+            // Upsert the Brief linked to this deal
+            let brief = await this.briefsRepository.findOne({
+                where: { deal: { id: dealId } },
+            });
+            if (!brief) {
+                // Validate template exists (optional if null, that means "no brief")
+                brief = this.briefsRepository.create({
+                    deal: { id: dealId } as any,
+                    templateId: updateDealDto.briefTemplateId || undefined,
+                    responses: {},
+                    isCompleted: false,
+                });
+            } else {
+                brief.templateId = updateDealDto.briefTemplateId || brief.templateId;
+            }
+            await this.briefsRepository.save(brief);
+        }
+
+        if (updateDealDto.status === DealStatus.WON) {
+            deal.wonAt = new Date();
+        }
+        if (updateDealDto.status === DealStatus.SENT) {
+            deal.sentAt = new Date();
+        }
 
         return await this.dealsRepository.save(deal);
     }
 
-    // --- BRIEF TEMPLATES ---
+    async deleteDeal(workspaceId: string, dealId: string): Promise<void> {
+        const deal = await this.dealsRepository.findOne({
+            where: { id: dealId, workspace: { id: workspaceId } },
+        });
+        if (!deal) throw new NotFoundException('Deal not found');
+        await this.dealsRepository.remove(deal);
+    }
+
+    // ─── QUOTATIONS ──────────────────────────────────────────────────────────
+
+    private async findDealOrFail(workspaceId: string, dealId: string): Promise<Deal> {
+        const deal = await this.dealsRepository.findOne({
+            where: { id: dealId, workspace: { id: workspaceId } },
+        });
+        if (!deal) throw new NotFoundException('Deal not found');
+        return deal;
+    }
+
+    async createQuotation(workspaceId: string, dealId: string, dto: CreateQuotationDto): Promise<Quotation> {
+        await this.findDealOrFail(workspaceId, dealId);
+
+        const existing = await this.quotationsRepository.count({ where: { deal: { id: dealId } } });
+        const optionName = dto.optionName || `Opción ${String.fromCharCode(65 + existing)}`; // A, B, C...
+
+        const quotation = this.quotationsRepository.create({
+            deal: { id: dealId },
+            optionName,
+            description: dto.description,
+        });
+
+        return await this.quotationsRepository.save(quotation);
+    }
+
+    async findAllQuotations(workspaceId: string, dealId: string): Promise<Quotation[]> {
+        await this.findDealOrFail(workspaceId, dealId);
+        return this.quotationsRepository.find({
+            where: { deal: { id: dealId } },
+            relations: ['items'],
+            order: { createdAt: 'ASC' },
+        });
+    }
+
+    async updateQuotation(workspaceId: string, dealId: string, quotationId: string, dto: UpdateQuotationDto): Promise<Quotation> {
+        await this.findDealOrFail(workspaceId, dealId);
+
+        const quotation = await this.quotationsRepository.findOne({
+            where: { id: quotationId, deal: { id: dealId } },
+            relations: ['items'],
+        });
+        if (!quotation) throw new NotFoundException('Quotation not found');
+
+        if (dto.optionName !== undefined) quotation.optionName = dto.optionName;
+        if (dto.description !== undefined) quotation.description = dto.description;
+        if (dto.discount !== undefined) quotation.discount = dto.discount;
+        if (dto.isApproved !== undefined) {
+            // Only one quotation per deal can be approved
+            if (dto.isApproved) {
+                await this.quotationsRepository.update({ deal: { id: dealId } }, { isApproved: false });
+            }
+            quotation.isApproved = dto.isApproved;
+        }
+
+        const saved = await this.quotationsRepository.save(quotation);
+        return this.recalculateQuotationTotals(saved);
+    }
+
+    async deleteQuotation(workspaceId: string, dealId: string, quotationId: string): Promise<void> {
+        await this.findDealOrFail(workspaceId, dealId);
+        const quotation = await this.quotationsRepository.findOne({ where: { id: quotationId, deal: { id: dealId } } });
+        if (!quotation) throw new NotFoundException('Quotation not found');
+        await this.quotationsRepository.remove(quotation);
+    }
+
+    // ─── QUOTATION ITEMS ─────────────────────────────────────────────────────
+
+    private async findQuotationOrFail(dealId: string, quotationId: string): Promise<Quotation> {
+        const quotation = await this.quotationsRepository.findOne({
+            where: { id: quotationId, deal: { id: dealId } },
+            relations: ['items'],
+        });
+        if (!quotation) throw new NotFoundException('Quotation not found');
+        return quotation;
+    }
+
+    async addItem(workspaceId: string, dealId: string, quotationId: string, dto: AddQuotationItemDto): Promise<Quotation> {
+        await this.findDealOrFail(workspaceId, dealId);
+        const quotation = await this.findQuotationOrFail(dealId, quotationId);
+
+        let itemData: Partial<QuotationItem> = {
+            quotation: { id: quotationId } as any,
+            name: dto.name || 'Item sin nombre',
+            description: dto.description,
+            price: dto.price ?? 0,
+            quantity: dto.quantity ?? 1,
+            chargeType: dto.chargeType,
+            unitType: dto.unitType,
+            isTaxable: dto.isTaxable ?? true,
+            discount: dto.discount ?? 0,
+            internalCost: 0,
+        };
+
+        // If serviceId provided, snapshot the service data
+        if (dto.serviceId) {
+            const service = await this.servicesRepository.findOne({ where: { id: dto.serviceId, workspaceId } });
+            if (!service) throw new NotFoundException('Service not found in this workspace');
+
+            itemData = {
+                ...itemData,
+                serviceId: service.id,
+                name: dto.name ?? service.name,
+                description: dto.description ?? service.description,
+                price: dto.price ?? Number(service.basePrice),
+                chargeType: dto.chargeType ?? service.chargeType,
+                unitType: dto.unitType ?? service.unitType,
+                isTaxable: dto.isTaxable !== undefined ? dto.isTaxable : service.isTaxable,
+                internalCost: Number(service.internalCost),
+            };
+        }
+
+        const item = this.quotationItemsRepository.create(itemData as QuotationItem);
+        await this.quotationItemsRepository.save(item);
+
+        return this.recalculateQuotationTotals(quotation);
+    }
+
+    async updateItem(workspaceId: string, dealId: string, quotationId: string, itemId: string, dto: UpdateQuotationItemDto): Promise<Quotation> {
+        await this.findDealOrFail(workspaceId, dealId);
+        const quotation = await this.findQuotationOrFail(dealId, quotationId);
+
+        const item = await this.quotationItemsRepository.findOne({ where: { id: itemId, quotation: { id: quotationId } } });
+        if (!item) throw new NotFoundException('Item not found');
+
+        Object.assign(item, dto);
+        await this.quotationItemsRepository.save(item);
+
+        return this.recalculateQuotationTotals(quotation);
+    }
+
+    async deleteItem(workspaceId: string, dealId: string, quotationId: string, itemId: string): Promise<Quotation> {
+        await this.findDealOrFail(workspaceId, dealId);
+        const quotation = await this.findQuotationOrFail(dealId, quotationId);
+
+        const item = await this.quotationItemsRepository.findOne({ where: { id: itemId, quotation: { id: quotationId } } });
+        if (!item) throw new NotFoundException('Item not found');
+
+        await this.quotationItemsRepository.remove(item);
+
+        // Reload quotation after delete
+        const reloaded = await this.findQuotationOrFail(dealId, quotationId);
+        return this.recalculateQuotationTotals(reloaded);
+    }
+
+    /** Recalculates and persists subtotal, taxTotal, discount, total on a Quotation */
+    private async recalculateQuotationTotals(quotation: Quotation): Promise<Quotation> {
+        const items = await this.quotationItemsRepository.find({ where: { quotation: { id: quotation.id } } });
+
+        let subtotal = 0;
+        let itemDiscountTotal = 0;
+
+        for (const item of items) {
+            const lineTotal = Number(item.price) * Number(item.quantity);
+            subtotal += lineTotal;
+            itemDiscountTotal += Number(item.discount);
+        }
+
+        const discount = itemDiscountTotal + Number(quotation.discount || 0);
+        // taxTotal: placeholder — actual tax logic will use the deal's tax snapshot (handled in future)
+        const taxTotal = 0;
+        const total = Math.max(0, subtotal - discount + taxTotal);
+
+        quotation.subtotal = subtotal;
+        quotation.discount = discount;
+        quotation.taxTotal = taxTotal;
+        quotation.total = total;
+
+        // Prevent TypeORM cascade from trying to detach/delete items that aren't in the loaded relation
+        quotation.items = undefined as any;
+
+        const saved = await this.quotationsRepository.save(quotation);
+        saved.items = items; // Attach fresh items array for the response
+        return saved;
+    }
+
+    // ─── PAYMENT PLAN ────────────────────────────────────────────────────────
+
+    async createOrUpdatePaymentPlan(workspaceId: string, dealId: string, dto: CreatePaymentPlanDto): Promise<PaymentPlan> {
+        await this.findDealOrFail(workspaceId, dealId);
+
+        // Check if plan already exists, delete it (full replace pattern)
+        const existing = await this.paymentPlansRepository.findOne({
+            where: { deal: { id: dealId } },
+            relations: ['milestones'],
+        });
+        if (existing) {
+            await this.paymentPlansRepository.remove(existing);
+        }
+
+        const totalAmount = dto.milestones.reduce((sum, m) => sum + Number(m.amount), 0);
+
+        const plan = this.paymentPlansRepository.create({
+            deal: { id: dealId },
+            quotationId: dto.quotationId,
+            totalAmount,
+            milestones: dto.milestones.map(m =>
+                this.paymentMilestonesRepository.create({
+                    name: m.name,
+                    percentage: m.percentage,
+                    amount: m.amount,
+                    description: m.description,
+                    dueDate: m.dueDate ? new Date(m.dueDate) : undefined,
+                })
+            ),
+        });
+
+        return this.paymentPlansRepository.save(plan);
+    }
+
+    async findPaymentPlan(workspaceId: string, dealId: string): Promise<PaymentPlan> {
+        await this.findDealOrFail(workspaceId, dealId);
+        const plan = await this.paymentPlansRepository.findOne({
+            where: { deal: { id: dealId } },
+            relations: ['milestones'],
+            order: { createdAt: 'DESC' },
+        });
+        if (!plan) throw new NotFoundException('Payment plan not found');
+        return plan;
+    }
+
+    async addMilestone(workspaceId: string, dealId: string, dto: CreateMilestoneDto): Promise<PaymentPlan> {
+        await this.findDealOrFail(workspaceId, dealId);
+        const plan = await this.paymentPlansRepository.findOne({
+            where: { deal: { id: dealId } },
+            relations: ['milestones'],
+        });
+        if (!plan) throw new NotFoundException('Payment plan not found. Create one first.');
+
+        const milestone = this.paymentMilestonesRepository.create({
+            paymentPlan: { id: plan.id } as any,
+            name: dto.name,
+            percentage: dto.percentage,
+            amount: dto.amount,
+            description: dto.description,
+            dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+        });
+
+        await this.paymentMilestonesRepository.save(milestone);
+
+        plan.totalAmount = Number(plan.totalAmount) + Number(dto.amount);
+        plan.milestones = undefined as any; // Prevent cascade from unlinking the new milestone
+        return this.paymentPlansRepository.save(plan);
+    }
+
+    async updateMilestone(workspaceId: string, dealId: string, milestoneId: string, dto: UpdateMilestoneDto): Promise<PaymentMilestone> {
+        await this.findDealOrFail(workspaceId, dealId);
+        const milestone = await this.paymentMilestonesRepository.findOne({
+            where: { id: milestoneId },
+            relations: ['paymentPlan'],
+        });
+        if (!milestone || milestone.paymentPlan.dealId !== dealId) throw new NotFoundException('Milestone not found');
+
+        Object.assign(milestone, {
+            ...dto,
+            dueDate: dto.dueDate ? new Date(dto.dueDate) : milestone.dueDate,
+        });
+        return this.paymentMilestonesRepository.save(milestone);
+    }
+
+    async deleteMilestone(workspaceId: string, dealId: string, milestoneId: string): Promise<void> {
+        await this.findDealOrFail(workspaceId, dealId);
+        const milestone = await this.paymentMilestonesRepository.findOne({
+            where: { id: milestoneId },
+            relations: ['paymentPlan'],
+        });
+        if (!milestone || milestone.paymentPlan.dealId !== dealId) throw new NotFoundException('Milestone not found');
+        await this.paymentMilestonesRepository.remove(milestone);
+    }
+
+    // ─── BRIEF TEMPLATES ─────────────────────────────────────────────────────
 
     async createBriefTemplate(workspaceId: string, dto: CreateBriefTemplateDto): Promise<BriefTemplate> {
         const workspace = await this.workspacesRepository.findOne({ where: { id: workspaceId } });
@@ -108,7 +435,6 @@ export class DealsService {
             where: { workspace: { id: workspaceId } }
         });
 
-        // Limits based on plan
         const planLimits = {
             [WorkspacePlan.FREE]: 2,
             [WorkspacePlan.PRO]: 12,
@@ -147,15 +473,5 @@ export class DealsService {
         const template = await this.findOneBriefTemplate(workspaceId, id);
         Object.assign(template, dto);
         return await this.briefTemplatesRepository.save(template);
-    }
-
-    async deleteDeal(workspaceId: string, dealId: string): Promise<void> {
-        const deal = await this.dealsRepository.findOne({
-            where: { id: dealId, workspace: { id: workspaceId } },
-        });
-        if (!deal) {
-            throw new NotFoundException('Deal not found');
-        }
-        await this.dealsRepository.remove(deal);
     }
 }

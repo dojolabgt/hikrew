@@ -8,7 +8,7 @@ import {
     JoinColumn,
 } from 'typeorm';
 import { Quotation } from './quotation.entity';
-import { ServiceChargeType } from '../../services/service.entity';
+import { ServiceChargeType, ServiceUnitType } from '../../services/service.entity';
 
 @Entity('quotation_items')
 export class QuotationItem {
@@ -35,9 +35,19 @@ export class QuotationItem {
     @Column({
         type: 'enum',
         enum: ServiceChargeType,
+        enumName: 'quotation_items_chargetype_enum',
         default: ServiceChargeType.ONE_TIME,
     })
     chargeType: ServiceChargeType;
+
+    @Column({
+        type: 'enum',
+        enum: ServiceUnitType,
+        enumName: 'quotation_items_unittype_enum',
+        default: ServiceUnitType.UNIT,
+        nullable: true,
+    })
+    unitType: ServiceUnitType;
 
     @Column({ type: 'numeric', precision: 12, scale: 2 })
     price: number;
@@ -50,6 +60,9 @@ export class QuotationItem {
 
     @Column({ type: 'numeric', precision: 12, scale: 2, default: 0 })
     discount: number; // Discount exact amount for the item
+
+    @Column({ type: 'numeric', precision: 12, scale: 2, default: 0 })
+    internalCost: number; // Snapshot of service internalCost for margin reporting
 
     @CreateDateColumn()
     createdAt: Date;

@@ -1,72 +1,69 @@
 'use client';
 
 import React from 'react';
-import { DealDataMock, DealStep } from './DealBuilder';
+import { DealStep } from './DealBuilder';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, Save, ShieldAlert, FileEdit } from 'lucide-react';
+import { ChevronRight, Save, ShieldAlert } from 'lucide-react';
 import { BriefStep } from './steps/BriefStep';
+import { QuotationStep } from './steps/QuotationStep';
+import { PaymentPlanStep } from './steps/PaymentPlanStep';
 import { toast } from 'sonner';
+import { useDeals } from '@/hooks/use-deals';
 
 interface CanvasProps {
-    dealData: DealDataMock;
+    deal: any;
     activeStep: DealStep;
     onNextStep: (step: DealStep) => void;
     onUpdateBrief: (templateId: string | null) => void;
     onWon: () => void;
+    onDealUpdate: (deal: any) => void;
+    onRefreshDeal: () => Promise<void>;
 }
 
-export function DealCanvas({ dealData, activeStep, onNextStep, onUpdateBrief, onWon }: CanvasProps) {
-    const isWon = dealData.status === 'won';
-    const [localSelectedTemplateId, setLocalSelectedTemplateId] = React.useState<string | null>(dealData.brief.templateId || null);
+export function DealCanvas({ deal, activeStep, onNextStep, onUpdateBrief, onWon, onDealUpdate, onRefreshDeal }: CanvasProps) {
+    const { updateDeal } = useDeals();
+    const [pendingBriefId, setPendingBriefId] = React.useState<string | null>(deal?.brief?.template?.id || null);
+    const isWon = deal?.status === 'WON';
 
-    // Sync if external data changes (e.g. loaded from local storage)
-    React.useEffect(() => {
-        setLocalSelectedTemplateId(dealData.brief.templateId || null);
-    }, [dealData.brief.templateId]);
-
-    // Determine if we are viewing a past step
-    const indexMap: Record<DealStep, number> = { 'brief': 0, 'quotation': 1, 'payment_plan': 2, 'won': 3 };
+    const indexMap: Record<DealStep, number> = { brief: 0, quotation: 1, payment_plan: 2, won: 3 };
     const currentIndex = indexMap[activeStep];
-    const dealStepIndex = indexMap[dealData.currentStep];
-
-    // En Blend, los tratos en borrador pueden ser editados libremente en pasos anteriores.
-    // Solo bloqueamos/mostramos snapshot si el trato ya fue enviado o ganado (por ahora solo ganado).
+    const dealStepIndex = indexMap[(deal?.currentStep as DealStep) || 'brief'];
     const isSnapshot = isWon && activeStep !== 'won';
 
+    const handleSaveDraft = async () => {
+        await updateDeal(deal.id, { currentStep: activeStep });
+        toast.success('Borrador guardado');
+    };
+
     const renderHeader = () => {
-        let title = '';
-        let stepNum = 1;
+        const titles: Record<DealStep, string> = {
+            brief: 'Cuestionario Brief',
+            quotation: 'Configurando Cotización',
+            payment_plan: 'Plan de Pagos',
+            won: '¡Trato Ganado!',
+        };
+        const stepNums: Record<DealStep, number> = { brief: 1, quotation: 2, payment_plan: 3, won: 4 };
 
-        switch (activeStep) {
-            case 'brief': title = 'Cuestionario Brief'; stepNum = 1; break;
-            case 'quotation': title = 'Configurando Cotización'; stepNum = 2; break;
-            case 'payment_plan': title = 'Plan de Pagos'; stepNum = 3; break;
-            case 'won': title = '¡Trato Ganado!'; stepNum = 4; break;
-        }
-
-        if (activeStep === 'won') return null; // No header for WON state graphic
+        if (activeStep === 'won') return null;
 
         return (
             <div className="flex items-center justify-between pb-6 border-b border-zinc-200 dark:border-zinc-800">
                 <div>
                     <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                        {isSnapshot ? 'Visualizando Snapshot Histórico' : `Paso ${stepNum} de 3`}
+                        {isSnapshot ? 'Visualizando Snapshot Histórico' : `Paso ${stepNums[activeStep]} de 3`}
                     </span>
                     <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white mt-1">
-                        {title}
+                        {titles[activeStep]}
                     </h1>
+                    {deal?.client?.name && (
+                        <p className="text-sm text-zinc-500 mt-0.5">Para: <span className="font-medium text-zinc-700 dark:text-zinc-300">{deal.client.name}</span></p>
+                    )}
                 </div>
 
                 {isSnapshot && (
-                    <div className="flex items-center gap-3">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-semibold rounded-full border border-amber-200 dark:border-amber-800/50">
-                            <ShieldAlert className="w-3.5 h-3.5" /> Sólo Lectura
-                        </span>
-                        <Button variant="outline" size="sm" className="hidden md:flex">
-                            <FileEdit className="w-4 h-4 mr-2" />
-                            Crear nueva versión
-                        </Button>
-                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-semibold rounded-full border border-amber-200 dark:border-amber-800/50">
+                        <ShieldAlert className="w-3.5 h-3.5" /> Sólo Lectura
+                    </span>
                 )}
             </div>
         );
@@ -77,29 +74,26 @@ export function DealCanvas({ dealData, activeStep, onNextStep, onUpdateBrief, on
 
         return (
             <div className="flex items-center justify-between p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 mt-auto">
-                <Button variant="ghost" className="text-zinc-500">
+                <Button variant="ghost" className="text-zinc-500" onClick={handleSaveDraft}>
                     <Save className="w-4 h-4 mr-2" /> Guardar Borrador
                 </Button>
 
                 {activeStep === 'payment_plan' ? (
                     <Button
                         onClick={onWon}
-                        className="bg-primary hover:bg-primary/90 shadow-md transition-all active:scale-95"
+                        className="bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all active:scale-95"
                     >
-                        Marcar como Ganado (WON) <ChevronRight className="w-4 h-4 ml-2" />
+                        Marcar como Ganado <ChevronRight className="w-4 h-4 ml-2" />
                     </Button>
                 ) : (
                     <Button
                         onClick={() => {
                             if (activeStep === 'brief') {
-                                if (localSelectedTemplateId) {
-                                    onUpdateBrief(localSelectedTemplateId);
-                                    onNextStep('quotation');
-                                } else {
-                                    toast.error('Por favor selecciona una plantilla de Brief primero.');
-                                }
+                                // Step 1 is optional — pass pendingBriefId (may be null)
+                                onUpdateBrief(pendingBriefId);
+                            } else if (activeStep === 'quotation') {
+                                onNextStep('payment_plan');
                             }
-                            else if (activeStep === 'quotation') onNextStep('payment_plan');
                         }}
                         className="transition-all active:scale-95"
                     >
@@ -112,33 +106,36 @@ export function DealCanvas({ dealData, activeStep, onNextStep, onUpdateBrief, on
 
     return (
         <div className="flex flex-col h-full bg-white dark:bg-zinc-950 relative">
-            {/* Main Content Area */}
             <div className="flex-1 p-6 md:p-10 overflow-y-auto">
                 {renderHeader()}
 
                 <div className="mt-8">
                     {activeStep === 'brief' && (
                         <BriefStep
-                            initialSelectedTemplateId={localSelectedTemplateId}
+                            initialSelectedTemplateId={pendingBriefId}
                             onSelectTemplate={(id) => {
-                                setLocalSelectedTemplateId(id);
-                                if (id === null) {
-                                    onUpdateBrief(null);
-                                }
+                                // Only update local pending state; actual save happens on "Continuar"
+                                setPendingBriefId(id);
                             }}
                         />
                     )}
 
                     {activeStep === 'quotation' && (
-                        <div className="h-96 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl flex items-center justify-center text-zinc-400">
-                            [ Componente Constructor de Cotización Multiopción ]
-                        </div>
+                        <QuotationStep
+                            dealId={deal.id}
+                            currency={deal.currency}
+                            taxes={deal.taxes}
+                            readonly={isSnapshot}
+                            onUpdate={onRefreshDeal}
+                        />
                     )}
 
                     {activeStep === 'payment_plan' && (
-                        <div className="h-96 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl flex items-center justify-center text-zinc-400">
-                            [ Componente Plan de Hitos Financieros ]
-                        </div>
+                        <PaymentPlanStep
+                            dealId={deal.id}
+                            quotations={deal.quotations || []}
+                            readonly={isSnapshot}
+                        />
                     )}
 
                     {activeStep === 'won' && (
@@ -150,18 +147,15 @@ export function DealCanvas({ dealData, activeStep, onNextStep, onUpdateBrief, on
                                 ¡Propuesta Aceptada!
                             </h2>
                             <p className="text-zinc-500 dark:text-zinc-400 max-w-md mx-auto mb-8">
-                                La lógica de negocio separa ahora este Deal de su ejecución.
-                                Automáticamente se ha generado el placeholder del Proyecto con los estados financieros iniciales heredados del plan de pagos.
+                                El trato ha sido marcado como ganado. El brief, la cotización y el plan de pagos quedan guardados como registro histórico.
                             </p>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Navigation Footer */}
             {renderFooter()}
 
-            {/* Read-Only Watermark Overlay (Optional visual effect) */}
             {isSnapshot && (
                 <div className="absolute inset-0 pointer-events-none bg-zinc-50/10 dark:bg-zinc-900/10 z-10" />
             )}

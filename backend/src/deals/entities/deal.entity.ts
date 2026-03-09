@@ -58,6 +58,12 @@ export class Deal {
     @Column({ nullable: true })
     wonAt: Date;
 
+    @Column({ nullable: true, default: 'brief' })
+    currentStep: string;
+
+    @Column({ type: 'text', nullable: true })
+    notes: string;
+
     @CreateDateColumn()
     createdAt: Date;
 

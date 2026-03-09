@@ -5,13 +5,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-    DialogDescription,
-} from '@/components/ui/dialog';
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetFooter,
+    SheetDescription,
+} from '@/components/ui/sheet';
 import {
     Form,
     FormControl,
@@ -98,13 +98,13 @@ function PhonePrefixInput({
     const currentIso = PREFIX_TO_ISO[prefix] ?? '';
 
     return (
-        <div className="flex rounded-xl overflow-hidden border border-input focus-within:border-ring focus-within:ring-1 focus-within:ring-ring transition-all">
+        <div className="flex h-10 w-full rounded-xl overflow-hidden border border-input focus-within:border-ring focus-within:ring-1 focus-within:ring-ring transition-all bg-white dark:bg-zinc-950">
             {/* Prefix selector */}
             <Select
                 value={prefix}
                 onValueChange={(v) => { setPrefix(v); emit(v, local); }}
             >
-                <SelectTrigger className="w-[92px] shrink-0 border-0 border-r border-input rounded-none focus:ring-0 bg-muted/50 px-2 gap-1.5 text-sm font-medium">
+                <SelectTrigger className="w-[92px] h-full shrink-0 border-0 border-r border-input rounded-none focus:ring-0 bg-muted/50 px-2 gap-1.5 text-sm font-medium shadow-none">
                     <div className="flex items-center gap-1.5">
                         <CountryFlag iso={currentIso} className="w-4 h-3 rounded-[2px] object-cover" />
                         <span>{prefix}</span>
@@ -130,7 +130,7 @@ function PhonePrefixInput({
                 value={local}
                 maxLength={maxDigits ?? undefined}
                 onChange={(e) => { setLocal(e.target.value); emit(prefix, e.target.value); }}
-                className="flex-1 min-w-0 bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground"
+                className="flex-1 min-w-0 h-full bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground"
             />
         </div>
     );
@@ -266,207 +266,212 @@ export function ClientModal({ open, onOpenChange, onSuccess, initialData }: Clie
     const selectedTaxDef = taxOptions.find((t: any) => t.key === selectedTaxKey);
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[500px] rounded-3xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>{initialData ? t('clientModal.titleEdit') : t('clientModal.titleNew')}</DialogTitle>
-                    <DialogDescription>{t('clientModal.desc')}</DialogDescription>
-                </DialogHeader>
+        <Sheet open={open} onOpenChange={onOpenChange}>
+            <SheetContent className="sm:max-w-lg w-full px-6 py-6 border-l border-zinc-200 dark:border-zinc-800/80 bg-[#FDFDFD] dark:bg-[#0A0A0A] flex flex-col h-full">
+                <SheetHeader className="shrink-0 text-left mb-2">
+                    <SheetTitle className="text-xl tracking-tight">{initialData ? t('clientModal.titleEdit') : t('clientModal.titleNew')}</SheetTitle>
+                    <SheetDescription className="text-zinc-500 dark:text-zinc-400 mt-1">{t('clientModal.desc')}</SheetDescription>
+                </SheetHeader>
 
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden min-h-0">
+                        {/* Scrollable middle area */}
+                        <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-5 pb-6 pt-4">
 
-                        {/* ── Nombre y correo ───────────────────────────── */}
-                        <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('clientModal.nameForm')}</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder={t('clientModal.namePlaceholder')} {...field} value={field.value || ''} className="rounded-xl" />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <FormField
-                            control={form.control}
-                            name="email"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('clientModal.emailForm')}</FormLabel>
-                                    <FormControl>
-                                        <Input type="email" placeholder={t('clientModal.emailPlaceholder')} {...field} value={field.value || ''} className="rounded-xl" />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        {/* ── Teléfonos ─────────────────────────────────── */}
-                        <div className="grid grid-cols-2 gap-3">
+                            {/* ── Nombre y correo ───────────────────────────── */}
                             <FormField
                                 control={form.control}
-                                name="phone"
+                                name="name"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>{t('clientModal.phoneForm')}</FormLabel>
+                                        <FormLabel>{t('clientModal.nameForm')}</FormLabel>
                                         <FormControl>
-                                            <PhonePrefixInput
-                                                value={field.value || ''}
-                                                onChange={field.onChange}
-                                                defaultPhoneCode={defaultPhoneCode}
-                                                maxDigits={maxDigits}
+                                            <Input placeholder={t('clientModal.namePlaceholder')} {...field} value={field.value || ''} className="rounded-xl" />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="email"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('clientModal.emailForm')}</FormLabel>
+                                        <FormControl>
+                                            <Input type="email" placeholder={t('clientModal.emailPlaceholder')} {...field} value={field.value || ''} className="rounded-xl" />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            {/* ── Teléfonos ─────────────────────────────────── */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <FormField
+                                    control={form.control}
+                                    name="phone"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('clientModal.phoneForm')}</FormLabel>
+                                            <FormControl>
+                                                <PhonePrefixInput
+                                                    value={field.value || ''}
+                                                    onChange={field.onChange}
+                                                    defaultPhoneCode={defaultPhoneCode}
+                                                    maxDigits={maxDigits}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="whatsapp"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('clientModal.whatsappForm')}</FormLabel>
+                                            <FormControl>
+                                                <PhonePrefixInput
+                                                    value={field.value || ''}
+                                                    onChange={field.onChange}
+                                                    defaultPhoneCode={defaultPhoneCode}
+                                                    maxDigits={maxDigits}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            {/* ── País y Tipo ───────────────────────────────── */}
+                            <div className="grid grid-cols-2 gap-3 items-start">
+                                <FormField
+                                    control={form.control}
+                                    name="country"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('clientModal.countryForm')}</FormLabel>
+                                            <FormControl>
+                                                <Select value={field.value || ''} onValueChange={field.onChange}>
+                                                    <SelectTrigger className="rounded-xl h-10 border-input bg-background w-full justify-between items-center text-left">
+                                                        <SelectValue placeholder={t('clientModal.countryPlaceholder')} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {ALL_COUNTRIES.map(({ code, name }) => (
+                                                            <SelectItem key={code} value={code}>
+                                                                <div className="flex items-center gap-2">
+                                                                    <CountryFlag iso={code} className="w-4 h-3 rounded-[2px] object-cover shrink-0" />
+                                                                    <span>{name}</span>
+                                                                </div>
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </FormControl>
+                                            <FormDescription className="text-xs text-muted-foreground/80 mt-1.5 leading-relaxed">
+                                                {t('clientModal.countryDesc')}
+                                            </FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="type"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('clientModal.typeForm')}</FormLabel>
+                                            <FormControl>
+                                                <Select value={field.value} onValueChange={field.onChange}>
+                                                    <SelectTrigger className="rounded-xl h-10 border-input bg-background w-full justify-between items-center text-left">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="person">{t('clientModal.typePerson')}</SelectItem>
+                                                        <SelectItem value="company">{t('clientModal.typeCompany')}</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            {/* ── Identificación fiscal (select + input dinámico) ── */}
+                            {taxOptions.length > 0 && (
+                                <div className="space-y-2.5 rounded-xl border border-border/60 bg-muted/20 p-4">
+                                    <p className="text-sm font-medium">{t('clientModal.taxIdTitle')}</p>
+                                    <div className="flex gap-2">
+                                        {/* Which identifier */}
+                                        <Select value={selectedTaxKey} onValueChange={(v) => { setSelectedTaxKey(v); setTaxValue(''); }}>
+                                            <SelectTrigger className="w-[180px] rounded-xl h-10 border-input bg-background">
+                                                <SelectValue placeholder={t('clientModal.taxIdPlaceholder')} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">{t('clientModal.taxIdNone')}</SelectItem>
+                                                {taxOptions.map((t: any) => (
+                                                    <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+
+                                        {/* Value input — only shown when a key is selected */}
+                                        {selectedTaxKey && selectedTaxKey !== 'none' && (
+                                            <Input
+                                                placeholder={selectedTaxDef?.placeholder ?? ''}
+                                                value={taxValue}
+                                                onChange={e => setTaxValue(e.target.value)}
+                                                className="flex-1 rounded-xl h-10 bg-background"
                                             />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="whatsapp"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('clientModal.whatsappForm')}</FormLabel>
-                                        <FormControl>
-                                            <PhonePrefixInput
-                                                value={field.value || ''}
-                                                onChange={field.onChange}
-                                                defaultPhoneCode={defaultPhoneCode}
-                                                maxDigits={maxDigits}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
-                        {/* ── País y Tipo ───────────────────────────────── */}
-                        <div className="grid grid-cols-2 gap-3">
-                            <FormField
-                                control={form.control}
-                                name="country"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('clientModal.countryForm')}</FormLabel>
-                                        <FormControl>
-                                            <Select value={field.value || ''} onValueChange={field.onChange}>
-                                                <SelectTrigger className="rounded-xl">
-                                                    <SelectValue placeholder={t('clientModal.countryPlaceholder')} />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {ALL_COUNTRIES.map(({ code, name }) => (
-                                                        <SelectItem key={code} value={code}>
-                                                            <div className="flex items-center gap-2">
-                                                                <CountryFlag iso={code} className="w-4 h-3 rounded-[2px] object-cover" />
-                                                                {name}
-                                                            </div>
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </FormControl>
-                                        <FormDescription className="text-xs">
-                                            {t('clientModal.countryDesc')}
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="type"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('clientModal.typeForm')}</FormLabel>
-                                        <FormControl>
-                                            <Select value={field.value} onValueChange={field.onChange}>
-                                                <SelectTrigger className="rounded-xl">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="person">{t('clientModal.typePerson')}</SelectItem>
-                                                    <SelectItem value="company">{t('clientModal.typeCompany')}</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
-                        {/* ── Identificación fiscal (select + input dinámico) ── */}
-                        {taxOptions.length > 0 && (
-                            <div className="space-y-2.5 rounded-xl border border-border/60 bg-muted/20 p-4">
-                                <p className="text-sm font-medium">{t('clientModal.taxIdTitle')}</p>
-                                <div className="flex gap-2">
-                                    {/* Which identifier */}
-                                    <Select value={selectedTaxKey} onValueChange={(v) => { setSelectedTaxKey(v); setTaxValue(''); }}>
-                                        <SelectTrigger className="w-[180px] rounded-xl">
-                                            <SelectValue placeholder={t('clientModal.taxIdPlaceholder')} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="none">{t('clientModal.taxIdNone')}</SelectItem>
-                                            {taxOptions.map((t: any) => (
-                                                <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-
-                                    {/* Value input — only shown when a key is selected */}
-                                    {selectedTaxKey && selectedTaxKey !== 'none' && (
-                                        <Input
-                                            placeholder={selectedTaxDef?.placeholder ?? ''}
-                                            value={taxValue}
-                                            onChange={e => setTaxValue(e.target.value)}
-                                            className="flex-1 rounded-xl"
-                                        />
+                                        )}
+                                    </div>
+                                    {selectedTaxDef?.description && (
+                                        <p className="text-xs text-muted-foreground">{selectedTaxDef.description}</p>
                                     )}
                                 </div>
-                                {selectedTaxDef?.description && (
-                                    <p className="text-xs text-muted-foreground">{selectedTaxDef.description}</p>
-                                )}
-                            </div>
-                        )}
-
-                        {/* ── Notas ─────────────────────────────────────── */}
-                        <FormField
-                            control={form.control}
-                            name="notes"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('clientModal.notesForm')}</FormLabel>
-                                    <FormControl>
-                                        <Textarea
-                                            placeholder={t('clientModal.notesPlaceholder')}
-                                            {...field}
-                                            value={field.value || ''}
-                                            className="rounded-xl resize-none h-20"
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
                             )}
-                        />
 
-                        <DialogFooter className="pt-2">
+                            {/* ── Notas ─────────────────────────────────────── */}
+                            <FormField
+                                control={form.control}
+                                name="notes"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('clientModal.notesForm')}</FormLabel>
+                                        <FormControl>
+                                            <Textarea
+                                                placeholder={t('clientModal.notesPlaceholder')}
+                                                {...field}
+                                                value={field.value || ''}
+                                                className="rounded-xl resize-none h-20"
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                        </div>
+
+                        {/* Sticky footer */}
+                        <SheetFooter className="pt-5 mt-auto border-t border-border/50 shrink-0">
                             <Button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="w-full rounded-full shadow-lg shadow-primary/20"
+                                className="w-full gap-2 transition-all active:scale-[0.98] h-11 rounded-xl text-base shadow-sm"
                             >
                                 {isSubmitting ? t('clientModal.saving') : (initialData ? t('clientModal.updateBtn') : t('clientModal.createBtn'))}
                             </Button>
-                        </DialogFooter>
+                        </SheetFooter>
                     </form>
                 </Form>
-            </DialogContent>
-        </Dialog>
+            </SheetContent>
+        </Sheet>
     );
 }

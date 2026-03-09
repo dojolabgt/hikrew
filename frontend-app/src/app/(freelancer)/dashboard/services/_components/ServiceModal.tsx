@@ -5,12 +5,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter
-} from '@/components/ui/dialog';
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetFooter
+} from '@/components/ui/sheet';
 import {
     Form,
     FormControl,
@@ -134,267 +134,272 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] rounded-3xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>{initialData ? t('serviceModal.editTitle') : t('serviceModal.newTitle')}</DialogTitle>
-                </DialogHeader>
+        <Sheet open={open} onOpenChange={onOpenChange}>
+            <SheetContent className="sm:max-w-lg w-full px-6 py-6 border-l border-zinc-200 dark:border-zinc-800/80 bg-[#FDFDFD] dark:bg-[#0A0A0A] flex flex-col h-full">
+                <SheetHeader className="shrink-0 text-left mb-2">
+                    <SheetTitle className="text-xl tracking-tight">{initialData ? t('serviceModal.editTitle') : t('serviceModal.newTitle')}</SheetTitle>
+                </SheetHeader>
 
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-                        <Tabs defaultValue="basic" className="w-full">
-                            <TabsList className="grid w-full grid-cols-3 mb-4 rounded-xl">
-                                <TabsTrigger value="basic" className="rounded-lg">{t('serviceModal.tabBasic')}</TabsTrigger>
-                                <TabsTrigger value="pricing" className="rounded-lg">{t('serviceModal.tabPricing')}</TabsTrigger>
-                                <TabsTrigger value="advanced" className="rounded-lg">{t('serviceModal.tabAdvanced')}</TabsTrigger>
-                            </TabsList>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden min-h-0">
+                        {/* Scrollable middle area */}
+                        <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-5 pb-6 pt-4">
+                            <Tabs defaultValue="basic" className="w-full">
+                                <TabsList className="grid w-full grid-cols-3 mb-4 rounded-xl">
+                                    <TabsTrigger value="basic" className="rounded-lg">{t('serviceModal.tabBasic')}</TabsTrigger>
+                                    <TabsTrigger value="pricing" className="rounded-lg">{t('serviceModal.tabPricing')}</TabsTrigger>
+                                    <TabsTrigger value="advanced" className="rounded-lg">{t('serviceModal.tabAdvanced')}</TabsTrigger>
+                                </TabsList>
 
-                            {/* BÁSICO TAB */}
-                            <TabsContent value="basic" className="space-y-4 mt-0">
-                                <FormField
-                                    control={form.control}
-                                    name="name"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('serviceModal.nameLabel')}</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder={t('serviceModal.namePlaceholder')} {...field} value={field.value || ''} className="rounded-xl" />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <div className="grid grid-cols-2 gap-4">
+                                {/* BÁSICO TAB */}
+                                <TabsContent value="basic" className="space-y-4 mt-0">
                                     <FormField
                                         control={form.control}
-                                        name="sku"
+                                        name="name"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>{t('serviceModal.skuLabel')}</FormLabel>
+                                                <FormLabel>{t('serviceModal.nameLabel')}</FormLabel>
                                                 <FormControl>
-                                                    <Input placeholder={t('serviceModal.skuPlaceholder')} {...field} value={field.value || ''} className="rounded-xl" />
+                                                    <Input placeholder={t('serviceModal.namePlaceholder')} {...field} value={field.value || ''} className="rounded-xl" />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
                                     />
-                                    <FormField
-                                        control={form.control}
-                                        name="category"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>{t('serviceModal.categoryLabel')}</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder={t('serviceModal.categoryPlaceholder')} {...field} value={field.value || ''} className="rounded-xl" />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
 
-                                <FormField
-                                    control={form.control}
-                                    name="description"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('serviceModal.descLabel')}</FormLabel>
-                                            <FormControl>
-                                                <Textarea
-                                                    placeholder={t('serviceModal.descPlaceholder')}
-                                                    {...field}
-                                                    value={field.value || ''}
-                                                    className="rounded-xl resize-none h-24"
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </TabsContent>
-
-                            {/* PRECIOS TAB */}
-                            <TabsContent value="pricing" className="space-y-4 mt-0">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="basePrice"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>{t('serviceModal.priceLabel')}</FormLabel>
-                                                <FormControl>
-                                                    <Input type="number" {...field} value={field.value as string | number | undefined} className="rounded-xl" />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="internalCost"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>{t('serviceModal.costLabel')}</FormLabel>
-                                                <FormControl>
-                                                    <Input type="number" {...field} value={(field.value === null ? '' : field.value) as string | number | undefined} className="rounded-xl" />
-                                                </FormControl>
-                                                <FormDescription className="text-xs">{t('serviceModal.costDesc')}</FormDescription>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="chargeType"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>{t('serviceModal.chargeTypeLabel')}</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="sku"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>{t('serviceModal.skuLabel')}</FormLabel>
                                                     <FormControl>
-                                                        <SelectTrigger className="rounded-xl">
-                                                            <SelectValue placeholder="Selecciona..." />
-                                                        </SelectTrigger>
+                                                        <Input placeholder={t('serviceModal.skuPlaceholder')} {...field} value={field.value || ''} className="rounded-xl" />
                                                     </FormControl>
-                                                    <SelectContent className="rounded-xl">
-                                                        <SelectItem value={ServiceChargeType.ONE_TIME}>{t('serviceModal.chargeOneTime')}</SelectItem>
-                                                        <SelectItem value={ServiceChargeType.HOURLY}>{t('serviceModal.chargeHourly')}</SelectItem>
-                                                        <SelectItem value={ServiceChargeType.RECURRING}>{t('serviceModal.chargeRecurring')}</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="unitType"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>{t('serviceModal.unitLabel')}</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="category"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>{t('serviceModal.categoryLabel')}</FormLabel>
                                                     <FormControl>
-                                                        <SelectTrigger className="rounded-xl">
-                                                            <SelectValue placeholder="Selecciona..." />
-                                                        </SelectTrigger>
+                                                        <Input placeholder={t('serviceModal.categoryPlaceholder')} {...field} value={field.value || ''} className="rounded-xl" />
                                                     </FormControl>
-                                                    <SelectContent className="rounded-xl">
-                                                        <SelectItem value={ServiceUnitType.UNIT}>{t('serviceModal.unitUnit')}</SelectItem>
-                                                        <SelectItem value={ServiceUnitType.HOUR}>{t('serviceModal.unitHour')}</SelectItem>
-                                                        <SelectItem value={ServiceUnitType.PROJECT}>{t('serviceModal.unitProject')}</SelectItem>
-                                                        <SelectItem value={ServiceUnitType.MONTH}>{t('serviceModal.unitMonth')}</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="currency"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>{t('serviceModal.currencyLabel')}</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <FormControl>
-                                                        <SelectTrigger className="rounded-xl">
-                                                            <SelectValue placeholder="GTQ" />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-                                                    <SelectContent className="rounded-xl">
-                                                        {currencies.map((c: any) => (
-                                                            <SelectItem key={c.code} value={c.code}>
-                                                                {c.code} ({c.symbol})
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
 
                                     <FormField
                                         control={form.control}
-                                        name="isTaxable"
+                                        name="description"
                                         render={({ field }) => (
-                                            <FormItem className="flex flex-row items-center justify-between rounded-xl border p-3 shadow-sm mt-6">
-                                                <div className="space-y-0.5">
-                                                    <FormLabel className="text-sm font-medium">{t('serviceModal.taxableLabel')}</FormLabel>
-                                                </div>
+                                            <FormItem>
+                                                <FormLabel>{t('serviceModal.descLabel')}</FormLabel>
                                                 <FormControl>
-                                                    <Switch
-                                                        checked={field.value}
-                                                        onCheckedChange={field.onChange}
+                                                    <Textarea
+                                                        placeholder={t('serviceModal.descPlaceholder')}
+                                                        {...field}
+                                                        value={field.value || ''}
+                                                        className="rounded-xl resize-none h-24"
                                                     />
                                                 </FormControl>
+                                                <FormMessage />
                                             </FormItem>
                                         )}
                                     />
-                                </div>
-                            </TabsContent>
+                                </TabsContent>
 
-                            {/* AVANZADO TAB */}
-                            <TabsContent value="advanced" className="space-y-4 mt-0">
-                                <FormField
-                                    control={form.control}
-                                    name="estimatedDeliveryDays"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('serviceModal.deliveryDaysLabel')}</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="number"
-                                                    placeholder={t('serviceModal.deliveryDaysPlaceholder')}
-                                                    {...field}
-                                                    value={(field.value === null ? '' : field.value) as string | number | undefined}
-                                                    className="rounded-xl"
-                                                />
-                                            </FormControl>
-                                            <FormDescription className="text-xs">{t('serviceModal.deliveryDaysDesc')}</FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="specificTerms"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('serviceModal.termsLabel')}</FormLabel>
-                                            <FormControl>
-                                                <Textarea
-                                                    placeholder={t('serviceModal.termsPlaceholder')}
-                                                    {...field}
-                                                    value={field.value || ''}
-                                                    className="rounded-xl resize-none h-24"
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </TabsContent>
-                        </Tabs>
+                                {/* PRECIOS TAB */}
+                                <TabsContent value="pricing" className="space-y-4 mt-0">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="basePrice"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>{t('serviceModal.priceLabel')}</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="number" {...field} value={field.value as string | number | undefined} className="rounded-xl" />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="internalCost"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>{t('serviceModal.costLabel')}</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="number" {...field} value={(field.value === null ? '' : field.value) as string | number | undefined} className="rounded-xl" />
+                                                    </FormControl>
+                                                    <FormDescription className="text-xs">{t('serviceModal.costDesc')}</FormDescription>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
 
-                        <DialogFooter className="pt-6">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="chargeType"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>{t('serviceModal.chargeTypeLabel')}</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger className="rounded-xl">
+                                                                <SelectValue placeholder="Selecciona..." />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent className="rounded-xl">
+                                                            <SelectItem value={ServiceChargeType.ONE_TIME}>{t('serviceModal.chargeOneTime')}</SelectItem>
+                                                            <SelectItem value={ServiceChargeType.HOURLY}>{t('serviceModal.chargeHourly')}</SelectItem>
+                                                            <SelectItem value={ServiceChargeType.RECURRING}>{t('serviceModal.chargeRecurring')}</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="unitType"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>{t('serviceModal.unitLabel')}</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger className="rounded-xl">
+                                                                <SelectValue placeholder="Selecciona..." />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent className="rounded-xl">
+                                                            <SelectItem value={ServiceUnitType.UNIT}>{t('serviceModal.unitUnit')}</SelectItem>
+                                                            <SelectItem value={ServiceUnitType.HOUR}>{t('serviceModal.unitHour')}</SelectItem>
+                                                            <SelectItem value={ServiceUnitType.PROJECT}>{t('serviceModal.unitProject')}</SelectItem>
+                                                            <SelectItem value={ServiceUnitType.MONTH}>{t('serviceModal.unitMonth')}</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="currency"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>{t('serviceModal.currencyLabel')}</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger className="rounded-xl">
+                                                                <SelectValue placeholder="GTQ" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent className="rounded-xl">
+                                                            {currencies.map((c: any) => (
+                                                                <SelectItem key={c.code} value={c.code}>
+                                                                    {c.code} ({c.symbol})
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="isTaxable"
+                                            render={({ field }) => (
+                                                <FormItem className="flex flex-row items-center justify-between rounded-xl border p-3 shadow-sm mt-6">
+                                                    <div className="space-y-0.5">
+                                                        <FormLabel className="text-sm font-medium">{t('serviceModal.taxableLabel')}</FormLabel>
+                                                    </div>
+                                                    <FormControl>
+                                                        <Switch
+                                                            checked={field.value}
+                                                            onCheckedChange={field.onChange}
+                                                        />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </TabsContent>
+
+                                {/* AVANZADO TAB */}
+                                <TabsContent value="advanced" className="space-y-4 mt-0">
+                                    <FormField
+                                        control={form.control}
+                                        name="estimatedDeliveryDays"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>{t('serviceModal.deliveryDaysLabel')}</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="number"
+                                                        placeholder={t('serviceModal.deliveryDaysPlaceholder')}
+                                                        {...field}
+                                                        value={(field.value === null ? '' : field.value) as string | number | undefined}
+                                                        className="rounded-xl"
+                                                    />
+                                                </FormControl>
+                                                <FormDescription className="text-xs">{t('serviceModal.deliveryDaysDesc')}</FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="specificTerms"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>{t('serviceModal.termsLabel')}</FormLabel>
+                                                <FormControl>
+                                                    <Textarea
+                                                        placeholder={t('serviceModal.termsPlaceholder')}
+                                                        {...field}
+                                                        value={field.value || ''}
+                                                        className="rounded-xl resize-none h-24"
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </TabsContent>
+                            </Tabs>
+
+                        </div>
+
+                        {/* Sticky footer */}
+                        <SheetFooter className="pt-5 mt-auto border-t border-border/50 shrink-0">
                             <Button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="w-full rounded-full shadow-lg shadow-primary/20"
+                                className="w-full gap-2 transition-all active:scale-[0.98] h-11 rounded-xl text-base shadow-sm"
                             >
                                 {isSubmitting ? t('serviceModal.btnSaving') : (initialData ? t('serviceModal.btnUpdate') : t('serviceModal.btnCreate'))}
                             </Button>
-                        </DialogFooter>
+                        </SheetFooter>
                     </form>
                 </Form>
-            </DialogContent>
-        </Dialog>
+            </SheetContent>
+        </Sheet>
     );
 }

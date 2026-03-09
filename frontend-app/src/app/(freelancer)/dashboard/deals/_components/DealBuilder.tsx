@@ -1,23 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { DealRoadmapSidebar } from './DealRoadmapSidebar';
 import { DealCanvas } from './DealCanvas';
 import { useDeals } from '@/hooks/use-deals';
 import { toast } from 'sonner';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export type DealStep = 'brief' | 'quotation' | 'payment_plan' | 'won';
-
-export interface DealDataMock {
-    id: string;
-    title: string;
-    status: 'draft' | 'pending' | 'won' | 'lost';
-    brief: { completed: boolean; updatedAt?: string; templateId?: string };
-    quotation: { total?: number; approved: boolean };
-    paymentPlan: { milestonesCount: number; configured: boolean };
-    currentStep: DealStep;
-}
 
 interface DealBuilderProps {
     dealId: string;
@@ -25,98 +25,134 @@ interface DealBuilderProps {
 
 export function DealBuilder({ dealId }: DealBuilderProps) {
     const router = useRouter();
+    const { fetchDeal, updateDeal } = useDeals();
 
-    // Mock state for now
-    const [dealData, setDealData] = useState<DealDataMock>({
-        id: dealId,
-        title: dealId === 'new' ? 'Nueva Propuesta' : `Propuesta #${dealId}`,
-        status: 'draft',
-        brief: { completed: false },
-        quotation: { approved: false },
-        paymentPlan: { milestonesCount: 0, configured: false },
-        currentStep: 'brief', // default start is brief
-    });
+    const [deal, setDeal] = useState<any | null>(null);
+    const [activeStep, setActiveStep] = useState<DealStep>('brief');
+    const [isLoading, setIsLoading] = useState(true);
+    const [showWonDialog, setShowWonDialog] = useState(false);
 
-    const [activeStep, setActiveStep] = useState<DealStep>(dealData.currentStep);
-    const [isLoaded, setIsLoaded] = useState(false);
-
-    // Load from local storage
-    React.useEffect(() => {
-        const savedData = localStorage.getItem(`deal_mock_${dealId}`);
-        if (savedData) {
-            try {
-                const parsed = JSON.parse(savedData);
-                setDealData(parsed);
-                setActiveStep(parsed.currentStep);
-            } catch (e) {
-                console.error("Failed to parse saved deal data", e);
-            }
+    const loadDeal = useCallback(async () => {
+        setIsLoading(true);
+        const data = await fetchDeal(dealId);
+        if (data) {
+            setDeal(data);
+            setActiveStep((data.currentStep as DealStep) || 'brief');
         }
-        setIsLoaded(true);
-    }, [dealId]);
+        setIsLoading(false);
+    }, [dealId, fetchDeal]);
 
-    // Save to local storage on change
-    React.useEffect(() => {
-        if (isLoaded) {
-            localStorage.setItem(`deal_mock_${dealId}`, JSON.stringify(dealData));
-        }
-    }, [dealData, dealId, isLoaded]);
+    useEffect(() => {
+        loadDeal();
+    }, [loadDeal]);
 
-    const { updateDeal } = useDeals();
-
-    // This checks if the user clicks a step in the sidebar
     const handleStepChange = async (step: DealStep) => {
-        // Enforce logic if step is locked, etc...
         setActiveStep(step);
-        if (dealId !== 'new') {
-            await updateDeal(dealId, { currentStep: step });
-        }
-    };
-
-    const handleWon = async () => {
-        setDealData(prev => ({ ...prev, status: 'won', currentStep: 'won' }));
-        setActiveStep('won');
-        if (dealId !== 'new') {
-            await updateDeal(dealId, { status: 'won', currentStep: 'won' });
-            toast.success('¡Trato marcado como ganado!');
-        }
+        await updateDeal(dealId, { currentStep: step });
     };
 
     const handleUpdateBrief = async (templateId: string | null) => {
-        setDealData(prev => ({
-            ...prev,
-            brief: { ...prev.brief, templateId: templateId || undefined, completed: !!templateId },
-            currentStep: templateId ? 'quotation' : 'brief'
-        }));
-
-        if (dealId !== 'new') {
-            await updateDeal(dealId, { briefTemplateId: templateId || undefined, currentStep: templateId ? 'quotation' : 'brief' });
+        // Step 1 is optional — always advance to quotation regardless of templateId
+        const updated = await updateDeal(dealId, {
+            briefTemplateId: templateId || undefined,
+            currentStep: 'quotation',
+        });
+        if (updated) {
+            // Reload full deal so brief.template relation is populated
+            const fresh = await fetchDeal(dealId);
+            setDeal(fresh || updated);
+            setActiveStep('quotation');
         }
     };
 
-    if (!isLoaded) return null; // Wait for hydration
+    // Silent re-fetch — used by children after mutations so sidebar/state stays in sync
+    const refreshDeal = useCallback(async () => {
+        const data = await fetchDeal(dealId);
+        if (data) setDeal(data);
+    }, [dealId, fetchDeal]);
+
+    const handleWon = async () => {
+        const updated = await updateDeal(dealId, { status: 'WON', currentStep: 'won' });
+        if (updated) {
+            setDeal(updated);
+            setActiveStep('won');
+            toast.success('¡Trato marcado como Ganado! 🎉');
+        }
+        setShowWonDialog(false);
+    };
+
+    const handleDealUpdate = (updated: any) => {
+        setDeal(updated);
+    };
+
+    if (isLoading) {
+        return (
+            <div className="flex h-[calc(100vh-64px)] items-center justify-center">
+                <div className="flex flex-col items-center gap-3 text-zinc-400">
+                    <div className="w-8 h-8 border-2 border-zinc-300 border-t-primary rounded-full animate-spin" />
+                    <span className="text-sm">Cargando propuesta...</span>
+                </div>
+            </div>
+        );
+    }
+
+    if (!deal) {
+        return (
+            <div className="flex h-[calc(100vh-64px)] items-center justify-center text-zinc-500">
+                <p>Propuesta no encontrada.</p>
+            </div>
+        );
+    }
 
     return (
-        <div className="flex flex-col md:flex-row h-[calc(100vh-64px)] w-full overflow-hidden bg-white dark:bg-zinc-950">
-            {/* 25% Sidebar Roadmap */}
-            <div className="md:w-1/4 w-full border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/20 overflow-y-auto">
-                <DealRoadmapSidebar
-                    dealData={dealData}
-                    activeStep={activeStep}
-                    onStepChange={handleStepChange}
-                />
+        <>
+            <div className="flex flex-col md:flex-row h-[calc(100vh-64px)] w-full overflow-hidden bg-white dark:bg-zinc-950">
+                {/* 25% Sidebar Roadmap */}
+                <div className="md:w-1/4 w-full border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/20 overflow-y-auto">
+                    <DealRoadmapSidebar
+                        deal={deal}
+                        activeStep={activeStep}
+                        onStepChange={handleStepChange}
+                    />
+                </div>
+
+                {/* 75% Working Canvas */}
+                <div className="md:w-3/4 w-full h-full relative bg-zinc-50 dark:bg-zinc-950 overflow-y-auto">
+                    <DealCanvas
+                        deal={deal}
+                        activeStep={activeStep}
+                        onWon={() => setShowWonDialog(true)}
+                        onNextStep={(next: DealStep) => {
+                            setActiveStep(next);
+                            updateDeal(dealId, { currentStep: next });
+                        }}
+                        onUpdateBrief={handleUpdateBrief}
+                        onDealUpdate={handleDealUpdate}
+                        onRefreshDeal={refreshDeal}
+                    />
+                </div>
             </div>
 
-            {/* 75% Working Canvas */}
-            <div className="md:w-3/4 w-full h-full relative bg-zinc-50 dark:bg-zinc-950 overflow-y-auto">
-                <DealCanvas
-                    dealData={dealData}
-                    activeStep={activeStep}
-                    onWon={handleWon}
-                    onNextStep={(next: DealStep) => setActiveStep(next)}
-                    onUpdateBrief={handleUpdateBrief}
-                />
-            </div>
-        </div>
+            {/* WON Confirmation Dialog */}
+            <AlertDialog open={showWonDialog} onOpenChange={setShowWonDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Marcar como Ganado?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta acción cerrará el trato como <strong>Ganado (WON)</strong>. El brief, la cotización y el plan de pagos quedarán en modo de solo lectura. ¿Deseas continuar?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-emerald-600 hover:bg-emerald-700"
+                            onClick={handleWon}
+                        >
+                            Sí, marcar como Ganado 🎉
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     );
 }

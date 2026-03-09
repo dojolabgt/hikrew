@@ -18,7 +18,20 @@ class CurrencyEntryDto {
 export class UpdateWorkspaceDto {
     @IsOptional()
     @IsString()
+    businessName?: string;
+
+    @IsOptional()
+    @IsString()
     name?: string;
+
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    useCases?: string[];
+
+    @IsOptional()
+    @IsBoolean()
+    onboardingCompleted?: boolean;
 
     @IsOptional()
     @IsString()

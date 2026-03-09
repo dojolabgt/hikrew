@@ -10,7 +10,10 @@ export class UpdateDealDto {
     @IsOptional()
     status?: DealStatus;
 
-    // Optional relation updates
+    @IsString()
+    @IsOptional()
+    notes?: string;
+
     @IsString()
     @IsOptional()
     briefTemplateId?: string;

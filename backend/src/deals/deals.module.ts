@@ -11,6 +11,7 @@ import { PaymentPlan } from './entities/payment-plan.entity';
 import { PaymentMilestone } from './entities/payment-milestone.entity';
 import { Workspace } from '../workspaces/workspace.entity';
 import { Client } from '../clients/client.entity';
+import { Service } from '../services/service.entity';
 
 @Module({
   imports: [
@@ -24,9 +25,10 @@ import { Client } from '../clients/client.entity';
       PaymentMilestone,
       Workspace,
       Client,
+      Service,
     ]),
   ],
   controllers: [DealsController],
-  providers: [DealsService]
+  providers: [DealsService],
 })
 export class DealsModule { }
