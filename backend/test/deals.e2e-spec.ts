@@ -142,7 +142,7 @@ describe('Deals Module (e2e)', () => {
             workspaceId,
             name: 'Diseño UI/UX',
             description: 'Servicio de diseño de interfaces',
-            basePrice: 1500.00,
+            basePrice: { USD: 1500.00, GTQ: 11000.00 },
             chargeType: 'ONE_TIME' as any,
             unitType: 'PROJECT' as any,
             isTaxable: true,

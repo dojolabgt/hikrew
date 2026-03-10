@@ -18,9 +18,11 @@ interface ServicePickerDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onSelect: (service: any) => void;
+    currency?: string;
+    currencySymbol?: string;
 }
 
-export function ServicePickerDialog({ open, onOpenChange, onSelect }: ServicePickerDialogProps) {
+export function ServicePickerDialog({ open, onOpenChange, onSelect, currency = 'GTQ', currencySymbol = 'Q' }: ServicePickerDialogProps) {
     const [services, setServices] = useState<any[]>([]);
     const [search, setSearch] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -82,43 +84,46 @@ export function ServicePickerDialog({ open, onOpenChange, onSelect }: ServicePic
                         </div>
                     )}
 
-                    {filtered.map(service => (
-                        <button
-                            key={service.id}
-                            onClick={() => { onSelect(service); onOpenChange(false); }}
-                            className={cn(
-                                'w-full text-left rounded-xl border border-zinc-200 dark:border-zinc-800',
-                                'bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900',
-                                'px-4 py-3 transition-colors flex items-start justify-between gap-3',
-                                'focus:outline-none focus:ring-2 focus:ring-primary/50'
-                            )}
-                        >
-                            <div className="min-w-0">
-                                <div className="font-medium text-sm text-zinc-900 dark:text-white truncate">
-                                    {service.name}
-                                </div>
-                                {service.description && (
-                                    <p className="text-xs text-zinc-500 truncate mt-0.5">{service.description}</p>
+                    {filtered.map(service => {
+                        const price = service.basePrice?.[currency] ?? 0;
+                        return (
+                            <button
+                                key={service.id}
+                                onClick={() => { onSelect(service); onOpenChange(false); }}
+                                className={cn(
+                                    'w-full text-left rounded-xl border border-zinc-200 dark:border-zinc-800',
+                                    'bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900',
+                                    'px-4 py-3 transition-colors flex items-start justify-between gap-3',
+                                    'focus:outline-none focus:ring-2 focus:ring-primary/50'
                                 )}
-                                <div className="flex items-center gap-2 mt-1">
-                                    {service.category && (
-                                        <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded-full">
-                                            {service.category}
-                                        </span>
+                            >
+                                <div className="min-w-0">
+                                    <div className="font-medium text-sm text-zinc-900 dark:text-white truncate">
+                                        {service.name}
+                                    </div>
+                                    {service.description && (
+                                        <p className="text-xs text-zinc-500 truncate mt-0.5">{service.description}</p>
                                     )}
-                                    <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                                        {chargeTypeLabel[service.chargeType] || service.chargeType}
-                                    </span>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        {service.category && (
+                                            <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded-full">
+                                                {service.category}
+                                            </span>
+                                        )}
+                                        <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                                            {chargeTypeLabel[service.chargeType] || service.chargeType}
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="shrink-0 text-right">
-                                <span className="text-sm font-semibold text-zinc-900 dark:text-white">
-                                    {Number(service.basePrice).toLocaleString('es-GT', { minimumFractionDigits: 2 })}
-                                </span>
-                                <div className="text-xs text-zinc-400">{service.currency}</div>
-                            </div>
-                        </button>
-                    ))}
+                                <div className="shrink-0 text-right">
+                                    <span className="text-sm font-semibold text-zinc-900 dark:text-white">
+                                        {currencySymbol}{Number(price).toLocaleString('es-GT', { minimumFractionDigits: 2 })}
+                                    </span>
+                                    <div className="text-xs text-zinc-400">{currency}</div>
+                                </div>
+                            </button>
+                        );
+                    })}
                 </div>
             </DialogContent>
         </Dialog>

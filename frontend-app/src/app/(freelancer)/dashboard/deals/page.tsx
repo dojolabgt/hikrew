@@ -150,8 +150,32 @@ export default function DealsPage() {
             header: 'Total',
             render: (deal) => {
                 const total = getDealTotal(deal);
-                // Fix 1.3 — use deal's stored currency symbol instead of hardcoded '$'
-                const symbol = deal.currency?.symbol || '$';
+                let symbol = deal.currency?.symbol || '$';
+
+                // Si el deal no tiene el currency populado, pero sí el string, podríamos buscarlo 
+                // en activeWorkspace.currencies si estuviera disponible en el contexto. 
+                // Sin embargo, getDealTotal saca el total de approvedQuotation o la primera, 
+                // así que usemos el currency de la quotation si coincide.
+                const approved = deal.quotations?.find((q: any) => q.isApproved);
+                const any = deal.quotations?.[0];
+                const q = approved || any;
+
+                if (q?.currency) {
+                    if (activeWorkspace?.currencies && activeWorkspace.currencies.length > 0) {
+                        const found = activeWorkspace.currencies.find((c: any) => c.code === q.currency);
+                        if (found) symbol = found.symbol;
+                        else symbol = q.currency;
+                    } else {
+                        const fallbacks: Record<string, string> = {
+                            GTQ: 'Q', USD: '$', EUR: '€', MXN: '$', GBP: '£', JPY: '¥',
+                            CAD: '$', AUD: '$', CHF: 'Fr', CNY: '¥', BRL: 'R$', COP: '$',
+                            ARS: '$', PEN: 'S/', CLP: '$', CRC: '₡', HNL: 'L', NIO: 'C$',
+                            DOP: 'RD$', KRW: '₩', INR: '₹', SAR: '﷼', AED: 'د.إ'
+                        };
+                        symbol = fallbacks[q.currency] || q.currency;
+                    }
+                }
+
                 return (
                     <span className={total !== null ? 'text-sm font-semibold text-emerald-600 dark:text-emerald-400' : 'text-sm text-zinc-400'}>
                         {total !== null

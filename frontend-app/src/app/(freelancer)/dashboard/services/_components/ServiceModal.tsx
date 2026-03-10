@@ -35,8 +35,7 @@ const serviceSchema = z.object({
     name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
     sku: z.string().optional().nullable(),
     description: z.string().optional().nullable(),
-    basePrice: z.coerce.number().min(0, 'El precio no puede ser negativo'),
-    currency: z.string(),
+    basePrice: z.record(z.string(), z.coerce.number().min(0, 'El precio no puede ser negativo')),
     unitType: z.nativeEnum(ServiceUnitType),
     chargeType: z.nativeEnum(ServiceChargeType),
     internalCost: z.coerce.number().min(0).optional(),
@@ -67,8 +66,10 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
             name: '',
             sku: '',
             description: '',
-            basePrice: 0,
-            currency: defaultCurrencyCode,
+            basePrice: currencies.reduce((acc: any, curr: any) => {
+                acc[curr.code] = 0;
+                return acc;
+            }, {} as Record<string, number>),
             unitType: ServiceUnitType.UNIT,
             chargeType: ServiceChargeType.ONE_TIME,
             internalCost: 0,
@@ -86,7 +87,7 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                 name: initialData.name,
                 sku: initialData.sku || '',
                 description: initialData.description || '',
-                currency: initialData.currency || defaultCurrencyCode,
+                basePrice: initialData.basePrice || currencies.reduce((acc: any, curr: any) => { acc[curr.code] = 0; return acc; }, {} as Record<string, number>),
                 unitType: initialData.unitType || ServiceUnitType.UNIT,
                 chargeType: initialData.chargeType || ServiceChargeType.ONE_TIME,
                 internalCost: Number(initialData.internalCost || 0),
@@ -100,8 +101,7 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                 name: '',
                 sku: '',
                 description: '',
-                basePrice: 0,
-                currency: defaultCurrencyCode,
+                basePrice: currencies.reduce((acc: any, curr: any) => { acc[curr.code] = 0; return acc; }, {} as Record<string, number>),
                 unitType: ServiceUnitType.UNIT,
                 chargeType: ServiceChargeType.ONE_TIME,
                 internalCost: 0,
@@ -219,19 +219,27 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                                 {/* PRECIOS TAB */}
                                 <TabsContent value="pricing" className="space-y-4 mt-0">
                                     <div className="grid grid-cols-2 gap-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="basePrice"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>{t('serviceModal.priceLabel')}</FormLabel>
-                                                    <FormControl>
-                                                        <Input type="number" {...field} value={Number(field.value ?? 0)} className="rounded-xl" />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
+                                        {currencies.map((currency) => (
+                                            <FormField
+                                                key={currency.code}
+                                                control={form.control}
+                                                name={`basePrice.${currency.code}`}
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>{t('serviceModal.priceLabel')} ({currency.code})</FormLabel>
+                                                        <FormControl>
+                                                            <div className="relative">
+                                                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                                    <span className="text-zinc-500 sm:text-sm">{currency.symbol}</span>
+                                                                </div>
+                                                                <Input type="number" {...field} value={Number(field.value ?? 0)} className="rounded-xl pl-8" />
+                                                            </div>
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        ))}
                                         <FormField
                                             control={form.control}
                                             name="internalCost"
@@ -297,30 +305,7 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="currency"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>{t('serviceModal.currencyLabel')}</FormLabel>
-                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                        <FormControl>
-                                                            <SelectTrigger className="rounded-xl">
-                                                                <SelectValue placeholder="GTQ" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent className="rounded-xl">
-                                                            {currencies.map((c: any) => (
-                                                                <SelectItem key={c.code} value={c.code}>
-                                                                    {c.code} ({c.symbol})
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
+
 
                                         <FormField
                                             control={form.control}

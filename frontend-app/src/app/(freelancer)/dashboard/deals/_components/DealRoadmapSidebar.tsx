@@ -5,6 +5,7 @@ import { CheckCircle2, Lock, Eye, Play, StickyNote } from 'lucide-react';
 import { DealStep } from './DealBuilder';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 
 interface SidebarProps {
     deal: any;
@@ -14,6 +15,7 @@ interface SidebarProps {
 }
 
 export function DealRoadmapSidebar({ deal, activeStep, onStepChange, updateDeal }: SidebarProps) {
+    const { activeWorkspace } = useAuth();
     const isWon = deal?.status === 'WON';
     const currentStep = (deal?.currentStep as DealStep) || 'brief';
     const [notes, setNotes] = useState(deal?.notes || '');
@@ -40,6 +42,28 @@ export function DealRoadmapSidebar({ deal, activeStep, onStepChange, updateDeal 
     const hasQuotationItems = (approvedQuotation?.items ?? anyQuotation?.items ?? []).length > 0;
     const briefTemplate = deal?.brief?.template;
 
+    // Formatting logic for total
+    let symbol = deal?.currency?.symbol || '$';
+    const quotationCurrency = approvedQuotation?.currency || anyQuotation?.currency;
+    if (quotationCurrency) {
+        if (activeWorkspace?.currencies && activeWorkspace.currencies.length > 0) {
+            const found = activeWorkspace.currencies.find((c: any) => c.code === quotationCurrency);
+            if (found) symbol = found.symbol;
+            else symbol = quotationCurrency;
+        } else {
+            const fallbacks: Record<string, string> = {
+                GTQ: 'Q', USD: '$', EUR: '€', MXN: '$', GBP: '£', JPY: '¥',
+                CAD: '$', AUD: '$', CHF: 'Fr', CNY: '¥', BRL: 'R$', COP: '$',
+                ARS: '$', PEN: 'S/', CLP: '$', CRC: '₡', HNL: 'L', NIO: 'C$',
+                DOP: 'RD$', KRW: '₩', INR: '₹', SAR: '﷼', AED: 'د.إ'
+            };
+            symbol = fallbacks[quotationCurrency] || quotationCurrency;
+        }
+    }
+    const formattedAmount = quotationTotal !== null
+        ? `${symbol}${Number(quotationTotal).toLocaleString('es-GT', { minimumFractionDigits: 2 })}`
+        : null;
+
     const steps = [
         {
             id: 'brief' as DealStep,
@@ -59,7 +83,7 @@ export function DealRoadmapSidebar({ deal, activeStep, onStepChange, updateDeal 
                 : hasQuotationItems
                     ? `${anyQuotation?.items?.length ?? 0} ítem(s) configurado(s)`
                     : 'Sin ítems aún',
-            amount: quotationTotal ? `${Number(quotationTotal).toLocaleString('es-GT', { style: 'currency', currency: deal?.currency?.code || 'USD' })}` : null,
+            amount: formattedAmount,
         },
         {
             id: 'payment_plan' as DealStep,

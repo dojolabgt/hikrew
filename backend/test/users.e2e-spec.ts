@@ -18,15 +18,17 @@ describe('Users (e2e)', () => {
   const adminUser = {
     email: `users_admin_${Date.now()}@test.com`,
     password: 'TestAdmin123!',
-    name: 'Users Admin',
+    firstName: 'Users Admin',
+    lastName: 'Test',
     role: UserRole.ADMIN,
   };
 
   const newUser = {
     email: `testuser${Date.now()}@example.com`,
     password: 'TestUser123!',
-    name: 'Test User',
-    role: 'user', // "user" role is what we expect to create via API
+    firstName: 'Test',
+    lastName: 'User',
+    role: UserRole.CLIENT, // "user" role is what we expect to create via API
   };
 
   beforeAll(async () => {
@@ -74,6 +76,7 @@ describe('Users (e2e)', () => {
       .post('/users')
       .set('Cookie', [adminAccessToken])
       .send(newUser)
+      .expect((res) => { if (res.status !== 201) { console.log(res.body); } })
       .expect(201);
 
     createdUserId = createRes.body.id;
@@ -115,11 +118,12 @@ describe('Users (e2e)', () => {
       .patch('/users/profile')
       .set('Cookie', [userAccessToken])
       .send({
-        name: 'Updated Name',
+        firstName: 'Updated Name',
+        lastName: 'Updated Last',
       })
       .expect(200)
       .expect((res) => {
-        expect(res.body.name).toEqual('Updated Name');
+        expect(res.body.firstName).toEqual('Updated Name');
         expect(res.body).not.toHaveProperty('password');
       });
   });
@@ -128,7 +132,8 @@ describe('Users (e2e)', () => {
     return request(app.getHttpServer())
       .patch('/users/profile')
       .send({
-        name: 'Updated Name',
+        firstName: 'Updated Name',
+        lastName: 'Updated Last',
       })
       .expect(401);
   });

@@ -200,7 +200,7 @@ export class DealsService {
     if (updateDealDto.proposalTerms !== undefined)
       deal.proposalTerms = updateDealDto.proposalTerms;
     if (updateDealDto.validUntil !== undefined)
-      deal.validUntil = updateDealDto.validUntil ? new Date(updateDealDto.validUntil) : undefined as any;
+      deal.validUntil = updateDealDto.validUntil ? new Date(updateDealDto.validUntil) : null as any;
 
     if (updateDealDto.briefTemplateId !== undefined) {
       // Upsert the Brief linked to this deal
@@ -311,6 +311,8 @@ export class DealsService {
         // Fetch quotations so customer sees their options
         'quotations',
         'quotations.items',
+        'paymentPlan',
+        'paymentPlan.milestones',
       ],
     });
 
@@ -447,7 +449,7 @@ export class DealsService {
   ): Promise<Quotation> {
     const quotation = await this.quotationsRepository.findOne({
       where: { id: quotationId, deal: { id: dealId } },
-      relations: ['items'],
+      relations: ['items', 'deal'],
     });
     if (!quotation) throw new NotFoundException('Quotation not found');
     return quotation;
@@ -488,7 +490,7 @@ export class DealsService {
         serviceId: service.id,
         name: dto.name ?? service.name,
         description: dto.description ?? service.description,
-        price: dto.price ?? Number(service.basePrice),
+        price: dto.price ?? (service.basePrice?.[quotation.deal?.currency?.code] ?? 0),
         chargeType: dto.chargeType ?? service.chargeType,
         unitType: dto.unitType ?? service.unitType,
         isTaxable:

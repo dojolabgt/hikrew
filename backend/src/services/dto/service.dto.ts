@@ -21,11 +21,8 @@ export class CreateServiceDto {
   @IsString()
   description?: string;
 
-  @IsNumber()
-  basePrice: number;
-
-  @IsString()
-  currency: string;
+  @IsObject()
+  basePrice: Record<string, number>;
 
   @IsOptional()
   @IsEnum(ServiceUnitType)
@@ -78,12 +75,8 @@ export class UpdateServiceDto {
   description?: string;
 
   @IsOptional()
-  @IsNumber()
-  basePrice?: number;
-
-  @IsOptional()
-  @IsString()
-  currency?: string;
+  @IsObject()
+  basePrice?: Record<string, number>;
 
   @IsOptional()
   @IsEnum(ServiceUnitType)

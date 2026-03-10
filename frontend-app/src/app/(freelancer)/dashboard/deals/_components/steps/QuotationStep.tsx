@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { useDebounce } from '@/hooks/useDebounce';
 import {
     Sheet,
     SheetContent,
@@ -113,16 +112,13 @@ export function QuotationStep({ deal, dealId, publicToken, currency, taxes, read
     // Item delete confirmation
     const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
 
-    // Fix 1.2 — debounced proposal fields
+    // Props config state
     const [proposalIntroLocal, setProposalIntroLocal] = useState(deal?.proposalIntro || '');
     const [proposalTermsLocal, setProposalTermsLocal] = useState(deal?.proposalTerms || '');
     const [validUntilLocal, setValidUntilLocal] = useState(
         deal?.validUntil ? new Date(deal.validUntil).toISOString().split('T')[0] : ''
     );
-    const debouncedIntro = useDebounce(proposalIntroLocal, 400);
-    const debouncedTerms = useDebounce(proposalTermsLocal, 400);
-    const debouncedValidUntil = useDebounce(validUntilLocal, 400);
-    const isFirstRender = useRef(true);
+    const [isSavingConfig, setIsSavingConfig] = useState(false);
 
     useEffect(() => { fetchQuotations(); }, [fetchQuotations]);
 
@@ -132,25 +128,21 @@ export function QuotationStep({ deal, dealId, publicToken, currency, taxes, read
         }
     }, [quotations, activeQuotationId]);
 
-    // Fix 1.2 — fire after debounce, skip mount
-    useEffect(() => {
-        if (isFirstRender.current) return;
-        updateDeal(dealId, { proposalIntro: debouncedIntro || null });
-    }, [debouncedIntro]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    useEffect(() => {
-        if (isFirstRender.current) return;
-        updateDeal(dealId, { proposalTerms: debouncedTerms || null });
-    }, [debouncedTerms]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    useEffect(() => {
-        if (isFirstRender.current) return;
-        updateDeal(dealId, {
-            validUntil: debouncedValidUntil ? new Date(debouncedValidUntil).toISOString() : null,
-        });
-    }, [debouncedValidUntil]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    useEffect(() => { isFirstRender.current = false; }, []);
+    const handleSaveConfig = async () => {
+        setIsSavingConfig(true);
+        try {
+            await updateDeal(dealId, {
+                proposalIntro: proposalIntroLocal || null,
+                proposalTerms: proposalTermsLocal || null,
+                validUntil: validUntilLocal ? new Date(validUntilLocal).toISOString() : null,
+            });
+            toast.success('Configuración guardada correctamente');
+        } catch (error) {
+            toast.error('Error al guardar la configuración');
+        } finally {
+            setIsSavingConfig(false);
+        }
+    };
 
     const activeQuotation = quotations.find(q => q.id === activeQuotationId);
 
@@ -189,11 +181,12 @@ export function QuotationStep({ deal, dealId, publicToken, currency, taxes, read
     };
 
     const openFromCatalog = (service: any) => {
+        const priceForCurrency = service.basePrice?.[activeCurrencyCode] ?? 0;
         setItemEdit({
             itemId: null,
             name: service.name ?? '',
             description: service.description ?? '',
-            price: String(service.basePrice ?? 0),
+            price: String(priceForCurrency),
             quantity: '1',
             chargeType: service.chargeType ?? 'ONE_TIME',
             discount: '0',
@@ -307,55 +300,7 @@ export function QuotationStep({ deal, dealId, publicToken, currency, taxes, read
                 </div>
             )}
 
-            {/* Proposal Global Configurations */}
-            <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
-                <div className="p-5 border-b border-zinc-100 dark:border-zinc-900 bg-zinc-50/50 dark:bg-zinc-900/20">
-                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-zinc-500" /> Configuración de la Propuesta
-                    </h3>
-                    <p className="text-xs text-zinc-500 mt-1">Estos datos aparecerán al principio y final de la vista de cara al cliente.</p>
-                </div>
-                {!readonly ? (
-                    <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-3">
-                            <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Carta de Introducción (Opcional)</label>
-                            <textarea
-                                className="w-full h-24 p-3 text-sm rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-zinc-400"
-                                placeholder="Escribe un mensaje de bienvenida o justificación comercial..."
-                                value={proposalIntroLocal}
-                                onChange={(e) => setProposalIntroLocal(e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Términos y Condiciones</label>
-                                <textarea
-                                    className="w-full h-16 p-3 text-xs rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-zinc-400"
-                                    placeholder="Cláusulas, confidencialidad, propiedad intelectual..."
-                                    value={proposalTermsLocal}
-                                    onChange={(e) => setProposalTermsLocal(e.target.value)}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-                                    <Calendar className="w-3.5 h-3.5" /> Válida hasta
-                                </label>
-                                <Input
-                                    type="date"
-                                    className="h-9 px-3 text-sm rounded-lg"
-                                    value={validUntilLocal}
-                                    onChange={(e) => setValidUntilLocal(e.target.value)}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6 opacity-70">
-                        <div className="space-y-2"><p className="text-xs font-bold">Intro:</p> <p className="text-sm">{deal.proposalIntro || 'Sin intro'}</p></div>
-                        <div className="space-y-2"><p className="text-xs font-bold">Válida hasta:</p> <p className="text-sm">{deal.validUntil ? new Date(deal.validUntil).toLocaleDateString() : 'N/A'}</p></div>
-                    </div>
-                )}
-            </div>
+
 
             {/* Quotation Option Tabs — 2.3 rename on double-click */}
             <div className="flex items-center gap-2 flex-wrap">
@@ -421,6 +366,36 @@ export function QuotationStep({ deal, dealId, publicToken, currency, taxes, read
             {/* Active Quotation Canvas */}
             {activeQuotation && (
                 <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+                    {/* Currency selector for this quotation - Moved to top */}
+                    {!readonly && workspaceCurrencies.length > 0 && (
+                        <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800">
+                            <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                                <DollarSign className="w-4 h-4 text-zinc-400" /> Moneda de la cotización
+                            </span>
+                            {workspaceCurrencies.length === 1 ? (
+                                <span className="text-xs px-2.5 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg text-zinc-600 dark:text-zinc-400 font-medium border border-zinc-200 dark:border-zinc-700">
+                                    {workspaceCurrencies[0].code} ({workspaceCurrencies[0].symbol})
+                                </span>
+                            ) : (
+                                <Select
+                                    value={activeCurrencyCode}
+                                    onValueChange={(val) => updateQuotation(activeQuotation!.id, { currency: val })}
+                                >
+                                    <SelectTrigger className="h-8 w-40 text-xs rounded-lg border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {workspaceCurrencies.map((c: any) => (
+                                            <SelectItem key={c.code} value={c.code} className="text-xs">
+                                                {c.code} ({c.symbol}) — {c.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        </div>
+                    )}
+
                     {/* Items table header */}
                     <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-zinc-50 dark:bg-zinc-900/60 border-b border-zinc-200 dark:border-zinc-800 text-xs font-medium text-zinc-500 uppercase tracking-wider">
                         <div className="col-span-5">Servicio / Ítem</div>
@@ -491,35 +466,6 @@ export function QuotationStep({ deal, dealId, publicToken, currency, taxes, read
                     {/* Totals — 2.4 discount input */}
                     <div className="px-4 py-4 bg-zinc-50 dark:bg-zinc-900/40 border-t border-zinc-200 dark:border-zinc-800 space-y-1.5">
 
-                        {/* Currency selector for this quotation */}
-                        {!readonly && workspaceCurrencies.length > 0 && (
-                            <div className="flex items-center justify-between pb-2 mb-1 border-b border-zinc-200 dark:border-zinc-700">
-                                <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1.5">
-                                    <DollarSign className="w-3.5 h-3.5" /> Moneda
-                                </span>
-                                {workspaceCurrencies.length === 1 ? (
-                                    <span className="text-xs px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-full text-zinc-600 dark:text-zinc-400 font-medium">
-                                        {workspaceCurrencies[0].code} ({workspaceCurrencies[0].symbol})
-                                    </span>
-                                ) : (
-                                    <Select
-                                        value={activeCurrencyCode}
-                                        onValueChange={(val) => updateQuotation(activeQuotation!.id, { currency: val })}
-                                    >
-                                        <SelectTrigger className="h-7 w-36 text-xs rounded-lg border-zinc-200 dark:border-zinc-700">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {workspaceCurrencies.map((c: any) => (
-                                                <SelectItem key={c.code} value={c.code} className="text-xs">
-                                                    {c.code} ({c.symbol}) — {c.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                )}
-                            </div>
-                        )}
 
                         <div className="flex justify-between text-sm text-zinc-600 dark:text-zinc-400">
                             <span>Subtotal</span>
@@ -583,6 +529,64 @@ export function QuotationStep({ deal, dealId, publicToken, currency, taxes, read
                 </div>
             )}
 
+            {/* Proposal Global Configurations */}
+            <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm mt-6">
+                <div className="p-5 border-b border-zinc-100 dark:border-zinc-900 bg-zinc-50/50 dark:bg-zinc-900/20">
+                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-zinc-500" /> Notas Finales y Configuración
+                    </h3>
+                    <p className="text-xs text-zinc-500 mt-1">Estos datos como el intro, términos y plazos aplican para cualquiera de las opciones elaboradas arriba.</p>
+                </div>
+                {!readonly ? (
+                    <div className="p-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-3">
+                                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Mensaje de Introducción (Opcional)</label>
+                                <textarea
+                                    className="w-full h-32 p-3 text-sm rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-zinc-400"
+                                    placeholder="Escribe un resumen o texto para que el cliente lea antes de ver y elegir su cotización..."
+                                    value={proposalIntroLocal}
+                                    onChange={(e) => setProposalIntroLocal(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Términos y Condiciones</label>
+                                    <textarea
+                                        className="w-full h-16 p-3 text-xs rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-zinc-400"
+                                        placeholder="Cláusulas aplicables en esta propuesta..."
+                                        value={proposalTermsLocal}
+                                        onChange={(e) => setProposalTermsLocal(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                                        <Calendar className="w-3.5 h-3.5" /> Válida hasta
+                                    </label>
+                                    <Input
+                                        type="date"
+                                        className="h-9 px-3 text-sm rounded-lg"
+                                        value={validUntilLocal}
+                                        onChange={(e) => setValidUntilLocal(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="mt-6 flex justify-end">
+                            <Button size="sm" onClick={handleSaveConfig} disabled={isSavingConfig} className="gap-2">
+                                <Save className="w-4 h-4" /> {isSavingConfig ? 'Guardando...' : 'Guardar notas'}
+                            </Button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6 opacity-70">
+                        <div className="space-y-2"><p className="text-xs font-bold">Intro:</p> <p className="text-sm whitespace-pre-wrap">{deal.proposalIntro || 'Sin intro'}</p></div>
+                        <div className="space-y-2"><p className="text-xs font-bold">Términos:</p> <p className="text-sm whitespace-pre-wrap">{deal.proposalTerms || 'Sin términos'}</p></div>
+                        <div className="space-y-2 md:col-span-2"><p className="text-xs font-bold">Válida hasta:</p> <p className="text-sm">{deal.validUntil ? new Date(deal.validUntil).toLocaleDateString() : 'N/A'}</p></div>
+                    </div>
+                )}
+            </div>
+
             {/* ── Item Edit Sheet (2.1 + 2.2) ─────────────────────────────────────── */}
             <Sheet open={itemSheetOpen} onOpenChange={setItemSheetOpen}>
                 <SheetContent className="w-full sm:max-w-xl overflow-y-auto p-0 border-l border-zinc-200 dark:border-zinc-800 bg-[#FDFDFD] dark:bg-[#0A0A0A] flex flex-col h-full">
@@ -628,12 +632,12 @@ export function QuotationStep({ deal, dealId, publicToken, currency, taxes, read
                             <div className="space-y-2">
                                 <Label htmlFor="item-price" className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Precio unitario</Label>
                                 <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-zinc-400">{currencySymbol}</span>
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-zinc-400">{activeCurrencyCode}</span>
                                     <Input
                                         id="item-price"
                                         type="number"
                                         min={0}
-                                        className="pl-8 h-10 rounded-xl"
+                                        className="pl-10 h-10 rounded-xl"
                                         value={itemEdit.price}
                                         onChange={e => setItemEdit(p => ({ ...p, price: e.target.value }))}
                                     />
@@ -675,12 +679,12 @@ export function QuotationStep({ deal, dealId, publicToken, currency, taxes, read
                                 <Tag className="w-3.5 h-3.5" /> Descuento por ítem
                             </Label>
                             <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400">{currencySymbol}</span>
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400">{activeCurrencyCode}</span>
                                 <Input
                                     id="item-discount"
                                     type="number"
                                     min={0}
-                                    className="pl-7"
+                                    className="pl-10"
                                     placeholder="0.00"
                                     value={itemEdit.discount}
                                     onChange={e => setItemEdit(p => ({ ...p, discount: e.target.value }))}
@@ -724,7 +728,13 @@ export function QuotationStep({ deal, dealId, publicToken, currency, taxes, read
             </Sheet>
 
             {/* Service Picker Dialog */}
-            <ServicePickerDialog open={pickerOpen} onOpenChange={setPickerOpen} onSelect={handleCatalogSelect} />
+            <ServicePickerDialog
+                open={pickerOpen}
+                onOpenChange={setPickerOpen}
+                onSelect={handleCatalogSelect}
+                currency={deal?.currency?.code || undefined}
+                currencySymbol={activeCurrencySymbol}
+            />
 
             {/* Item delete confirmation */}
             <AlertDialog open={!!deleteItemId} onOpenChange={o => !o && setDeleteItemId(null)}>

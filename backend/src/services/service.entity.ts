@@ -41,8 +41,8 @@ export class Service {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
-  basePrice: number;
+  @Column({ type: 'jsonb', nullable: true, default: '{}' })
+  basePrice: Record<string, number>;
 
   @Column({
     type: 'enum',
@@ -76,8 +76,6 @@ export class Service {
   @Column({ type: 'jsonb', nullable: true })
   metadata: Record<string, any>;
 
-  @Column({ type: 'varchar', length: 3, default: 'GTQ' })
-  currency: string;
 
   @Column({ nullable: true })
   category: string;

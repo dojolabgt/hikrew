@@ -15,7 +15,8 @@ describe('Auth (e2e)', () => {
   const adminUser = {
     email: `auth_admin_${Date.now()}@test.com`,
     password: 'TestAdmin123!',
-    name: 'Auth Admin',
+    firstName: 'Auth Admin',
+    lastName: 'Test',
     role: UserRole.ADMIN,
   };
 

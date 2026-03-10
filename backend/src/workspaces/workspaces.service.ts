@@ -26,7 +26,7 @@ export class WorkspacesService {
     private workspaceMembersRepository: Repository<WorkspaceMember>,
     private readonly encryptionService: EncryptionService,
     private readonly storageService: StorageService,
-  ) {}
+  ) { }
 
   async createDefaultWorkspace(userId: string): Promise<Workspace> {
     const existingOwner = await this.workspaceMembersRepository.findOne({

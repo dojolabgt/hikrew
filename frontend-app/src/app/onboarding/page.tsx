@@ -151,14 +151,30 @@ export default function OnboardingPage() {
             // Save workspace data — apply country defaults from pais.json
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { currency: _defaultCurrency, ...countryDefaults } = (paisData as any)[country]?.defaults || {};
+
+            const currencyMap: Record<string, { name: string, symbol: string }> = {
+                'GTQ': { name: 'Quetzal guatemalteco', symbol: 'Q' },
+                'USD': { name: 'Dólar estadounidense', symbol: '$' },
+                'EUR': { name: 'Euro', symbol: '€' },
+                'MXN': { name: 'Peso mexicano', symbol: '$' },
+                'COP': { name: 'Peso colombiano', symbol: '$' },
+                'ARS': { name: 'Peso argentino', symbol: '$' },
+                'CLP': { name: 'Peso chileno', symbol: '$' },
+                'PEN': { name: 'Sol peruano', symbol: 'S/' },
+                'BRL': { name: 'Real brasileño', symbol: 'R$' },
+                'GBP': { name: 'Libra esterlina', symbol: '£' },
+            };
+
+            const currencyData = currencyMap[currency] || { name: currency, symbol: currency };
+
             await api.patch('/workspaces/current', {
                 businessName,
                 country,
                 state: '',
                 // Spread defaults: timezone, dateFormat, language, etc. (currency excluded — not a Workspace column)
                 ...countryDefaults,
-                // Store the selected currency inside the currencies array
-                currencies: [{ code: currency, name: currency, symbol: currency, isDefault: true }],
+                // Store the selected currency inside the currencies array with correct name and symbol
+                currencies: [{ code: currency, name: currencyData.name, symbol: currencyData.symbol, isDefault: true }],
                 useCases: skip ? [] : selectedUseCases,
                 onboardingCompleted: true,
             });

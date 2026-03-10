@@ -133,11 +133,24 @@ export default function ServicesPage() {
             key: 'price',
             header: t('services.colPrice'),
             className: 'text-right',
-            render: (service) => (
-                <span className="font-mono font-medium">
-                    {formatCurrency(service.basePrice, service.currency)}
-                </span>
-            ),
+            render: (service) => {
+                // Return a combined string of valid prices
+                if (!service.basePrice || Object.keys(service.basePrice).length === 0) return <span className="font-mono font-medium text-muted-foreground">-</span>
+
+                const prices = Object.entries(service.basePrice)
+                    .filter(([_, value]) => value !== null && value !== undefined && value > 0)
+                    .map(([currency, value]) => formatCurrency(value, currency));
+
+                return (
+                    <div className="flex flex-col items-end gap-1">
+                        {prices.length > 0 ? prices.map((p, i) => (
+                            <span key={i} className="font-mono font-medium text-xs whitespace-nowrap bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md">
+                                {p}
+                            </span>
+                        )) : <span className="font-mono font-medium text-muted-foreground">-</span>}
+                    </div>
+                );
+            },
         },
     ];
 
