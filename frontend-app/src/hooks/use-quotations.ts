@@ -6,6 +6,7 @@ export interface Quotation {
     id: string;
     optionName: string;
     description?: string;
+    currency?: string | null;
     isApproved: boolean;
     subtotal: number;
     discount: number;
@@ -88,7 +89,7 @@ export function useQuotations(dealId: string) {
         }
     }, [activeWorkspace, dealId]);
 
-    const updateQuotation = useCallback(async (quotationId: string, payload: { optionName?: string; description?: string; discount?: number; isApproved?: boolean }) => {
+    const updateQuotation = useCallback(async (quotationId: string, payload: { optionName?: string; description?: string; discount?: number; isApproved?: boolean; currency?: string }) => {
         if (!activeWorkspace) return null;
         setIsLoading(true);
         try {

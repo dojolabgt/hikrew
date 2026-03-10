@@ -1,20 +1,30 @@
-import { IsString, IsOptional, IsBoolean, IsNumber, Min } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsNumber,
+  Min,
+} from 'class-validator';
 
 export class UpdateQuotationDto {
-    @IsString()
-    @IsOptional()
-    optionName?: string;
+  @IsString()
+  @IsOptional()
+  optionName?: string;
 
-    @IsString()
-    @IsOptional()
-    description?: string;
+  @IsString()
+  @IsOptional()
+  description?: string;
 
-    @IsNumber()
-    @IsOptional()
-    @Min(0)
-    discount?: number;
+  @IsString()
+  @IsOptional()
+  currency?: string;
 
-    @IsBoolean()
-    @IsOptional()
-    isApproved?: boolean;
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  discount?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  isApproved?: boolean;
 }

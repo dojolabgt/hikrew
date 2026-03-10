@@ -22,7 +22,7 @@ export class AuthService {
     private settingsService: SettingsService,
     private mailService: MailService,
     private workspacesService: WorkspacesService,
-  ) { }
+  ) {}
 
   async register(registerDto: RegisterDto) {
     const settings = await this.settingsService.getSettings();

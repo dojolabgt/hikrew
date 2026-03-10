@@ -8,8 +8,6 @@ import {
 } from 'typeorm';
 import { Workspace } from '../workspaces/workspace.entity';
 
-
-
 export enum ServiceUnitType {
   HOUR = 'HOUR',
   PROJECT = 'PROJECT',

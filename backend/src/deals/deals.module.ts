@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DealsController } from './deals.controller';
+import { PublicBriefsController } from './public-briefs.controller';
+import { PublicDealsController } from './public-deals.controller';
 import { DealsService } from './deals.service';
 import { Deal } from './entities/deal.entity';
 import { BriefTemplate } from './entities/brief-template.entity';
@@ -28,7 +30,7 @@ import { Service } from '../services/service.entity';
       Service,
     ]),
   ],
-  controllers: [DealsController],
+  controllers: [DealsController, PublicBriefsController, PublicDealsController],
   providers: [DealsService],
 })
-export class DealsModule { }
+export class DealsModule {}

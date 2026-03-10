@@ -148,7 +148,7 @@ describe('Deals Module (e2e)', () => {
             isTaxable: true,
             internalCost: 600.00,
         } as any);
-        const savedService = await servicesRepo.save(service);
+        const savedService = await servicesRepo.save(service) as any;
         serviceId = savedService.id;
 
         // ── Pre-create a deal for deletion tests (to avoid shared state contamination) ──

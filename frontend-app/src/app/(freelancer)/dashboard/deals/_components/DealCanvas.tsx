@@ -73,10 +73,7 @@ export function DealCanvas({ deal, activeStep, onNextStep, onUpdateBrief, onWon,
         if (activeStep === 'won' || isSnapshot) return null;
 
         return (
-            <div className="flex items-center justify-between p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 mt-auto">
-                <Button variant="ghost" className="text-zinc-500" onClick={handleSaveDraft}>
-                    <Save className="w-4 h-4 mr-2" /> Guardar Borrador
-                </Button>
+            <div className="flex items-center justify-end p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 mt-auto">
 
                 {activeStep === 'payment_plan' ? (
                     <Button
@@ -86,19 +83,33 @@ export function DealCanvas({ deal, activeStep, onNextStep, onUpdateBrief, onWon,
                         Marcar como Ganado <ChevronRight className="w-4 h-4 ml-2" />
                     </Button>
                 ) : (
-                    <Button
-                        onClick={() => {
-                            if (activeStep === 'brief') {
-                                // Step 1 is optional — pass pendingBriefId (may be null)
-                                onUpdateBrief(pendingBriefId);
-                            } else if (activeStep === 'quotation') {
-                                onNextStep('payment_plan');
+                    <div className="flex items-center gap-3">
+                        {activeStep === 'brief' && !deal?.brief?.isCompleted && (
+                            <Button
+                                variant="ghost"
+                                className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-all"
+                                onClick={() => onNextStep('quotation')}
+                            >
+                                Omitir este paso
+                            </Button>
+                        )}
+                        <Button
+                            onClick={() => {
+                                if (activeStep === 'brief') {
+                                    onUpdateBrief(pendingBriefId);
+                                } else if (activeStep === 'quotation') {
+                                    onNextStep('payment_plan');
+                                }
+                            }}
+                            className="transition-all active:scale-95"
+                            disabled={
+                                (activeStep === 'brief' && (pendingBriefId || deal?.brief) && !deal?.brief?.isCompleted) ||
+                                (activeStep === 'quotation' && (!deal?.quotations || deal.quotations.length === 0))
                             }
-                        }}
-                        className="transition-all active:scale-95"
-                    >
-                        Continuar <ChevronRight className="w-4 h-4 ml-2" />
-                    </Button>
+                        >
+                            Continuar <ChevronRight className="w-4 h-4 ml-2" />
+                        </Button>
+                    </div>
                 )}
             </div>
         );
@@ -113,20 +124,29 @@ export function DealCanvas({ deal, activeStep, onNextStep, onUpdateBrief, onWon,
                     {activeStep === 'brief' && (
                         <BriefStep
                             initialSelectedTemplateId={pendingBriefId}
+                            publicToken={deal?.brief?.publicToken}
+                            isCompleted={deal?.brief?.isCompleted}
+                            responses={deal?.brief?.responses}
                             onSelectTemplate={(id) => {
-                                // Only update local pending state; actual save happens on "Continuar"
                                 setPendingBriefId(id);
+                                // Auto-save selection to db immediately so the link generates and steps lock properly
+                                updateDeal(deal.id, { briefTemplateId: id || undefined }).then(() => {
+                                    onRefreshDeal();
+                                });
                             }}
                         />
                     )}
 
                     {activeStep === 'quotation' && (
                         <QuotationStep
+                            deal={deal}
                             dealId={deal.id}
+                            publicToken={deal.publicToken}
                             currency={deal.currency}
                             taxes={deal.taxes}
                             readonly={isSnapshot}
                             onUpdate={onRefreshDeal}
+                            updateDeal={updateDeal}
                         />
                     )}
 
@@ -134,6 +154,7 @@ export function DealCanvas({ deal, activeStep, onNextStep, onUpdateBrief, onWon,
                         <PaymentPlanStep
                             dealId={deal.id}
                             quotations={deal.quotations || []}
+                            currency={deal.currency}
                             readonly={isSnapshot}
                         />
                     )}

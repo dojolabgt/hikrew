@@ -21,7 +21,7 @@ import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 @Controller('workspaces')
 @UseGuards(JwtAuthGuard)
 export class WorkspacesController {
-  constructor(private readonly workspacesService: WorkspacesService) { }
+  constructor(private readonly workspacesService: WorkspacesService) {}
 
   @Get('my-workspaces')
   async getMyWorkspaces(@Req() req) {

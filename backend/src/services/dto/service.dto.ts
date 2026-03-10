@@ -7,10 +7,7 @@ import {
   IsInt,
   IsObject,
 } from 'class-validator';
-import {
-  ServiceUnitType,
-  ServiceChargeType,
-} from '../service.entity';
+import { ServiceUnitType, ServiceChargeType } from '../service.entity';
 
 export class CreateServiceDto {
   @IsString()

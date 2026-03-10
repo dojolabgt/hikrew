@@ -49,6 +49,8 @@ export function DealBuilder({ dealId }: DealBuilderProps) {
     const handleStepChange = async (step: DealStep) => {
         setActiveStep(step);
         await updateDeal(dealId, { currentStep: step });
+        // Keep local deal state in sync so the sidebar's isLocked logic reflects the new currentStep
+        setDeal((prev: any) => ({ ...prev, currentStep: step }));
     };
 
     const handleUpdateBrief = async (templateId: string | null) => {
@@ -113,6 +115,7 @@ export function DealBuilder({ dealId }: DealBuilderProps) {
                         deal={deal}
                         activeStep={activeStep}
                         onStepChange={handleStepChange}
+                        updateDeal={updateDeal}
                     />
                 </div>
 
@@ -122,10 +125,7 @@ export function DealBuilder({ dealId }: DealBuilderProps) {
                         deal={deal}
                         activeStep={activeStep}
                         onWon={() => setShowWonDialog(true)}
-                        onNextStep={(next: DealStep) => {
-                            setActiveStep(next);
-                            updateDeal(dealId, { currentStep: next });
-                        }}
+                        onNextStep={handleStepChange}
                         onUpdateBrief={handleUpdateBrief}
                         onDealUpdate={handleDealUpdate}
                         onRefreshDeal={refreshDeal}

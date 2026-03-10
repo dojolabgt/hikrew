@@ -4,13 +4,24 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { usePaymentPlan } from '@/hooks/use-payment-plan';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, AlertCircle, CheckCircle2, AlertTriangle, BadgeCheck, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface PaymentPlanStepProps {
     dealId: string;
     quotations: any[];
+    currency?: { code: string; symbol: string };
     readonly?: boolean;
 }
 
@@ -49,8 +60,8 @@ interface FieldErrors {
     percentage?: string;
 }
 
-export function PaymentPlanStep({ dealId, quotations, readonly }: PaymentPlanStepProps) {
-    const { paymentPlan, fetchPaymentPlan, createPaymentPlan, addMilestone, deleteMilestone, isLoading } = usePaymentPlan(dealId);
+export function PaymentPlanStep({ dealId, quotations, currency, readonly }: PaymentPlanStepProps) {
+    const { paymentPlan, fetchPaymentPlan, createPaymentPlan, addMilestone, updateMilestone: updateMilestoneApi, deleteMilestone, isLoading } = usePaymentPlan(dealId);
     const [milestones, setMilestones] = useState<NewMilestone[]>([emptyMilestone()]);
     const [isSaving, setIsSaving] = useState(false);
     const [isAddingToExisting, setIsAddingToExisting] = useState(false);
@@ -58,6 +69,11 @@ export function PaymentPlanStep({ dealId, quotations, readonly }: PaymentPlanSte
     const [fieldErrors, setFieldErrors] = useState<FieldErrors[]>([{}]);
     const [addExistingErrors, setAddExistingErrors] = useState<FieldErrors>({});
     const [submitError, setSubmitError] = useState<string>('');
+    // Fix 2.7 — milestone delete confirmation
+    const [deleteMilestoneId, setDeleteMilestoneId] = useState<string | null>(null);
+    // Fix 2.6 — mark as paid pending action
+    const [markPaidId, setMarkPaidId] = useState<string | null>(null);
+    const [isMarkingPaid, setIsMarkingPaid] = useState(false);
 
     useEffect(() => {
         fetchPaymentPlan();
@@ -72,7 +88,8 @@ export function PaymentPlanStep({ dealId, quotations, readonly }: PaymentPlanSte
 
     const selectedQuotation = quotations.find(q => q.id === selectedQuotationId);
     const quotationTotal = selectedQuotation ? Number(selectedQuotation.total ?? 0) : null;
-    const fmt = (n: number) => `$${n.toLocaleString('es-GT', { minimumFractionDigits: 2 })}`;
+    const currencySymbol = currency?.symbol || '$';
+    const fmt = (n: number) => `${currencySymbol}${n.toLocaleString('es-GT', { minimumFractionDigits: 2 })}`;
 
     // ── Auto-calc helpers ───────────────────────────────────────────────────
 
@@ -221,9 +238,25 @@ export function PaymentPlanStep({ dealId, quotations, readonly }: PaymentPlanSte
         }
     };
 
-    const handleDeleteMilestone = async (milestoneId: string) => {
-        await deleteMilestone(milestoneId);
+    const handleDeleteMilestone = async () => {
+        if (!deleteMilestoneId) return;
+        await deleteMilestone(deleteMilestoneId);
+        setDeleteMilestoneId(null);
+        await fetchPaymentPlan();
         toast.success('Hito eliminado');
+    };
+
+    // Fix 2.6 — mark milestone as paid / unpaid
+    const handleMarkAsPaid = async () => {
+        if (!markPaidId) return;
+        setIsMarkingPaid(true);
+        const milestone = paymentPlan?.milestones?.find((m: any) => m.id === markPaidId);
+        const newStatus = milestone?.status === 'PAID' ? 'PENDING' : 'PAID';
+        await updateMilestoneApi(markPaidId, { status: newStatus });
+        setMarkPaidId(null);
+        setIsMarkingPaid(false);
+        await fetchPaymentPlan();
+        toast.success(newStatus === 'PAID' ? 'Hito marcado como pagado' : 'Hito regresado a pendiente');
     };
 
     // ── Summary calculations ─────────────────────────────────────────────────
@@ -236,198 +269,259 @@ export function PaymentPlanStep({ dealId, quotations, readonly }: PaymentPlanSte
 
     if (paymentPlan) {
         return (
-            <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h3 className="font-semibold text-zinc-900 dark:text-white">Plan de Cobro</h3>
-                        <p className="text-sm text-zinc-500">
-                            Total del plan:{' '}
-                            <span className="font-semibold text-zinc-900 dark:text-white">
-                                {fmt(paymentPlan.totalAmount)}
-                            </span>
-                        </p>
-                    </div>
-                    {quotationTotal && Math.abs(existingPlanTotal - quotationTotal) > 0.01 && (
-                        <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800">
-                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                            El total del plan ({fmt(existingPlanTotal)}) difiere de la cotización ({fmt(quotationTotal)})
-                        </div>
-                    )}
-                </div>
-
-                {/* Milestones list */}
-                <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-                    <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-zinc-50 dark:bg-zinc-900/60 border-b border-zinc-200 dark:border-zinc-800 text-xs font-medium text-zinc-500 uppercase tracking-wider">
-                        <div className="col-span-4">Hito</div>
-                        <div className="col-span-2 text-center">%</div>
-                        <div className="col-span-3 text-right">Monto</div>
-                        <div className="col-span-2 text-center">Fecha</div>
-                        <div className="col-span-1" />
-                    </div>
-
-                    {paymentPlan.milestones?.map((milestone: any) => (
-                        <div
-                            key={milestone.id}
-                            className="grid grid-cols-12 gap-2 items-center px-4 py-3 border-b border-zinc-100 dark:border-zinc-800/50 group hover:bg-zinc-50/50 dark:hover:bg-zinc-900/20"
-                        >
-                            <div className="col-span-4">
-                                <div className="font-medium text-sm text-zinc-900 dark:text-white">{milestone.name}</div>
-                                {milestone.description && (
-                                    <div className="text-xs text-zinc-500 truncate">{milestone.description}</div>
-                                )}
-                                <span className={cn(
-                                    'text-[10px] px-2 py-0.5 rounded-full font-medium mt-1 inline-block',
-                                    MILESTONE_STATUS_STYLES[milestone.status] || MILESTONE_STATUS_STYLES.PENDING
-                                )}>
-                                    {MILESTONE_STATUS_LABELS[milestone.status] || milestone.status}
+            <>
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="font-semibold text-zinc-900 dark:text-white">Plan de Cobro</h3>
+                            <p className="text-sm text-zinc-500">
+                                Total del plan:{' '}
+                                <span className="font-semibold text-zinc-900 dark:text-white">
+                                    {fmt(paymentPlan.totalAmount)}
                                 </span>
-                            </div>
-                            <div className="col-span-2 text-center text-sm text-zinc-500">
-                                {milestone.percentage ? `${milestone.percentage}%` : '—'}
-                            </div>
-                            <div className="col-span-3 text-right font-semibold text-sm text-zinc-900 dark:text-white">
-                                {fmt(milestone.amount)}
-                            </div>
-                            <div className="col-span-2 text-center text-xs text-zinc-500">
-                                {milestone.dueDate ? new Date(milestone.dueDate).toLocaleDateString('es-GT') : '—'}
-                            </div>
-                            <div className="col-span-1 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                                {!readonly && (
-                                    <button
-                                        onClick={() => handleDeleteMilestone(milestone.id)}
-                                        className="p-1.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/30 text-rose-500"
-                                    >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                )}
-                            </div>
+                            </p>
                         </div>
-                    ))}
+                        {quotationTotal && Math.abs(existingPlanTotal - quotationTotal) > 0.01 && (
+                            <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800">
+                                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                El total del plan ({fmt(existingPlanTotal)}) difiere de la cotización ({fmt(quotationTotal)})
+                            </div>
+                        )}
+                    </div>
 
-                    {/* Add milestone form (existing plan) */}
-                    {!readonly && (
-                        <div className="border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/20">
-                            <div className="px-4 py-3">
-                                <p className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-3">Agregar hito al plan</p>
+                    {/* Milestones list */}
+                    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+                        <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-zinc-50 dark:bg-zinc-900/60 border-b border-zinc-200 dark:border-zinc-800 text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                            <div className="col-span-4">Hito</div>
+                            <div className="col-span-2 text-center">%</div>
+                            <div className="col-span-3 text-right">Monto</div>
+                            <div className="col-span-2 text-center">Fecha</div>
+                            <div className="col-span-1" />
+                        </div>
 
-                                <div className="grid grid-cols-12 gap-2 items-start">
-                                    {/* Name */}
-                                    <div className="col-span-4 space-y-1">
-                                        <label className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">
-                                            Nombre <span className="text-rose-500">*</span>
-                                        </label>
-                                        <Input
-                                            placeholder="Ej. Segunda entrega"
-                                            className={cn(
-                                                'h-9 text-sm rounded-xl',
-                                                addExistingErrors.name && 'border-rose-400 focus-visible:ring-rose-400'
-                                            )}
-                                            value={milestones[0].name}
-                                            onChange={e => {
-                                                updateMilestone(0, 'name', e.target.value);
-                                                setAddExistingErrors(p => ({ ...p, name: undefined }));
-                                            }}
-                                        />
-                                        {addExistingErrors.name && (
-                                            <p className="text-xs text-rose-500 flex items-center gap-1">
-                                                <AlertCircle className="w-3 h-3 shrink-0" />
-                                                {addExistingErrors.name}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    {/* Percentage */}
-                                    <div className="col-span-2 space-y-1">
-                                        <label className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">%</label>
-                                        <div className="relative">
-                                            <Input
-                                                type="number"
-                                                placeholder={quotationTotal ? '50' : '%'}
-                                                min={0} max={100}
+                        {paymentPlan.milestones?.map((milestone: any) => (
+                            <div
+                                key={milestone.id}
+                                className="grid grid-cols-12 gap-2 items-center px-4 py-3 border-b border-zinc-100 dark:border-zinc-800/50 group hover:bg-zinc-50/50 dark:hover:bg-zinc-900/20"
+                            >
+                                <div className="col-span-4">
+                                    <div className="font-medium text-sm text-zinc-900 dark:text-white">{milestone.name}</div>
+                                    {milestone.description && (
+                                        <div className="text-xs text-zinc-500 truncate">{milestone.description}</div>
+                                    )}
+                                    <span className={cn(
+                                        'text-[10px] px-2 py-0.5 rounded-full font-medium mt-1 inline-block',
+                                        MILESTONE_STATUS_STYLES[milestone.status] || MILESTONE_STATUS_STYLES.PENDING
+                                    )}>
+                                        {MILESTONE_STATUS_LABELS[milestone.status] || milestone.status}
+                                    </span>
+                                </div>
+                                <div className="col-span-2 text-center text-sm text-zinc-500">
+                                    {milestone.percentage ? `${milestone.percentage}%` : '—'}
+                                </div>
+                                <div className="col-span-3 text-right font-semibold text-sm text-zinc-900 dark:text-white">
+                                    {fmt(milestone.amount)}
+                                </div>
+                                <div className="col-span-2 text-center text-xs text-zinc-500">
+                                    {milestone.dueDate ? new Date(milestone.dueDate).toLocaleDateString('es-GT') : '—'}
+                                </div>
+                                <div className="col-span-1 flex justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {!readonly && (
+                                        <>
+                                            {/* Fix 2.6 — Mark as Paid toggle */}
+                                            <button
+                                                onClick={() => setMarkPaidId(milestone.id)}
                                                 className={cn(
-                                                    'h-9 text-sm text-center rounded-xl pr-6',
-                                                    addExistingErrors.percentage && 'border-rose-400 focus-visible:ring-rose-400'
+                                                    'p-1.5 rounded-lg transition-colors',
+                                                    milestone.status === 'PAID'
+                                                        ? 'text-emerald-500 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40'
+                                                        : 'text-zinc-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
                                                 )}
-                                                value={milestones[0].percentage}
+                                                title={milestone.status === 'PAID' ? 'Marcar como pendiente' : 'Marcar como pagado'}
+                                            >
+                                                <BadgeCheck className="w-3.5 h-3.5" />
+                                            </button>
+                                            {/* Fix 2.7 — Delete with confirmation */}
+                                            <button
+                                                onClick={() => setDeleteMilestoneId(milestone.id)}
+                                                className="p-1.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/30 text-rose-500"
+                                                title="Eliminar hito"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+
+                        {/* Add milestone form (existing plan) */}
+                        {!readonly && (
+                            <div className="border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/20">
+                                <div className="px-4 py-3">
+                                    <p className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-3">Agregar hito al plan</p>
+
+                                    <div className="grid grid-cols-12 gap-2 items-start">
+                                        {/* Name */}
+                                        <div className="col-span-4 space-y-1">
+                                            <label className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">
+                                                Nombre <span className="text-rose-500">*</span>
+                                            </label>
+                                            <Input
+                                                placeholder="Ej. Segunda entrega"
+                                                className={cn(
+                                                    'h-9 text-sm rounded-xl',
+                                                    addExistingErrors.name && 'border-rose-400 focus-visible:ring-rose-400'
+                                                )}
+                                                value={milestones[0].name}
                                                 onChange={e => {
-                                                    updateMilestone(0, 'percentage', e.target.value);
-                                                    setAddExistingErrors(p => ({ ...p, percentage: undefined }));
+                                                    updateMilestone(0, 'name', e.target.value);
+                                                    setAddExistingErrors(p => ({ ...p, name: undefined }));
                                                 }}
                                             />
-                                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-zinc-400 pointer-events-none">%</span>
-                                        </div>
-                                        {addExistingErrors.percentage && (
-                                            <p className="text-xs text-rose-500 flex items-center gap-1">
-                                                <AlertCircle className="w-3 h-3 shrink-0" />
-                                                {addExistingErrors.percentage}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    {/* Amount */}
-                                    <div className="col-span-3 space-y-1">
-                                        <label className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">
-                                            Monto <span className="text-rose-500">*</span>
-                                        </label>
-                                        <Input
-                                            type="number"
-                                            placeholder="0.00"
-                                            min={0}
-                                            className={cn(
-                                                'h-9 text-sm text-right rounded-xl',
-                                                addExistingErrors.amount && 'border-rose-400 focus-visible:ring-rose-400'
+                                            {addExistingErrors.name && (
+                                                <p className="text-xs text-rose-500 flex items-center gap-1">
+                                                    <AlertCircle className="w-3 h-3 shrink-0" />
+                                                    {addExistingErrors.name}
+                                                </p>
                                             )}
-                                            value={milestones[0].amount}
-                                            onChange={e => {
-                                                updateMilestone(0, 'amount', e.target.value);
-                                                setAddExistingErrors(p => ({ ...p, amount: undefined }));
-                                            }}
-                                        />
-                                        {addExistingErrors.amount && (
-                                            <p className="text-xs text-rose-500 flex items-center gap-1">
-                                                <AlertCircle className="w-3 h-3 shrink-0" />
-                                                {addExistingErrors.amount}
-                                            </p>
-                                        )}
+                                        </div>
+
+                                        {/* Percentage */}
+                                        <div className="col-span-2 space-y-1">
+                                            <label className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">%</label>
+                                            <div className="relative">
+                                                <Input
+                                                    type="number"
+                                                    placeholder={quotationTotal ? '50' : '%'}
+                                                    min={0} max={100}
+                                                    className={cn(
+                                                        'h-9 text-sm text-center rounded-xl pr-6',
+                                                        addExistingErrors.percentage && 'border-rose-400 focus-visible:ring-rose-400'
+                                                    )}
+                                                    value={milestones[0].percentage}
+                                                    onChange={e => {
+                                                        updateMilestone(0, 'percentage', e.target.value);
+                                                        setAddExistingErrors(p => ({ ...p, percentage: undefined }));
+                                                    }}
+                                                />
+                                                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-zinc-400 pointer-events-none">%</span>
+                                            </div>
+                                            {addExistingErrors.percentage && (
+                                                <p className="text-xs text-rose-500 flex items-center gap-1">
+                                                    <AlertCircle className="w-3 h-3 shrink-0" />
+                                                    {addExistingErrors.percentage}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        {/* Amount */}
+                                        <div className="col-span-3 space-y-1">
+                                            <label className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">
+                                                Monto <span className="text-rose-500">*</span>
+                                            </label>
+                                            <Input
+                                                type="number"
+                                                placeholder="0.00"
+                                                min={0}
+                                                className={cn(
+                                                    'h-9 text-sm text-right rounded-xl',
+                                                    addExistingErrors.amount && 'border-rose-400 focus-visible:ring-rose-400'
+                                                )}
+                                                value={milestones[0].amount}
+                                                onChange={e => {
+                                                    updateMilestone(0, 'amount', e.target.value);
+                                                    setAddExistingErrors(p => ({ ...p, amount: undefined }));
+                                                }}
+                                            />
+                                            {addExistingErrors.amount && (
+                                                <p className="text-xs text-rose-500 flex items-center gap-1">
+                                                    <AlertCircle className="w-3 h-3 shrink-0" />
+                                                    {addExistingErrors.amount}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        {/* Due date */}
+                                        <div className="col-span-2 space-y-1">
+                                            <label className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">Fecha límite</label>
+                                            <Input
+                                                type="date"
+                                                className="h-9 text-sm rounded-xl"
+                                                value={milestones[0].dueDate}
+                                                onChange={e => updateMilestone(0, 'dueDate', e.target.value)}
+                                            />
+                                        </div>
+
+                                        {/* Add button */}
+                                        <div className="col-span-1 flex justify-end pt-5">
+                                            <Button
+                                                size="sm"
+                                                className="h-9 w-9 p-0 rounded-xl"
+                                                onClick={handleAddToExisting}
+                                                disabled={isAddingToExisting}
+                                                title="Agregar hito"
+                                            >
+                                                {isAddingToExisting
+                                                    ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                    : <Plus className="w-4 h-4" />}
+                                            </Button>
+                                        </div>
                                     </div>
 
-                                    {/* Due date */}
-                                    <div className="col-span-2 space-y-1">
-                                        <label className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">Fecha límite</label>
-                                        <Input
-                                            type="date"
-                                            className="h-9 text-sm rounded-xl"
-                                            value={milestones[0].dueDate}
-                                            onChange={e => updateMilestone(0, 'dueDate', e.target.value)}
-                                        />
-                                    </div>
-
-                                    {/* Add button */}
-                                    <div className="col-span-1 flex justify-end pt-5">
-                                        <Button
-                                            size="sm"
-                                            className="h-9 w-9 p-0 rounded-xl"
-                                            onClick={handleAddToExisting}
-                                            disabled={isAddingToExisting}
-                                            title="Agregar hito"
-                                        >
-                                            {isAddingToExisting
-                                                ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                                : <Plus className="w-4 h-4" />}
-                                        </Button>
-                                    </div>
+                                    {quotationTotal && (
+                                        <p className="text-[11px] text-zinc-400 mt-2">
+                                            💡 Ingresa el % y el monto se calculará automáticamente desde {fmt(quotationTotal)}.
+                                        </p>
+                                    )}
                                 </div>
-
-                                {quotationTotal && (
-                                    <p className="text-[11px] text-zinc-400 mt-2">
-                                        💡 Ingresa el % y el monto se calculará automáticamente desde {fmt(quotationTotal)}.
-                                    </p>
-                                )}
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
-            </div>
+
+                {/* Fix 2.7 — Delete milestone AlertDialog */}
+                <AlertDialog open={!!deleteMilestoneId} onOpenChange={o => !o && setDeleteMilestoneId(null)}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>¿Eliminar este hito?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Esta acción eliminará el hito del plan de cobro de forma permanente.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction className="bg-rose-600 hover:bg-rose-700" onClick={handleDeleteMilestone}>
+                                Eliminar
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+
+                {/* Fix 2.6 — Mark as Paid AlertDialog */}
+                <AlertDialog open={!!markPaidId} onOpenChange={o => !o && setMarkPaidId(null)}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>
+                                {paymentPlan?.milestones?.find((m: any) => m.id === markPaidId)?.status === 'PAID'
+                                    ? '¿Marcar como Pendiente?'
+                                    : '¿Confirmar pago recibido?'}
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                                {paymentPlan?.milestones?.find((m: any) => m.id === markPaidId)?.status === 'PAID'
+                                    ? 'El hito regresará al estado Pendiente.'
+                                    : 'Confirma que ya recibiste el pago de este hito. Esta acción puede revertirse.'}
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleMarkAsPaid} disabled={isMarkingPaid}>
+                                {isMarkingPaid ? 'Guardando...' : 'Confirmar'}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </>
         );
     }
 

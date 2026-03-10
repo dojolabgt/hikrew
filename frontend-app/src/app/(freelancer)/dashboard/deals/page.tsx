@@ -95,7 +95,8 @@ export default function DealsPage() {
             setIsDialogOpen(false);
             setTitle('');
             setClientId('');
-            router.push(`/dashboard/deals/${deal.id}`);
+            // Prefer slug for clean URLs, fall back to id for backward compat
+            router.push(`/dashboard/deals/${deal.slug || deal.id}`);
         } else {
             toast.error('Error al crear la propuesta.');
         }
@@ -149,10 +150,12 @@ export default function DealsPage() {
             header: 'Total',
             render: (deal) => {
                 const total = getDealTotal(deal);
+                // Fix 1.3 — use deal's stored currency symbol instead of hardcoded '$'
+                const symbol = deal.currency?.symbol || '$';
                 return (
                     <span className={total !== null ? 'text-sm font-semibold text-emerald-600 dark:text-emerald-400' : 'text-sm text-zinc-400'}>
                         {total !== null
-                            ? `$${total.toLocaleString('es-GT', { minimumFractionDigits: 2 })}`
+                            ? `${symbol}${total.toLocaleString('es-GT', { minimumFractionDigits: 2 })}`
                             : '—'
                         }
                     </span>
@@ -248,8 +251,8 @@ export default function DealsPage() {
                         key={s}
                         onClick={() => setStatusFilter(s)}
                         className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${statusFilter === s
-                                ? 'bg-primary text-white border-primary'
-                                : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-primary/50'
+                            ? 'bg-primary text-white border-primary'
+                            : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-primary/50'
                             }`}
                     >
                         {s === 'ALL' ? 'Todos' : STATUS_LABEL[s]}
@@ -274,7 +277,7 @@ export default function DealsPage() {
                         <Plus className="mr-2 h-4 w-4" /> {t('deals.create')}
                     </Button>
                 }
-                onRowClick={(deal) => router.push(`/dashboard/deals/${deal.id}`)}
+                onRowClick={(deal) => router.push(`/dashboard/deals/${deal.slug || deal.id}`)}
                 actions={(deal) => [
                     {
                         label: 'Eliminar',

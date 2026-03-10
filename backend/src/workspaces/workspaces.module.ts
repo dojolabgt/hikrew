@@ -20,5 +20,4 @@ import { EncryptionModule } from '../common/encryption/encryption.module';
   providers: [WorkspacesService, WorkspaceTaxesService],
   exports: [WorkspacesService, WorkspaceTaxesService],
 })
-export class WorkspacesModule { }
-
+export class WorkspacesModule {}

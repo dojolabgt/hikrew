@@ -26,7 +26,7 @@ export class WorkspacesService {
     private workspaceMembersRepository: Repository<WorkspaceMember>,
     private readonly encryptionService: EncryptionService,
     private readonly storageService: StorageService,
-  ) { }
+  ) {}
 
   async createDefaultWorkspace(userId: string): Promise<Workspace> {
     const existingOwner = await this.workspaceMembersRepository.findOne({
@@ -73,7 +73,9 @@ export class WorkspacesService {
     id: string,
     data: Partial<Workspace>,
   ): Promise<Workspace> {
-    this.logger.log(`Updating workspace ${id} with data: ${JSON.stringify(data)}`);
+    this.logger.log(
+      `Updating workspace ${id} with data: ${JSON.stringify(data)}`,
+    );
     await this.workspacesRepository.update(id, data);
     return this.getWorkspaceById(id);
   }

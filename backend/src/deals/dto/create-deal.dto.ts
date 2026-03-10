@@ -1,15 +1,15 @@
 import { IsString, IsNotEmpty, IsOptional, IsUUID } from 'class-validator';
 
 export class CreateDealDto {
-    @IsString()
-    @IsNotEmpty()
-    title: string;
+  @IsString()
+  @IsNotEmpty()
+  title: string;
 
-    @IsUUID()
-    @IsNotEmpty()
-    clientId: string;
+  @IsUUID()
+  @IsNotEmpty()
+  clientId: string;
 
-    @IsString()
-    @IsOptional()
-    notes?: string;
+  @IsString()
+  @IsOptional()
+  notes?: string;
 }

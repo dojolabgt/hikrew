@@ -1,10 +1,10 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class CreateWorkspaceTaxes1772520000000 implements MigrationInterface {
-    name = 'CreateWorkspaceTaxes1772520000000';
+  name = 'CreateWorkspaceTaxes1772520000000';
 
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`
       CREATE TABLE "workspace_taxes" (
         "id"           UUID NOT NULL DEFAULT uuid_generate_v4(),
         "workspace_id" UUID NOT NULL,
@@ -28,16 +28,14 @@ export class CreateWorkspaceTaxes1772520000000 implements MigrationInterface {
       )
     `);
 
-        await queryRunner.query(`
+    await queryRunner.query(`
       CREATE INDEX "IDX_workspace_taxes_workspace_id"
         ON "workspace_taxes" ("workspace_id")
     `);
-    }
+  }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(
-            `DROP INDEX "IDX_workspace_taxes_workspace_id"`,
-        );
-        await queryRunner.query(`DROP TABLE "workspace_taxes"`);
-    }
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`DROP INDEX "IDX_workspace_taxes_workspace_id"`);
+    await queryRunner.query(`DROP TABLE "workspace_taxes"`);
+  }
 }

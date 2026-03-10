@@ -226,7 +226,7 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
                                                 <FormItem>
                                                     <FormLabel>{t('serviceModal.priceLabel')}</FormLabel>
                                                     <FormControl>
-                                                        <Input type="number" {...field} value={field.value as string | number | undefined} className="rounded-xl" />
+                                                        <Input type="number" {...field} value={Number(field.value ?? 0)} className="rounded-xl" />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>

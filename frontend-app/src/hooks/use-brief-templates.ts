@@ -59,7 +59,7 @@ export function useBriefTemplates() {
         if (!activeWorkspace) return null;
         setIsLoading(true);
         try {
-            const res = await api.post(`/workspaces/${activeWorkspace.id}/deals/brief-templates/${id}`, payload);
+            const res = await api.patch(`/workspaces/${activeWorkspace.id}/deals/brief-templates/${id}`, payload);
             const updated = res.data;
             setTemplates(prev => prev.map(t => t.id === id ? updated : t));
             return updated;

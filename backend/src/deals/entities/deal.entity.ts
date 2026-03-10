@@ -1,13 +1,13 @@
 import {
-    Entity,
-    PrimaryGeneratedColumn,
-    Column,
-    CreateDateColumn,
-    UpdateDateColumn,
-    ManyToOne,
-    OneToMany,
-    OneToOne,
-    JoinColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  OneToMany,
+  OneToOne,
+  JoinColumn,
 } from 'typeorm';
 import { Workspace } from '../../workspaces/workspace.entity';
 import { Client } from '../../clients/client.entity';
@@ -18,73 +18,97 @@ import { PaymentPlan } from './payment-plan.entity';
 
 @Entity('deals')
 export class Deal {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    @Column({ name: 'workspace_id' })
-    workspaceId: string;
+  @Column({ name: 'workspace_id' })
+  workspaceId: string;
 
-    @ManyToOne(() => Workspace, { onDelete: 'CASCADE' })
-    @JoinColumn({ name: 'workspace_id' })
-    workspace: Workspace;
+  @ManyToOne(() => Workspace, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'workspace_id' })
+  workspace: Workspace;
 
-    @Column({ name: 'client_id' })
-    clientId: string;
+  @Column({ name: 'client_id' })
+  clientId: string;
 
-    @ManyToOne(() => Client, { onDelete: 'CASCADE' })
-    @JoinColumn({ name: 'client_id' })
-    client: Client;
+  @ManyToOne(() => Client, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'client_id' })
+  client: Client;
 
-    @Column()
-    name: string;
+  @Column()
+  name: string;
 
-    @Column({
-        type: 'enum',
-        enum: DealStatus,
-        default: DealStatus.DRAFT,
-    })
-    status: DealStatus;
+  @Column({ nullable: true, unique: false })
+  slug: string; // e.g. "branding-empresa-abc-4f2e" — unique per workspace enforced in service
 
-    // Immutability snapshots
-    @Column({ type: 'jsonb', nullable: true })
-    currency: any; // Saves { code, symbol, format }
+  @Column({ nullable: true, type: 'uuid', unique: true })
+  publicToken: string;
 
-    @Column({ type: 'jsonb', nullable: true })
-    taxes: any[]; // Array of WorkspaceTax objects snapped at creation
+  @Column({
+    type: 'enum',
+    enum: DealStatus,
+    default: DealStatus.DRAFT,
+  })
+  status: DealStatus;
 
-    @Column({ nullable: true })
-    sentAt: Date;
+  // Immutability snapshots
+  @Column({ type: 'jsonb', nullable: true })
+  currency: any; // Saves { code, symbol, format }
 
-    @Column({ nullable: true })
-    wonAt: Date;
+  @Column({ type: 'jsonb', nullable: true })
+  taxes: any[]; // Array of WorkspaceTax objects snapped at creation
 
-    @Column({ nullable: true, default: 'brief' })
-    currentStep: string;
+  @Column({ nullable: true })
+  sentAt: Date;
 
-    @Column({ type: 'text', nullable: true })
-    notes: string;
+  @Column({ nullable: true })
+  wonAt: Date;
 
-    @CreateDateColumn()
-    createdAt: Date;
+  @Column({ nullable: true, default: 'brief' })
+  currentStep: string;
 
-    @UpdateDateColumn()
-    updatedAt: Date;
+  @Column({ type: 'text', nullable: true })
+  notes: string;
 
-    // Relations
+  /** Carta de Introducción o texto de bienvenida para la Propuesta/Cotización */
+  @Column({ type: 'text', nullable: true })
+  proposalIntro: string;
 
-    // 1 to 1 with Brief
-    @OneToOne(() => Brief, (brief) => brief.deal, { cascade: true, nullable: true })
-    brief: Brief;
+  /** Términos y condiciones o notas contractuales específicas de esta Propuesta */
+  @Column({ type: 'text', nullable: true })
+  proposalTerms: string;
 
-    // 1 to Many with Quotations (A/B options)
-    @OneToMany(() => Quotation, (quotation) => quotation.deal, { cascade: true })
-    quotations: Quotation[];
+  /** Fecha de caducidad o validez de la propuesta comercial */
+  @Column({ type: 'timestamptz', nullable: true })
+  validUntil: Date;
 
-    // 1 to 1 with Payment Plan (attached to the approved quotation usually)
-    @OneToOne(() => PaymentPlan, (paymentPlan) => paymentPlan.deal, { cascade: true, nullable: true })
-    paymentPlan: PaymentPlan;
+  @CreateDateColumn()
+  createdAt: Date;
 
-    // TODO: Add Project relation once Execution module is built
-    @Column({ name: 'project_id', nullable: true })
-    projectId: string;
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  // Relations
+
+  // 1 to 1 with Brief
+  @OneToOne(() => Brief, (brief) => brief.deal, {
+    cascade: true,
+    nullable: true,
+  })
+  brief: Brief;
+
+  // 1 to Many with Quotations (A/B options)
+  @OneToMany(() => Quotation, (quotation) => quotation.deal, { cascade: true })
+  quotations: Quotation[];
+
+  // 1 to 1 with Payment Plan (attached to the approved quotation usually)
+  @OneToOne(() => PaymentPlan, (paymentPlan) => paymentPlan.deal, {
+    cascade: true,
+    nullable: true,
+  })
+  paymentPlan: PaymentPlan;
+
+  // TODO: Add Project relation once Execution module is built
+  @Column({ name: 'project_id', nullable: true })
+  projectId: string;
 }

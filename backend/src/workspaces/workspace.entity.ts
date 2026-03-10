@@ -107,6 +107,10 @@ export class Workspace {
   @Column({ name: 'tax_reporting', default: false })
   taxReporting: boolean;
 
+  /** Términos y Condiciones por defecto que se inyectan a cada nueva Propuesta/Deal */
+  @Column({ type: 'text', nullable: true, name: 'default_proposal_terms' })
+  defaultProposalTerms: string;
+
   @OneToMany(() => WorkspaceMember, (member) => member.workspace)
   members: WorkspaceMember[];
 

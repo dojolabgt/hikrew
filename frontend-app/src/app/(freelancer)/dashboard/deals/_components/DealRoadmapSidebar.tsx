@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { CheckCircle2, Lock, Eye, Play } from 'lucide-react';
+import React, { useState } from 'react';
+import { CheckCircle2, Lock, Eye, Play, StickyNote } from 'lucide-react';
 import { DealStep } from './DealBuilder';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -10,11 +10,14 @@ interface SidebarProps {
     deal: any;
     activeStep: DealStep;
     onStepChange: (step: DealStep) => void;
+    updateDeal?: (dealId: string, partial: any) => Promise<any>;
 }
 
-export function DealRoadmapSidebar({ deal, activeStep, onStepChange }: SidebarProps) {
+export function DealRoadmapSidebar({ deal, activeStep, onStepChange, updateDeal }: SidebarProps) {
     const isWon = deal?.status === 'WON';
     const currentStep = (deal?.currentStep as DealStep) || 'brief';
+    const [notes, setNotes] = useState(deal?.notes || '');
+    const [isSavingNotes, setIsSavingNotes] = useState(false);
 
     const indexMap: Record<DealStep, number> = { brief: 0, quotation: 1, payment_plan: 2, won: 3 };
 
@@ -173,6 +176,30 @@ export function DealRoadmapSidebar({ deal, activeStep, onStepChange }: SidebarPr
                     </Button>
                 </div>
             )}
+
+            {/* Fix 2.8 — Internal Notes */}
+            <div className={cn(
+                'mt-6 pt-5 border-t',
+                isWon ? 'border-emerald-200 dark:border-emerald-800/50' : 'border-zinc-200 dark:border-zinc-800'
+            )}>
+                <label className="flex items-center gap-1.5 text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">
+                    <StickyNote className="w-3.5 h-3.5" /> Notas internas
+                </label>
+                <textarea
+                    className="w-full text-xs p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-zinc-400 dark:text-zinc-300"
+                    rows={3}
+                    placeholder="Apuntes privados, contexto del cliente..."
+                    value={notes}
+                    onChange={e => setNotes(e.target.value)}
+                    onBlur={async () => {
+                        if (!updateDeal || notes === (deal?.notes || '')) return;
+                        setIsSavingNotes(true);
+                        await updateDeal(deal.slug || deal.id, { notes });
+                        setIsSavingNotes(false);
+                    }}
+                />
+                {isSavingNotes && <p className="text-[10px] text-zinc-400 mt-1">Guardando...</p>}
+            </div>
         </div>
     );
 }

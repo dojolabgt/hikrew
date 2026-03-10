@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useBriefTemplates, BriefTemplate } from '@/hooks/use-brief-templates';
 import { Button } from '@/components/ui/button';
 import { Plus, FileText, Settings2, Trash2, ArrowLeft } from 'lucide-react';
@@ -12,6 +13,9 @@ import { Label } from '@/components/ui/label';
 import { BriefBuilder } from './_components/BriefBuilder'; // We will create this
 
 export default function BriefTemplatesPage() {
+    const searchParams = useSearchParams();
+    const editParam = searchParams.get('edit');
+
     const { templates, fetchTemplates, isLoading, createTemplate } = useBriefTemplates();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [newTplName, setNewTplName] = useState('');
@@ -25,6 +29,15 @@ export default function BriefTemplatesPage() {
             fetchTemplates();
         }
     }, [fetchTemplates, editingTemplate]);
+
+    // Open template from ?edit= query param once templates load
+    useEffect(() => {
+        if (editParam && templates.length > 0 && !editingTemplate) {
+            const found = templates.find(t => t.id === editParam);
+            if (found) setEditingTemplate(found);
+        }
+    }, [editParam, templates, editingTemplate]);
+
 
     const handleCreateTemplate = async (e: React.FormEvent) => {
         e.preventDefault();
