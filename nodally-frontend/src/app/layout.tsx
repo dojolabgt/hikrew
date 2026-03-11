@@ -1,4 +1,4 @@
-import { Sora, DM_Sans} from "next/font/google";
+import { Sora, DM_Sans } from "next/font/google";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import "slick-carousel/slick/slick.css";
@@ -19,13 +19,13 @@ const dm_sans = DM_Sans({
 export const metadata = {
   title: {
     absolute: '',
-    default: 'SaasoX - SaaS & Software React NextJS Template',
-    template: '%s | SaasoX - SaaS & Software React NextJS Template',
+    default: 'Nodally',
+    template: '%s | Nodally',
   },
-  description: 'SaasoX - SaaS & Software React NextJS Template',
+  description: 'Nodally',
   openGraph: {
-    title: 'SaasoX - SaaS & Software React NextJS Template',
-    description: 'SaasoX - SaaS & Software React NextJS Template',
+    title: 'Nodally',
+    description: 'Nodally',
   },
 };
 
