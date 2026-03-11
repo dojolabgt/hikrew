@@ -53,6 +53,10 @@ export class Project {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @OneToMany(() => ProjectCollaborator, (collaborator) => collaborator.project, { cascade: true })
+  @OneToMany(
+    () => ProjectCollaborator,
+    (collaborator) => collaborator.project,
+    { cascade: true },
+  )
   collaborators: ProjectCollaborator[];
 }

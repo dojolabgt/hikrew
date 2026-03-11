@@ -9,14 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loader2, Plus, Trash2, Users, Eye, Pencil } from 'lucide-react';
 
+import { ProjectData } from '../layout';
+
 interface ProjectCollaboratorsTabProps {
-    project: any;
-    isOwner: boolean;
+    project: ProjectData;
     isViewer: boolean;
     onUpdate: () => void;
 }
 
-export function ProjectCollaboratorsTab({ project, isOwner, isViewer, onUpdate }: ProjectCollaboratorsTabProps) {
+export function ProjectCollaboratorsTab({ project, isViewer, onUpdate }: ProjectCollaboratorsTabProps) {
     const { activeWorkspace } = useAuth();
     const { networkData, fetchConnections } = useNetwork();
     const { addCollaborator, removeCollaborator } = useProjects();
@@ -27,7 +28,7 @@ export function ProjectCollaboratorsTab({ project, isOwner, isViewer, onUpdate }
         fetchConnections();
     }, [fetchConnections]);
 
-    const existingCollaboratorsIds = project?.collaborators?.map((c: any) => c.workspace.id) || [];
+    const existingCollaboratorsIds = project?.collaborators?.map((c) => c.workspace.id) || [];
 
     const handleAdd = async (workspaceId: string) => {
         setIsLoading(true);
@@ -73,7 +74,7 @@ export function ProjectCollaboratorsTab({ project, isOwner, isViewer, onUpdate }
                     </p>
                 ) : (
                     <div className="space-y-3">
-                        {project.collaborators.map((collaborator: any) => (
+                        {project.collaborators.map((collaborator) => (
                             <div key={collaborator.id} className="flex items-center justify-between p-3.5 rounded-xl border bg-zinc-50/50 dark:bg-zinc-900/30 transition-colors hover:border-zinc-300 dark:hover:border-zinc-700">
                                 <div className="flex items-center gap-3.5">
                                     <Avatar className="w-9 h-9 border border-zinc-200 dark:border-zinc-800 shadow-sm">
@@ -124,7 +125,7 @@ export function ProjectCollaboratorsTab({ project, isOwner, isViewer, onUpdate }
                     
                     {!networkData.active || networkData.active.length === 0 ? (
                         <p className="text-sm text-zinc-500 italic p-3 bg-white dark:bg-zinc-950 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                            Aún no tienes conexiones activas en tu red. Ve a la sección "Mi Red" para invitar talentos a trabajar contigo.
+                            Aún no tienes conexiones activas en tu red. Ve a la sección &quot;Mi Red&quot; para invitar talentos a trabajar contigo.
                         </p>
                     ) : (
                         <div className="grid gap-3">

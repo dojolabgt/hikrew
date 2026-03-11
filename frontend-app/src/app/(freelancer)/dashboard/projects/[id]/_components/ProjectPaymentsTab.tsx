@@ -20,10 +20,11 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+import { ProjectData } from '../layout';
+
 interface ProjectPaymentsTabProps {
-    project: any;
+    project: ProjectData;
     isOwner: boolean;
-    isViewer: boolean;
     onUpdate: () => void;
 }
 
@@ -40,10 +41,10 @@ const MILESTONE_STATUS_LABELS: Record<string, string> = {
     CANCELLED: 'Cancelado',
 };
 
-export function ProjectPaymentsTab({ project, isOwner, isViewer, onUpdate }: ProjectPaymentsTabProps) {
+export function ProjectPaymentsTab({ project, isOwner, onUpdate }: ProjectPaymentsTabProps) {
     const { activeWorkspace } = useAuth();
     const dealId = project?.deal?.id;
-    const { plan: paymentPlan, updateMilestone: updateMilestoneApi, fetchPaymentPlan } = usePaymentPlan(dealId, project.workspaceId);
+    const { plan: paymentPlan, updateMilestone: updateMilestoneApi, fetchPaymentPlan } = usePaymentPlan(dealId || '', project.workspaceId);
     const { addMilestoneSplit, deleteMilestoneSplit } = useProjects();
     
     // UI states
@@ -56,11 +57,11 @@ export function ProjectPaymentsTab({ project, isOwner, isViewer, onUpdate }: Pro
     const [isAddingSplit, setIsAddingSplit] = useState(false);
 
     const getCurrencySymbol = () => {
-        const quotation = project?.deal?.quotations?.find((q: any) => q.isApproved) || project?.deal?.quotations?.[0];
+        const quotation = project?.deal?.quotations?.find((q: { isApproved?: boolean }) => q.isApproved) || project?.deal?.quotations?.[0];
         let symbol = project?.deal?.currency?.symbol || '$';
         if (quotation?.currency) {
             if (activeWorkspace?.currencies && activeWorkspace.currencies.length > 0) {
-                const found = activeWorkspace.currencies.find((c: any) => c.code === quotation.currency);
+                const found = activeWorkspace.currencies.find((c: { code: string; symbol: string }) => c.code === quotation.currency);
                 if (found) symbol = found.symbol;
                 else symbol = quotation.currency;
             } else {
@@ -95,7 +96,7 @@ export function ProjectPaymentsTab({ project, isOwner, isViewer, onUpdate }: Pro
     const handleMarkAsPaid = async () => {
         if (!markPaidId) return;
         setIsMarkingPaid(true);
-        const milestone = paymentPlan?.milestones?.find((m: any) => m.id === markPaidId);
+        const milestone = paymentPlan?.milestones?.find((m: { id: string; status: string }) => m.id === markPaidId);
         const newStatus = milestone?.status === 'PAID' ? 'PENDING' : 'PAID';
         await updateMilestoneApi(markPaidId, { status: newStatus });
         setMarkPaidId(null);
@@ -178,7 +179,7 @@ export function ProjectPaymentsTab({ project, isOwner, isViewer, onUpdate }: Pro
                     <div className="col-span-1" />
                 </div>
 
-                {paymentPlan.milestones?.map((milestone: any) => (
+                {paymentPlan.milestones?.map((milestone: { id: string; name: string; description?: string; status: string; percentage?: number; amount: number; dueDate?: string; splits?: { id: string; collaboratorWorkspace?: { businessName: string }; percentage?: number; amount: number }[] }) => (
                     <div key={milestone.id} className="border-b border-zinc-100 dark:border-zinc-800/50 last:border-0">
                         <div className="grid grid-cols-12 gap-2 items-center px-4 py-3 group hover:bg-zinc-50/30 dark:hover:bg-zinc-900/10 transition-colors">
                             <div className="col-span-4">
@@ -221,7 +222,7 @@ export function ProjectPaymentsTab({ project, isOwner, isViewer, onUpdate }: Pro
                         </div>
 
                         {/* Splits Section */}
-                        {project.collaborators?.length > 0 && (
+                        {(project.collaborators?.length ?? 0) > 0 && (
                             <div className="px-4 pb-3 pt-2 bg-zinc-50/50 dark:bg-zinc-900/20 border-t border-zinc-100 dark:border-zinc-800/50">
                                 <div className="flex items-center justify-between mb-2.5">
                                     <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
@@ -235,7 +236,7 @@ export function ProjectPaymentsTab({ project, isOwner, isViewer, onUpdate }: Pro
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    {milestone.splits?.map((split: any) => (
+                                    {milestone.splits?.map((split) => (
                                         <div key={split.id} className="flex flex-wrap items-center justify-between px-3.5 py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm shadow-sm transition-colors hover:border-zinc-300 dark:hover:border-zinc-700">
                                             <div className="flex items-center gap-2">
                                                 <span className="font-medium text-zinc-800 dark:text-zinc-200">
@@ -272,7 +273,7 @@ export function ProjectPaymentsTab({ project, isOwner, isViewer, onUpdate }: Pro
                                                 onChange={e => handleSplitFormChange('collaboratorWorkspaceId', e.target.value, milestone.amount)}
                                             >
                                                 <option value="">Selecciona uno...</option>
-                                                {project.collaborators.map((c: any) => (
+                                                {project.collaborators?.map((c) => (
                                                     <option key={c.workspace.id} value={c.workspace.id}>
                                                         {c.workspace.businessName}
                                                     </option>
@@ -314,12 +315,12 @@ export function ProjectPaymentsTab({ project, isOwner, isViewer, onUpdate }: Pro
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>
-                            {paymentPlan?.milestones?.find((m: any) => m.id === markPaidId)?.status === 'PAID'
+                            {paymentPlan?.milestones?.find((m: { id: string; status: string }) => m.id === markPaidId)?.status === 'PAID'
                                 ? '¿Marcar como Pendiente?'
                                 : '¿Confirmar pago recibido?'}
                         </AlertDialogTitle>
                         <AlertDialogDescription>
-                            {paymentPlan?.milestones?.find((m: any) => m.id === markPaidId)?.status === 'PAID'
+                            {paymentPlan?.milestones?.find((m: { id: string; status: string }) => m.id === markPaidId)?.status === 'PAID'
                                 ? 'El hito regresará al estado Pendiente y ya no se contabilizará como ingreso.'
                                 : 'Confirma que ya recibiste el pago para este hito. Esto lo marcará como Pagado para todo el equipo.'}
                         </AlertDialogDescription>

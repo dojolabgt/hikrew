@@ -37,4 +37,4 @@ import { ProjectsModule } from '../projects/projects.module';
   controllers: [DealsController, PublicBriefsController, PublicDealsController],
   providers: [DealsService],
 })
-export class DealsModule { }
+export class DealsModule {}

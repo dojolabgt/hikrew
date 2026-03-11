@@ -26,7 +26,7 @@ export class BillingService {
     private readonly workspaceRepo: Repository<Workspace>,
     private readonly recurrenteNodally: RecurrenteNodallyService,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   /**
    * Returns the current billing status for a workspace:
@@ -201,7 +201,7 @@ export class BillingService {
         where: { id: workspaceId },
       });
       this.logger.log(
-        `Subscription cancelled for ${workspaceId}, but access kept until ${workspace?.planExpiresAt}`,
+        `Subscription cancelled for ${workspaceId}, but access kept until ${workspace?.planExpiresAt?.toISOString() ?? 'N/A'}`,
       );
     }
 
@@ -304,7 +304,7 @@ export class BillingService {
             await this.recurrenteNodally.cancelSubscription(
               oldSub.recurrenteSubscriptionId,
             );
-          } catch (_e) {
+          } catch {
             this.logger.error(
               `Could not cancel old Recurrente sub ${oldSub.recurrenteSubscriptionId}`,
             );

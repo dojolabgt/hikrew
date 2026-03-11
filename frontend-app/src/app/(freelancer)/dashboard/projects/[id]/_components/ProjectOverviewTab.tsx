@@ -6,18 +6,19 @@ import { Button } from '@/components/ui/button';
 import { FileText, LayoutTemplate, Briefcase, Clock, CheckCircle2, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { ProjectData } from '../layout';
 
-export function ProjectOverviewTab({ project }: { project: any }) {
+export function ProjectOverviewTab({ project }: { project: ProjectData }) {
     const { activeWorkspace } = useAuth();
     const { deal } = project;
     const brief = deal?.brief;
-    const quotation = deal?.quotations?.find((q: any) => q.isApproved) || deal?.quotations?.[0];
+    const quotation = deal?.quotations?.find((q: { isApproved?: boolean }) => q.isApproved) || deal?.quotations?.[0];
 
     const getCurrencySymbol = () => {
         let symbol = deal?.currency?.symbol || '$';
         if (quotation?.currency) {
             if (activeWorkspace?.currencies && activeWorkspace.currencies.length > 0) {
-                const found = activeWorkspace.currencies.find((c: any) => c.code === quotation.currency);
+                const found = activeWorkspace.currencies.find((c: { code: string; symbol: string }) => c.code === quotation.currency);
                 if (found) symbol = found.symbol;
                 else symbol = quotation.currency;
             } else {
@@ -30,7 +31,8 @@ export function ProjectOverviewTab({ project }: { project: any }) {
         return symbol;
     };
 
-    const formatCurrency = (val: number | string) => {
+    const formatCurrency = (val?: number | string) => {
+        if (val === undefined || val === null) return `${getCurrencySymbol()}0.00`;
         return `${getCurrencySymbol()}${Number(val).toLocaleString('es-GT', { minimumFractionDigits: 2 })}`;
     };
 

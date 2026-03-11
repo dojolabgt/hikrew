@@ -13,7 +13,10 @@ export class PublicBriefsController {
   }
 
   @Post(':token/submit')
-  async submitPublicBrief(@Param('token') token: string, @Body() body: any) {
+  async submitPublicBrief(
+    @Param('token') token: string,
+    @Body() body: Record<string, unknown>,
+  ) {
     return this.dealsService.submitPublicBrief(token, body);
   }
 }

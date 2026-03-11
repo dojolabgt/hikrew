@@ -2,9 +2,8 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FolderKanban, CheckCircle2 } from 'lucide-react';
+import { FolderKanban } from 'lucide-react';
 import { DashboardShell } from '@/components/layout/DashboardShell';
-import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
 import { useProjects } from '@/hooks/use-projects';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { DataTable, ColumnDef } from '@/components/common/DataTable';
@@ -29,7 +28,6 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function ProjectsPage() {
-    const { t } = useWorkspaceSettings();
     const { activeWorkspace } = useAuth();
     const { projects, fetchProjects, isLoading } = useProjects();
     const router = useRouter();
@@ -40,9 +38,20 @@ export default function ProjectsPage() {
         }
     }, [activeWorkspace, fetchProjects]);
 
-    const getClientName = (project: any) => project.deal?.client?.name ?? '—';
+    interface ProjectItem {
+        id: string;
+        name: string;
+        status: string;
+        workspace?: { id: string; name?: string; businessName?: string };
+        deal?: { client?: { name?: string } };
+        collaborators?: unknown[];
+        createdAt: string;
+        [key: string]: unknown;
+    }
 
-    const columns: ColumnDef<any>[] = [
+    const getClientName = (project: ProjectItem) => project.deal?.client?.name ?? '—';
+
+    const columns: ColumnDef<ProjectItem>[] = [
         {
             key: 'name',
             header: 'Proyecto',
@@ -105,7 +114,7 @@ export default function ProjectsPage() {
             </div>
 
             <DataTable
-                data={projects}
+                data={projects as ProjectItem[]}
                 columns={columns}
                 isLoading={isLoading}
                 emptyIcon={<FolderKanban className="w-8 h-8" />}

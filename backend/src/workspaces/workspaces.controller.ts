@@ -17,6 +17,8 @@ import { WorkspacesService } from './workspaces.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WorkspaceGuard } from '../common/guards/workspace.guard';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
+import type { UpdateRecurrenteKeysDto } from './workspaces.service';
+import type { AuthRequest } from '../common/types/auth-request';
 
 @Controller('workspaces')
 @UseGuards(JwtAuthGuard)
@@ -24,22 +26,25 @@ export class WorkspacesController {
   constructor(private readonly workspacesService: WorkspacesService) {}
 
   @Get('my-workspaces')
-  async getMyWorkspaces(@Req() req) {
+  async getMyWorkspaces(@Req() req: AuthRequest) {
     return this.workspacesService.findByUserId(req.user.id);
   }
 
   @Patch('current')
   @UseGuards(WorkspaceGuard)
-  async updateWorkspace(@Req() req, @Body() data: UpdateWorkspaceDto) {
+  async updateWorkspace(
+    @Req() req: AuthRequest,
+    @Body() data: UpdateWorkspaceDto,
+  ) {
     // Note: Request.workspaceId is set by the WorkspaceGuard!
-    return this.workspacesService.updateWorkspace(req.workspaceId, data as any);
+    return this.workspacesService.updateWorkspace(req.workspaceId, data);
   }
 
   @Post('current/logo')
   @UseGuards(WorkspaceGuard)
   @UseInterceptors(FileInterceptor('file'))
   async uploadLogo(
-    @Req() req,
+    @Req() req: AuthRequest,
     @UploadedFile(
       new ParseFilePipe({
         validators: [
@@ -55,13 +60,16 @@ export class WorkspacesController {
 
   @Get('current/recurrente/status')
   @UseGuards(WorkspaceGuard)
-  async getRecurrenteStatus(@Req() req) {
+  async getRecurrenteStatus(@Req() req: AuthRequest) {
     return this.workspacesService.getRecurrenteStatus(req.workspaceId);
   }
 
   @Post('current/recurrente')
   @UseGuards(WorkspaceGuard)
-  async updateRecurrenteKeys(@Req() req, @Body() body: any) {
+  async updateRecurrenteKeys(
+    @Req() req: AuthRequest,
+    @Body() body: UpdateRecurrenteKeysDto,
+  ) {
     return this.workspacesService.updateRecurrenteKeys(req.workspaceId, body);
   }
 }

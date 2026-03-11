@@ -3,47 +3,38 @@
 import React from 'react';
 import { DealStep } from './DealBuilder';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, Save, ShieldAlert } from 'lucide-react';
+import { ChevronRight, ShieldAlert } from 'lucide-react';
 import { BriefStep } from './steps/BriefStep';
 import { QuotationStep } from './steps/QuotationStep';
 import { PaymentPlanStep } from './steps/PaymentPlanStep';
-import { toast } from 'sonner';
 import { useDeals } from '@/hooks/use-deals';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 
 interface CanvasProps {
-    deal: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    deal: Record<string, any>;
     activeStep: DealStep;
     onNextStep: (step: DealStep) => void;
     onUpdateBrief: (templateId: string | null) => void;
     onWon: () => void;
-    onDealUpdate: (deal: any) => void;
     onRefreshDeal: () => Promise<void>;
 }
 
-export function DealCanvas({ deal, activeStep, onNextStep, onUpdateBrief, onWon, onDealUpdate, onRefreshDeal }: CanvasProps) {
+export function DealCanvas({ deal, activeStep, onNextStep, onUpdateBrief, onWon, onRefreshDeal }: CanvasProps) {
     const { updateDeal } = useDeals();
     const { activeWorkspace } = useAuth();
     const [pendingBriefId, setPendingBriefId] = React.useState<string | null>(deal?.brief?.template?.id || null);
     const isWon = deal?.status === 'WON';
 
-    const indexMap: Record<DealStep, number> = { brief: 0, quotation: 1, payment_plan: 2, won: 3 };
-    const currentIndex = indexMap[activeStep];
-    const dealStepIndex = indexMap[(deal?.currentStep as DealStep) || 'brief'];
-    
+
     const isViewer = React.useMemo(() => {
         if (!activeWorkspace || !deal?.collaborators) return false;
-        const collab = deal.collaborators.find((c: any) => c.workspace.id === activeWorkspace.id);
+        const collab = deal.collaborators.find((c: { workspace: { id: string }, role: string }) => c.workspace.id === activeWorkspace.id);
         return collab?.role === 'viewer';
     }, [activeWorkspace, deal]);
 
     const isSnapshot = isWon && activeStep !== 'won';
     const isReadonly = isSnapshot || isViewer;
-
-    const handleSaveDraft = async () => {
-        await updateDeal(deal.id, { currentStep: activeStep });
-        toast.success('Borrador guardado');
-    };
 
     const renderHeader = () => {
         const titles: Record<DealStep, string> = {
@@ -156,7 +147,6 @@ export function DealCanvas({ deal, activeStep, onNextStep, onUpdateBrief, onWon,
                             dealId={deal.id}
                             publicToken={deal.publicToken}
                             currency={deal.currency}
-                            taxes={deal.taxes}
                             readonly={isReadonly}
                             onUpdate={onRefreshDeal}
                             updateDeal={updateDeal}

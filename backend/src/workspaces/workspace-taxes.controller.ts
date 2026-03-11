@@ -15,6 +15,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WorkspaceGuard } from '../common/guards/workspace.guard';
 import { CreateTaxDto } from './dto/create-tax.dto';
 import { UpdateTaxDto } from './dto/update-tax.dto';
+import type { AuthRequest } from '../common/types/auth-request';
 
 @Controller('workspaces')
 @UseGuards(JwtAuthGuard, WorkspaceGuard)
@@ -23,13 +24,13 @@ export class WorkspaceTaxesController {
 
   /** Lista todos los impuestos del workspace activo */
   @Get('current/taxes')
-  findAll(@Req() req) {
+  findAll(@Req() req: AuthRequest) {
     return this.taxesService.findAll(req.workspaceId);
   }
 
   /** Crea un impuesto custom */
   @Post('current/taxes')
-  create(@Req() req, @Body() dto: CreateTaxDto) {
+  create(@Req() req: AuthRequest, @Body() dto: CreateTaxDto) {
     return this.taxesService.create(req.workspaceId, dto);
   }
 
@@ -40,7 +41,7 @@ export class WorkspaceTaxesController {
    */
   @Post('current/taxes/seed')
   seed(
-    @Req() req,
+    @Req() req: AuthRequest,
     @Body()
     body: {
       taxes: Array<{
@@ -59,7 +60,7 @@ export class WorkspaceTaxesController {
   /** Actualiza un impuesto existente */
   @Patch('current/taxes/:id')
   update(
-    @Req() req,
+    @Req() req: AuthRequest,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateTaxDto,
   ) {
@@ -68,7 +69,7 @@ export class WorkspaceTaxesController {
 
   /** Elimina un impuesto */
   @Delete('current/taxes/:id')
-  remove(@Req() req, @Param('id', ParseUUIDPipe) id: string) {
+  remove(@Req() req: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
     return this.taxesService.remove(req.workspaceId, id);
   }
 }

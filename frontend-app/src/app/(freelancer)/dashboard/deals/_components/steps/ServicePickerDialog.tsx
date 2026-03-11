@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -8,28 +9,28 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Package, Plus } from 'lucide-react';
+import { Search, Package } from 'lucide-react';
 import { servicesApi } from '@/features/services/api';
 import { cn } from '@/lib/utils';
 
 interface ServicePickerDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onSelect: (service: any) => void;
+    onSelect: (service: Record<string, any>) => void;
     currency?: string;
     currencySymbol?: string;
     workspaceId?: string;
 }
 
 export function ServicePickerDialog({ open, onOpenChange, onSelect, currency = 'GTQ', currencySymbol = 'Q', workspaceId }: ServicePickerDialogProps) {
-    const [services, setServices] = useState<any[]>([]);
+    const [services, setServices] = useState<Record<string, any>[]>([]);
     const [search, setSearch] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         if (open) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsLoading(true);
             servicesApi.getAll(workspaceId)
                 .then(setServices)

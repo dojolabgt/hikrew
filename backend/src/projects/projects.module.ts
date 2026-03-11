@@ -24,4 +24,4 @@ import { MilestoneSplit } from '../deals/entities/milestone-split.entity';
   providers: [ProjectsService],
   exports: [ProjectsService],
 })
-export class ProjectsModule { }
+export class ProjectsModule {}

@@ -10,7 +10,7 @@ export class AddDealSlug1772900000000 implements MigrationInterface {
     // Backfill existing deals with a slug based on their name + short uuid suffix
     await queryRunner.query(`
             UPDATE "deals"
-            SET "slug" = LOWER(REGEXP_REPLACE(REGEXP_REPLACE(name, '[^a-zA-Z0-9 ]', '', 'g'), '\s+', '-', 'g'))
+            SET "slug" = LOWER(REGEXP_REPLACE(REGEXP_REPLACE(name, '[^a-zA-Z0-9 ]', '', 'g'), '\\s+', '-', 'g'))
                 || '-' || SUBSTRING(REPLACE(id::text, '-', ''), 1, 6)
             WHERE "slug" IS NULL
         `);

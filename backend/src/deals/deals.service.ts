@@ -32,7 +32,6 @@ import {
   UpdateMilestoneDto,
   CreateMilestoneDto,
 } from './dto/payment-plan.dto';
-import { CreateMilestoneSplitDto } from './dto/milestone-split.dto';
 
 // ─── Slug generator ────────────────────────────────────────────────────────
 function generateSlug(name: string): string {
@@ -75,7 +74,7 @@ export class DealsService {
     @InjectRepository(MilestoneSplit)
     private readonly milestoneSplitsRepository: Repository<MilestoneSplit>,
     private readonly projectsService: ProjectsService,
-  ) { }
+  ) {}
 
   // ─── DEALS ───────────────────────────────────────────────────────────────
 
@@ -100,10 +99,12 @@ export class DealsService {
     const activeTaxes = workspace.taxes?.filter((t) => t.isActive) || [];
 
     // Read the workspace's default currency from Settings instead of hardcoding USD
-    const defaultCurrency =
-      workspace.currencies?.find((c) => c.isDefault) ??
-      workspace.currencies?.[0] ??
-      { code: 'USD', symbol: '$', name: 'US Dollar' };
+    const defaultCurrency = workspace.currencies?.find((c) => c.isDefault) ??
+      workspace.currencies?.[0] ?? {
+        code: 'USD',
+        symbol: '$',
+        name: 'US Dollar',
+      };
 
     const deal = this.dealsRepository.create({
       name: createDealDto.title,
@@ -220,7 +221,9 @@ export class DealsService {
     if (updateDealDto.proposalTerms !== undefined)
       deal.proposalTerms = updateDealDto.proposalTerms;
     if (updateDealDto.validUntil !== undefined)
-      deal.validUntil = updateDealDto.validUntil ? new Date(updateDealDto.validUntil) : null as any;
+      deal.validUntil = updateDealDto.validUntil
+        ? new Date(updateDealDto.validUntil)
+        : (null as unknown as Date);
 
     if (updateDealDto.briefTemplateId !== undefined) {
       // Upsert the Brief linked to this deal
@@ -274,19 +277,17 @@ export class DealsService {
 
     const deal = await this.dealsRepository.findOne({
       where: isUuid
-        ? [
-            { id: dealId, workspace: { id: workspaceId } },
-          ]
-        : [
-            { slug: dealId, workspace: { id: workspaceId } },
-          ],
+        ? [{ id: dealId, workspace: { id: workspaceId } }]
+        : [{ slug: dealId, workspace: { id: workspaceId } }],
       relations: ['workspace', 'project'],
     });
 
     if (!deal) throw new NotFoundException('Deal not found');
 
     if (requireEditor && deal.workspace.id !== workspaceId) {
-       throw new BadRequestException('No tienes permisos de Editor para modificar este Deal');
+      throw new BadRequestException(
+        'No tienes permisos de Editor para modificar este Deal',
+      );
     }
 
     return deal;
@@ -306,7 +307,7 @@ export class DealsService {
 
   async submitPublicBrief(
     token: string,
-    responses: any,
+    responses: Record<string, unknown>,
   ): Promise<{ success: boolean }> {
     const brief = await this.getPublicBrief(token);
 
@@ -494,7 +495,7 @@ export class DealsService {
     const quotation = await this.findQuotationOrFail(dealId, quotationId);
 
     let itemData: Partial<QuotationItem> = {
-      quotation: { id: quotationId } as any,
+      quotation: { id: quotationId } as unknown as Quotation,
       name: dto.name || 'Item sin nombre',
       description: dto.description,
       price: dto.price ?? 0,
@@ -519,7 +520,13 @@ export class DealsService {
         serviceId: service.id,
         name: dto.name ?? service.name,
         description: dto.description ?? service.description,
-        price: dto.price ?? (service.basePrice?.[quotation.deal?.currency?.code] ?? 0),
+        price:
+          dto.price ??
+          (service.basePrice as Record<string, number> | undefined)?.[
+            (quotation.deal?.currency as { code?: string } | undefined)?.code ??
+              ''
+          ] ??
+          0,
         chargeType: dto.chargeType ?? service.chargeType,
         unitType: dto.unitType ?? service.unitType,
         isTaxable:
@@ -564,7 +571,7 @@ export class DealsService {
     itemId: string,
   ): Promise<Quotation> {
     await this.findDealOrFail(workspaceId, dealId, true);
-    const quotation = await this.findQuotationOrFail(dealId, quotationId);
+    await this.findQuotationOrFail(dealId, quotationId);
 
     const item = await this.quotationItemsRepository.findOne({
       where: { id: itemId, quotation: { id: quotationId } },
@@ -606,7 +613,7 @@ export class DealsService {
     quotation.total = total;
 
     // Prevent TypeORM cascade from trying to detach/delete items that aren't in the loaded relation
-    quotation.items = undefined as any;
+    quotation.items = undefined as unknown as QuotationItem[];
 
     const saved = await this.quotationsRepository.save(quotation);
     saved.items = items; // Attach fresh items array for the response
@@ -661,7 +668,11 @@ export class DealsService {
     await this.findDealOrFail(workspaceId, dealId);
     const plan = await this.paymentPlansRepository.findOne({
       where: { deal: { id: dealId } },
-      relations: ['milestones', 'milestones.splits', 'milestones.splits.collaboratorWorkspace'],
+      relations: [
+        'milestones',
+        'milestones.splits',
+        'milestones.splits.collaboratorWorkspace',
+      ],
       order: { createdAt: 'DESC' },
     });
     if (!plan) throw new NotFoundException('Payment plan not found');
@@ -682,7 +693,7 @@ export class DealsService {
       throw new NotFoundException('Payment plan not found. Create one first.');
 
     const milestone = this.paymentMilestonesRepository.create({
-      paymentPlan: { id: plan.id } as any,
+      paymentPlan: { id: plan.id } as unknown as PaymentPlan,
       name: dto.name,
       percentage: dto.percentage,
       amount: dto.amount,
@@ -693,7 +704,7 @@ export class DealsService {
     await this.paymentMilestonesRepository.save(milestone);
 
     plan.totalAmount = Number(plan.totalAmount) + Number(dto.amount);
-    plan.milestones = undefined as any; // Prevent cascade from unlinking the new milestone
+    plan.milestones = undefined as unknown as PaymentMilestone[];
     return this.paymentPlansRepository.save(plan);
   }
 
@@ -732,7 +743,6 @@ export class DealsService {
       throw new NotFoundException('Milestone not found');
     await this.paymentMilestonesRepository.remove(milestone);
   }
-
 
   // ─── BRIEF TEMPLATES ─────────────────────────────────────────────────────
 

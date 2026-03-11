@@ -122,13 +122,22 @@ export class Workspace {
   @OneToMany(() => WorkspaceTax, (tax) => tax.workspace)
   taxes: WorkspaceTax[];
 
-  @OneToMany(() => WorkspaceConnection, (connection) => connection.inviterWorkspace)
+  @OneToMany(
+    () => WorkspaceConnection,
+    (connection) => connection.inviterWorkspace,
+  )
   connectionsSent: WorkspaceConnection[];
 
-  @OneToMany(() => WorkspaceConnection, (connection) => connection.inviteeWorkspace)
+  @OneToMany(
+    () => WorkspaceConnection,
+    (connection) => connection.inviteeWorkspace,
+  )
   connectionsReceived: WorkspaceConnection[];
 
-  @OneToMany(() => ProjectCollaborator, (collaborator) => collaborator.workspace)
+  @OneToMany(
+    () => ProjectCollaborator,
+    (collaborator) => collaborator.workspace,
+  )
   projectsCollaborating: ProjectCollaborator[];
 
   @CreateDateColumn()

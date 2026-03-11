@@ -6,15 +6,16 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { WorkspacesService } from '../../workspaces/workspaces.service';
+import { AuthRequest } from '../types/auth-request';
 
 @Injectable()
 export class WorkspaceGuard implements CanActivate {
   constructor(private readonly workspacesService: WorkspacesService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<AuthRequest>();
     const user = request.user;
-    const workspaceId = request.headers['x-workspace-id'];
+    const workspaceId = request.headers['x-workspace-id'] as string | undefined;
 
     if (!user) {
       throw new ForbiddenException('User is not authenticated');

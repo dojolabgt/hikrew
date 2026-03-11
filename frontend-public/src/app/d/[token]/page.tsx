@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { notFound, useRouter } from 'next/navigation';
-import { FileText, ArrowRight, Loader2, CheckCircle2, Check, Sparkles, Briefcase, ChevronRight, Building2, Calendar, CreditCard, AlertTriangle, ShieldCheck, Clock, User } from 'lucide-react';
+import { FileText, ArrowRight, Loader2, CheckCircle2, Sparkles, Calendar, ShieldCheck, Clock, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { getImageUrl } from '@/lib/image-utils';
 
@@ -142,9 +142,9 @@ export default function PublicDealPage({ params }: { params: Promise<{ token: st
             </div>
         );
     }
-    
+
     const isProOrPremium = workspace?.plan === 'pro' || workspace?.plan === 'premium';
-    
+
     return (
         <div className="min-h-screen bg-[#FAFAFA] text-zinc-900 selection:bg-black selection:text-white font-sans">
             {/* Very clean header */}

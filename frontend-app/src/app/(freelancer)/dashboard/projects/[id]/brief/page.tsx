@@ -33,9 +33,9 @@ export default function ProjectBriefPage() {
                     )}
                 </CardHeader>
                 <CardContent className="pt-8">
-                    {brief.template?.schema?.length > 0 ? (
+                    {(brief.template?.schema?.length ?? 0) > 0 ? (
                         <div className="space-y-8">
-                            {brief.template.schema.map((field: any, idx: number) => (
+                            {brief.template?.schema?.map((field: { id: string; label: string }, idx: number) => (
                                 <div key={field.id} className="relative pl-6 border-l-2 border-zinc-200 dark:border-zinc-700">
                                     <div className="absolute -left-[11px] top-0 w-5 h-5 rounded-full bg-zinc-100 dark:bg-zinc-800 border-2 border-white dark:border-zinc-950 flex items-center justify-center text-[10px] font-bold text-zinc-600 dark:text-zinc-400">
                                         {idx + 1}
@@ -44,17 +44,20 @@ export default function ProjectBriefPage() {
                                         {field.label}
                                     </h3>
                                     <div className="text-[15px] text-zinc-700 dark:text-zinc-300 leading-relaxed bg-zinc-50 dark:bg-zinc-900/30 p-4 rounded-lg border border-zinc-100 dark:border-zinc-800/50">
-                                        {brief.responses?.[field.id] !== undefined && brief.responses?.[field.id] !== '' ? (
-                                            Array.isArray(brief.responses[field.id]) ? (
-                                                <ul className="list-disc pl-5 space-y-1.5">
-                                                    {brief.responses[field.id].map((ans: string, i: number) => <li key={i}>{ans}</li>)}
-                                                </ul>
-                                            ) : (
-                                                <p className="whitespace-pre-wrap">{String(brief.responses[field.id])}</p>
-                                            )
-                                        ) : (
-                                            <span className="italic opacity-60 text-zinc-400">Sin respuesta proporcionada</span>
-                                        )}
+                                        {(() => {
+                                            const answer = brief.responses?.[field.id];
+                                            if (answer !== undefined && answer !== '') {
+                                                if (Array.isArray(answer)) {
+                                                    return (
+                                                        <ul className="list-disc pl-5 space-y-1.5">
+                                                            {answer.map((ans: string, i: number) => <li key={i}>{ans}</li>)}
+                                                        </ul>
+                                                    );
+                                                }
+                                                return <p className="whitespace-pre-wrap">{String(answer)}</p>;
+                                            }
+                                            return <span className="italic opacity-60 text-zinc-400">Sin respuesta proporcionada</span>;
+                                        })()}
                                     </div>
                                 </div>
                             ))}

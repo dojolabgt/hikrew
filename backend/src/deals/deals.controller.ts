@@ -23,13 +23,12 @@ import {
   UpdateMilestoneDto,
   CreateMilestoneDto,
 } from './dto/payment-plan.dto';
-import { CreateMilestoneSplitDto } from './dto/milestone-split.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @UseGuards(JwtAuthGuard)
 @Controller('workspaces/:workspaceId/deals')
 export class DealsController {
-  constructor(private readonly dealsService: DealsService) { }
+  constructor(private readonly dealsService: DealsService) {}
 
   // ─── DEALS ───────────────────────────────────────────────────────────────
 
@@ -102,8 +101,6 @@ export class DealsController {
   ) {
     return this.dealsService.deleteDeal(workspaceId, id);
   }
-
-
 
   // ─── QUOTATIONS ───────────────────────────────────────────────────────────
 
@@ -252,5 +249,4 @@ export class DealsController {
   ) {
     return this.dealsService.deleteMilestone(workspaceId, dealId, milestoneId);
   }
-
 }

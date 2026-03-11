@@ -1,5 +1,6 @@
 'use client';
 
+import type { Resolver } from 'react-hook-form';
 import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -32,10 +33,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { clientsApi } from '@/features/clients/api';
+import { Client } from '@/features/clients/types';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { toast } from 'sonner';
 import paisData from '@/data/localization/pais.json';
-// @ts-ignore
+
 import { Gt } from '@next-languages/flags';
 import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
 
@@ -54,10 +56,18 @@ function CountryFlag({ iso, className }: { iso: string; className?: string }) {
 // ─── Country + phone data ──────────────────────────────────────────────────────
 
 function getCountryData(code: string) {
-    return (paisData as any)[code] ?? null;
+    return (paisData as Record<string, {
+        name: string;
+        phoneFormat?: { code?: string; digits?: number };
+        taxIdentifiers?: { key: string; label: string; placeholder?: string; description?: string }[];
+    }>)[code] ?? null;
 }
 
-const ALL_COUNTRIES = Object.entries(paisData).map(([code, data]: [string, any]) => ({
+const ALL_COUNTRIES = Object.entries(paisData).map(([code, data]: [string, {
+    name: string;
+    phoneFormat?: { code?: string; digits?: number };
+    taxIdentifiers?: { key: string; label: string; placeholder?: string; description?: string }[];
+}]) => ({
     code,
     name: data.name,
     phoneCode: data.phoneFormat?.code ?? '',
@@ -81,17 +91,10 @@ function PhonePrefixInput({
     defaultPhoneCode: string;
     maxDigits?: number | null;
 }) {
+    // Derive prefix and local number directly from the controlled `value` prop
     const parts = value?.split('|') ?? [];
-    const [prefix, setPrefix] = useState(parts[0] || defaultPhoneCode);
-    const [local, setLocal] = useState(parts[1] || '');
-
-    // Sync prefix when defaultPhoneCode changes and local is empty
-    useEffect(() => {
-        if (!value) {
-            setPrefix(defaultPhoneCode);
-            setLocal('');
-        }
-    }, [defaultPhoneCode]);
+    const prefix = parts[0] || defaultPhoneCode;
+    const local = parts[1] || '';
 
     const emit = (p: string, l: string) => onChange(l ? `${p}|${l}` : '');
 
@@ -102,7 +105,7 @@ function PhonePrefixInput({
             {/* Prefix selector */}
             <Select
                 value={prefix}
-                onValueChange={(v) => { setPrefix(v); emit(v, local); }}
+                onValueChange={(v) => emit(v, local)}
             >
                 <SelectTrigger className="w-[92px] h-full shrink-0 border-0 border-r border-input rounded-none focus:ring-0 bg-muted/50 px-2 gap-1.5 text-sm font-medium shadow-none">
                     <div className="flex items-center gap-1.5">
@@ -129,7 +132,7 @@ function PhonePrefixInput({
                 placeholder="5555-1234"
                 value={local}
                 maxLength={maxDigits ?? undefined}
-                onChange={(e) => { setLocal(e.target.value); emit(prefix, e.target.value); }}
+                onChange={(e) => emit(prefix, e.target.value)}
                 className="flex-1 min-w-0 h-full bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground"
             />
         </div>
@@ -145,7 +148,7 @@ interface ClientModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onSuccess: () => void;
-    initialData?: any;
+    initialData?: Client;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -178,7 +181,7 @@ export function ClientModal({ open, onOpenChange, onSuccess, initialData }: Clie
     type ClientFormValues = z.infer<typeof clientSchema>;
 
     const form = useForm<ClientFormValues>({
-        resolver: zodResolver(clientSchema as any),
+        resolver: zodResolver(clientSchema) as Resolver<ClientFormValues>,
         defaultValues: {
             name: '',
             email: '',
@@ -207,7 +210,7 @@ export function ClientModal({ open, onOpenChange, onSuccess, initialData }: Clie
 
     // Populate from initialData
     useEffect(() => {
-        skipTaxReset.current = true; // prevent the country-change effect from wiping tax data
+        skipTaxReset.current = true;
         if (initialData) {
             form.reset({
                 name: initialData.name,
@@ -234,7 +237,7 @@ export function ClientModal({ open, onOpenChange, onSuccess, initialData }: Clie
             setSelectedTaxKey('');
             setTaxValue('');
         }
-    }, [initialData, open]);
+    }, [initialData, open, defaultCountry, form]);
 
     const onSubmit = async (values: ClientFormValues) => {
         setIsSubmitting(true);
@@ -246,16 +249,16 @@ export function ClientModal({ open, onOpenChange, onSuccess, initialData }: Clie
                     : [],
             };
             if (initialData?.id) {
-                await clientsApi.update(initialData.id, payload as any);
+                await clientsApi.update(initialData.id, payload as Parameters<typeof clientsApi.update>[1]);
                 toast.success(t('clientModal.successUpdate'));
             } else {
-                await clientsApi.create(payload as any);
+                await clientsApi.create(payload as Parameters<typeof clientsApi.create>[0]);
                 toast.success(t('clientModal.successCreate'));
             }
             onSuccess();
             onOpenChange(false);
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || t('clientModal.errorSave'));
+        } catch (error: Error | unknown) {
+            toast.error((error as { response?: { data?: { message?: string } } })?.response?.data?.message || t('clientModal.errorSave'));
         } finally {
             setIsSubmitting(false);
         }
@@ -263,7 +266,7 @@ export function ClientModal({ open, onOpenChange, onSuccess, initialData }: Clie
 
     // Tax identifier options from the selected country
     const taxOptions = countryData?.taxIdentifiers ?? [];
-    const selectedTaxDef = taxOptions.find((t: any) => t.key === selectedTaxKey);
+    const selectedTaxDef = taxOptions.find((t: { key: string; label: string; placeholder?: string; description?: string }) => t.key === selectedTaxKey);
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
@@ -415,7 +418,7 @@ export function ClientModal({ open, onOpenChange, onSuccess, initialData }: Clie
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="none">{t('clientModal.taxIdNone')}</SelectItem>
-                                                {taxOptions.map((t: any) => (
+                                                {taxOptions.map((t: { key: string; label: string }) => (
                                                     <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>
                                                 ))}
                                             </SelectContent>

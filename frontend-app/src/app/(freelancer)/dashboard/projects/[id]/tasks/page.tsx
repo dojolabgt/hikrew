@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, GripVertical, CheckCircle2, Circle, Clock } from 'lucide-react';
 
 export default function ProjectTasksPage() {
-    const { project, isOwner, isViewer } = useProject();
+    const { isViewer } = useProject();
 
     // UI shell simulation for future implementation
     const columns = [

@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuotations } from '@/hooks/use-quotations';
 import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
 import { ServicePickerDialog } from './ServicePickerDialog';
@@ -8,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
     Plus, Trash2, Package, PenLine, CheckCircle2, Copy,
-    FileText, Calendar, ChevronDown, Tag, Percent,
+    FileText, Calendar, Tag,
     Save, X, DollarSign, Info
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -41,14 +42,13 @@ import {
 } from '@/components/ui/alert-dialog';
 
 interface QuotationStepProps {
-    deal: any;
+    deal: Record<string, any>;
     dealId: string;
     publicToken?: string | null;
     currency?: { code: string; symbol: string };
-    taxes?: any[];
     readonly?: boolean;
     onUpdate?: () => void | Promise<void>;
-    updateDeal: (id: string, partial: any) => Promise<any>;
+    updateDeal: (id: string, partial: Record<string, any>) => Promise<any>;
 }
 
 const CHARGE_LABELS: Record<string, string> = {
@@ -64,7 +64,7 @@ interface ItemEditState {
     description: string;
     price: string;
     quantity: string;
-    chargeType: string;
+    chargeType: 'ONE_TIME' | 'HOURLY' | 'RECURRING';
     discount: string;
     isTaxable: boolean;
 }
@@ -80,13 +80,12 @@ const emptyItemEdit = (): ItemEditState => ({
     isTaxable: true,
 });
 
-export function QuotationStep({ deal, dealId, publicToken, currency, taxes, readonly, onUpdate, updateDeal }: QuotationStepProps) {
+export function QuotationStep({ deal, dealId, publicToken, currency, readonly, onUpdate, updateDeal }: QuotationStepProps) {
     const {
         quotations,
         fetchQuotations,
         createQuotation,
         updateQuotation,
-        deleteQuotation,
         addItem,
         updateItem,
         deleteItem,
@@ -138,7 +137,7 @@ export function QuotationStep({ deal, dealId, publicToken, currency, taxes, read
                 validUntil: validUntilLocal ? new Date(validUntilLocal).toISOString() : null,
             });
             toast.success('Configuración guardada correctamente');
-        } catch (error) {
+        } catch {
             toast.error('Error al guardar la configuración');
         } finally {
             setIsSavingConfig(false);
@@ -166,7 +165,7 @@ export function QuotationStep({ deal, dealId, publicToken, currency, taxes, read
         setItemSheetOpen(true);
     };
 
-    const openEditItem = (item: any) => {
+    const openEditItem = (item: Record<string, any>) => {
         // Fix 1.1 — seed all fields
         setItemEdit({
             itemId: item.id,
@@ -181,7 +180,7 @@ export function QuotationStep({ deal, dealId, publicToken, currency, taxes, read
         setItemSheetOpen(true);
     };
 
-    const openFromCatalog = (service: any) => {
+    const openFromCatalog = (service: Record<string, any>) => {
         const priceForCurrency = service.basePrice?.[activeCurrencyCode] ?? 0;
         setItemEdit({
             itemId: null,
@@ -206,7 +205,7 @@ export function QuotationStep({ deal, dealId, publicToken, currency, taxes, read
             description: itemEdit.description || undefined,
             price: Number(itemEdit.price),
             quantity: Number(itemEdit.quantity),
-            chargeType: itemEdit.chargeType as any,
+            chargeType: itemEdit.chargeType,
             discount: Number(itemEdit.discount) || 0,
             isTaxable: itemEdit.isTaxable,
         };
@@ -226,7 +225,7 @@ export function QuotationStep({ deal, dealId, publicToken, currency, taxes, read
         }
     };
 
-    const handleCatalogSelect = (service: any) => {
+    const handleCatalogSelect = (service: Record<string, any>) => {
         setPickerOpen(false);
         openFromCatalog(service);
     };
@@ -241,7 +240,7 @@ export function QuotationStep({ deal, dealId, publicToken, currency, taxes, read
 
     // ── Quotation tab rename (2.3) ────────────────────────────────────────────
 
-    const startRename = (q: any) => {
+    const startRename = (q: { id: string; optionName: string }) => {
         setRenamingQuotationId(q.id);
         setRenameValue(q.optionName);
     };
@@ -389,7 +388,7 @@ export function QuotationStep({ deal, dealId, publicToken, currency, taxes, read
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {workspaceCurrencies.map((c: any) => (
+                                        {workspaceCurrencies.map((c: { code: string; symbol: string; name: string }) => (
                                             <SelectItem key={c.code} value={c.code} className="text-xs">
                                                 {c.code} ({c.symbol}) — {c.name}
                                             </SelectItem>
@@ -415,7 +414,7 @@ export function QuotationStep({ deal, dealId, publicToken, currency, taxes, read
                             Sin ítems. Agrega servicios del catálogo o crea un ítem manual.
                         </div>
                     ) : (
-                        (activeQuotation.items || []).map((item: any) => {
+                        (activeQuotation.items || []).map((item: Record<string, any>) => {
                             const lineTotal = Number(item.price) * Number(item.quantity) - Number(item.discount || 0);
                             return (
                                 <div key={item.id} className="grid grid-cols-12 gap-2 items-center px-4 py-3 border-b border-zinc-100 dark:border-zinc-800/50 group hover:bg-zinc-50 dark:hover:bg-zinc-900/30 transition-colors">
@@ -663,8 +662,7 @@ export function QuotationStep({ deal, dealId, publicToken, currency, taxes, read
                         <div className="space-y-1.5">
                             <Label>Tipo de cargo</Label>
                             <Select
-                                value={itemEdit.chargeType}
-                                onValueChange={val => setItemEdit(p => ({ ...p, chargeType: val }))}
+                                onValueChange={val => setItemEdit(p => ({ ...p, chargeType: val as 'ONE_TIME' | 'HOURLY' | 'RECURRING' }))}
                             >
                                 <SelectTrigger>
                                     <SelectValue />

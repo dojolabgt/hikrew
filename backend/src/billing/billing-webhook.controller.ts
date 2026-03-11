@@ -19,7 +19,7 @@ import { SkipThrottle } from '@nestjs/throttler';
 export class BillingWebhookController {
   private readonly logger = new Logger(BillingWebhookController.name);
 
-  constructor(private readonly billingService: BillingService) { }
+  constructor(private readonly billingService: BillingService) {}
 
   @Post()
   @HttpCode(HttpStatus.OK)

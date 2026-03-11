@@ -13,6 +13,7 @@ import { ServicesService } from './services.service';
 import { CreateServiceDto, UpdateServiceDto } from './dto/service.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WorkspaceGuard } from '../common/guards/workspace.guard';
+import type { AuthRequest } from '../common/types/auth-request';
 
 @Controller('services')
 @UseGuards(JwtAuthGuard, WorkspaceGuard)
@@ -20,12 +21,12 @@ export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}
 
   @Post()
-  create(@Req() req: any, @Body() dto: CreateServiceDto) {
+  create(@Req() req: AuthRequest, @Body() dto: CreateServiceDto) {
     return this.servicesService.create(req.workspaceId, dto);
   }
 
   @Get()
-  findAll(@Req() req: any) {
+  findAll(@Req() req: AuthRequest) {
     return this.servicesService.findAll(req.workspaceId);
   }
 
@@ -36,13 +37,13 @@ export class ServicesController {
   }
 
   @Get(':id')
-  findOne(@Req() req: any, @Param('id') id: string) {
+  findOne(@Req() req: AuthRequest, @Param('id') id: string) {
     return this.servicesService.findOne(req.workspaceId, id);
   }
 
   @Patch(':id')
   update(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Param('id') id: string,
     @Body() dto: UpdateServiceDto,
   ) {
@@ -50,7 +51,7 @@ export class ServicesController {
   }
 
   @Delete(':id')
-  remove(@Req() req: any, @Param('id') id: string) {
+  remove(@Req() req: AuthRequest, @Param('id') id: string) {
     return this.servicesService.remove(req.workspaceId, id);
   }
 }

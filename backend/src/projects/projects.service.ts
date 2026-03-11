@@ -6,7 +6,10 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Project } from './entities/project.entity';
-import { ProjectCollaborator, ProjectRole } from './entities/project-collaborator.entity';
+import {
+  ProjectCollaborator,
+  ProjectRole,
+} from './entities/project-collaborator.entity';
 import { Workspace } from '../workspaces/workspace.entity';
 import { ProjectStatus } from './enums/project-status.enum';
 import { Deal } from '../deals/entities/deal.entity';
@@ -31,8 +34,8 @@ export class ProjectsService {
 
   async createFromDeal(workspaceId: string, deal: Deal): Promise<Project> {
     // Check if project already exists for this deal to be idempotent
-    let existingProject = await this.projectsRepository.findOne({
-      where: { dealId: deal.id }
+    const existingProject = await this.projectsRepository.findOne({
+      where: { dealId: deal.id },
     });
 
     if (existingProject) {
@@ -78,7 +81,10 @@ export class ProjectsService {
       .leftJoinAndSelect('project.collaborators', 'collaborators')
       .leftJoinAndSelect('collaborators.workspace', 'collaboratorWorkspace')
       .where('project.id = :projectId', { projectId })
-      .andWhere('(project.workspace_id = :workspaceId OR collaborators.workspace_id = :workspaceId)', { workspaceId })
+      .andWhere(
+        '(project.workspace_id = :workspaceId OR collaborators.workspace_id = :workspaceId)',
+        { workspaceId },
+      )
       .getOne();
 
     if (!project) {
@@ -96,33 +102,45 @@ export class ProjectsService {
     requireEditor: boolean = false,
   ): Promise<Project> {
     const project = await this.projectsRepository.findOne({
-      where: [
-        { id: projectId, workspaceId: workspaceId },
-      ],
+      where: [{ id: projectId, workspaceId: workspaceId }],
       relations: ['workspace', 'collaborators'],
     });
 
     if (!project) throw new NotFoundException('Project not found');
 
     if (requireEditor && project.workspace.id !== workspaceId) {
-      const col = project.collaborators?.find((c) => c.workspaceId === workspaceId);
+      const col = project.collaborators?.find(
+        (c) => c.workspaceId === workspaceId,
+      );
       if (!col || col.role !== ProjectRole.EDITOR) {
-        throw new BadRequestException('No tienes permisos de Editor para modificar este Project');
+        throw new BadRequestException(
+          'No tienes permisos de Editor para modificar este Project',
+        );
       }
     }
 
     return project;
   }
 
-  async addCollaborator(workspaceId: string, projectId: string, collaboratorWorkspaceId: string, role: ProjectRole = ProjectRole.VIEWER): Promise<ProjectCollaborator> {
+  async addCollaborator(
+    workspaceId: string,
+    projectId: string,
+    collaboratorWorkspaceId: string,
+    role: ProjectRole = ProjectRole.VIEWER,
+  ): Promise<ProjectCollaborator> {
     const project = await this.findProjectOrFail(workspaceId, projectId, true);
 
     const exists = await this.projectCollaboratorsRepository.findOne({
-      where: { project: { id: project.id }, workspace: { id: collaboratorWorkspaceId } }
+      where: {
+        project: { id: project.id },
+        workspace: { id: collaboratorWorkspaceId },
+      },
     });
 
     if (exists) {
-      throw new BadRequestException('This workspace is already a collaborator on this project');
+      throw new BadRequestException(
+        'This workspace is already a collaborator on this project',
+      );
     }
 
     const collaborator = this.projectCollaboratorsRepository.create({
@@ -134,10 +152,14 @@ export class ProjectsService {
     return await this.projectCollaboratorsRepository.save(collaborator);
   }
 
-  async removeCollaborator(workspaceId: string, projectId: string, collaboratorId: string): Promise<void> {
+  async removeCollaborator(
+    workspaceId: string,
+    projectId: string,
+    collaboratorId: string,
+  ): Promise<void> {
     const project = await this.findProjectOrFail(workspaceId, projectId, true);
     const collaborator = await this.projectCollaboratorsRepository.findOne({
-      where: { id: collaboratorId, project: { id: project.id } }
+      where: { id: collaboratorId, project: { id: project.id } },
     });
 
     if (!collaborator) {
@@ -165,9 +187,14 @@ export class ProjectsService {
       throw new NotFoundException('Milestone not found for this project');
     }
 
-    const currentSplitsAmount = milestone.splits.reduce((acc, split) => acc + Number(split.amount), 0);
+    const currentSplitsAmount = milestone.splits.reduce(
+      (acc, split) => acc + Number(split.amount),
+      0,
+    );
     if (currentSplitsAmount + dto.amount > milestone.amount) {
-      throw new BadRequestException('Split amounts exceed total milestone amount');
+      throw new BadRequestException(
+        'Split amounts exceed total milestone amount',
+      );
     }
 
     const split = this.milestoneSplitsRepository.create({
@@ -189,10 +216,17 @@ export class ProjectsService {
     const project = await this.findProjectOrFail(workspaceId, projectId, true);
     const split = await this.milestoneSplitsRepository.findOne({
       where: { id: splitId, milestoneId: milestoneId },
-      relations: ['paymentMilestone', 'paymentMilestone.paymentPlan', 'paymentMilestone.paymentPlan.deal'],
+      relations: [
+        'paymentMilestone',
+        'paymentMilestone.paymentPlan',
+        'paymentMilestone.paymentPlan.deal',
+      ],
     });
 
-    if (!split || split.paymentMilestone.paymentPlan.deal.id !== project.dealId) {
+    if (
+      !split ||
+      split.paymentMilestone.paymentPlan.deal.id !== project.dealId
+    ) {
       throw new NotFoundException('Milestone Split not found');
     }
 

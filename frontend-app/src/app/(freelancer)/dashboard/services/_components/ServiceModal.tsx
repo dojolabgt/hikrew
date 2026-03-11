@@ -46,7 +46,6 @@ const serviceSchema = z.object({
 });
 
 type ServiceFormValues = z.infer<typeof serviceSchema>;
-type ServiceFormInput = z.input<typeof serviceSchema>;
 
 interface ServiceModalProps {
     open: boolean;
@@ -61,6 +60,7 @@ export function ServiceModal({ open, onOpenChange, onSuccess, initialData }: Ser
     const currencies = workspace?.currencies || [{ code: 'GTQ', name: 'Quetzales', symbol: 'Q', isDefault: true }];
 
     const form = useForm<ServiceFormValues>({
+        // @ts-expect-error Zod resolver typing mismatch
         resolver: zodResolver(serviceSchema),
         defaultValues: {
             name: '',

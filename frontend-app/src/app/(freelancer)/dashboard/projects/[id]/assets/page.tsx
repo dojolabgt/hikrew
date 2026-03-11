@@ -5,20 +5,20 @@ import { useProject } from '../layout';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, Share2 } from 'lucide-react';
+import { FileText, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function ProjectAssetsPage() {
     const { project } = useProject();
     const { activeWorkspace } = useAuth();
     const { deal } = project;
-    const quotation = deal?.quotations?.find((q: any) => q.isApproved) || deal?.quotations?.[0];
+    const quotation = deal?.quotations?.find((q: { isApproved?: boolean }) => q.isApproved) || deal?.quotations?.[0];
 
     const getCurrencySymbol = () => {
         let symbol = deal?.currency?.symbol || '$';
         if (quotation?.currency) {
             if (activeWorkspace?.currencies && activeWorkspace.currencies.length > 0) {
-                const found = activeWorkspace.currencies.find((c: any) => c.code === quotation.currency);
+                const found = activeWorkspace.currencies.find((c: { code: string; symbol: string }) => c.code === quotation.currency);
                 if (found) symbol = found.symbol;
                 else symbol = quotation.currency;
             } else {
@@ -34,7 +34,8 @@ export default function ProjectAssetsPage() {
         return symbol;
     };
 
-    const formatCurrency = (val: number | string) => {
+    const formatCurrency = (val?: number | string) => {
+        if (val === undefined || val === null) return `${getCurrencySymbol()}0.00`;
         return `${getCurrencySymbol()}${Number(val).toLocaleString('es-GT', { minimumFractionDigits: 2 })}`;
     };
 
@@ -77,7 +78,7 @@ export default function ProjectAssetsPage() {
                                 </div>
                                     
                                 <div className="space-y-2 text-sm max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                                    {quotation.items?.map((item: any, idx: number) => (
+                                    {quotation.items?.map((item: { name: string; quantity: string | number; price: string | number }, idx: number) => (
                                         <div key={idx} className="flex justify-between items-start py-2 border-b border-zinc-100 dark:border-zinc-800/60 last:border-0">
                                             <div className="pr-3 flex-1">
                                                 <p className="font-medium text-zinc-800 dark:text-zinc-200 text-[13px]">{item.name}</p>

@@ -11,7 +11,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loader2, Plus, Trash2, Users, Eye, Pencil } from 'lucide-react';
 
 interface CollaboratorsDrawerProps {
-    deal: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    deal: Record<string, any>;
     isOpen: boolean;
     onClose: () => void;
     onUpdate: () => void;
@@ -26,7 +27,7 @@ export function DealCollaboratorsDrawer({ deal, isOpen, onClose, onUpdate }: Col
 
     const isViewer = React.useMemo(() => {
         if (!activeWorkspace || !deal?.collaborators) return false;
-        const collab = deal.collaborators.find((c: any) => c.workspace.id === activeWorkspace.id);
+        const collab = deal.collaborators.find((c: { workspace: { id: string }, role: string }) => c.workspace.id === activeWorkspace.id);
         return collab?.role === 'viewer';
     }, [activeWorkspace, deal]);
 
@@ -36,7 +37,7 @@ export function DealCollaboratorsDrawer({ deal, isOpen, onClose, onUpdate }: Col
         }
     }, [isOpen, fetchConnections]);
 
-    const existingCollaboratorsIds = deal?.collaborators?.map((c: any) => c.workspace.id) || [];
+    const existingCollaboratorsIds = deal?.collaborators?.map((c: { workspace: { id: string } }) => c.workspace.id) || [];
 
     const handleAdd = async (workspaceId: string) => {
         setIsLoading(true);
@@ -80,7 +81,7 @@ export function DealCollaboratorsDrawer({ deal, isOpen, onClose, onUpdate }: Col
                             <p className="text-sm text-zinc-500 italic">No hay colaboradores en esta propuesta.</p>
                         ) : (
                             <div className="space-y-3">
-                                {deal.collaborators.map((collaborator: any) => (
+                                {deal.collaborators.map((collaborator: { id: string; role: string; workspace: { businessName: string; logo: string | null } }) => (
                                     <div key={collaborator.id} className="flex items-center justify-between p-3 rounded-lg border bg-zinc-50/50 dark:bg-zinc-900/50">
                                         <div className="flex items-center gap-3">
                                             <Avatar className="w-8 h-8">
@@ -124,7 +125,7 @@ export function DealCollaboratorsDrawer({ deal, isOpen, onClose, onUpdate }: Col
                             <h3 className="text-sm font-semibold mb-3 tracking-tight">Tu Red</h3>
                         {!networkData.active || networkData.active.length === 0 ? (
                             <p className="text-sm text-zinc-500 italic">
-                                Aún no tienes conexiones. Ve a "Mi Red" para invitar colaboradores.
+                                Aún no tienes conexiones. Ve a &quot;Mi Red&quot; para invitar colaboradores.
                             </p>
                         ) : (
                             <div className="space-y-3">

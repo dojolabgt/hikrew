@@ -9,8 +9,37 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Users, CreditCard, LayoutTemplate, FileText, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
+export interface ProjectData {
+    id: string;
+    name: string;
+    status: string;
+    workspaceId: string;
+    workspace?: { id: string; name?: string; businessName?: string };
+    deal?: {
+        id?: string;
+        publicToken?: string;
+        proposalIntro?: string;
+        currency?: { code?: string; symbol?: string; name?: string };
+        client?: { name: string; email?: string; whatsapp?: string };
+        quotations?: {
+            isApproved?: boolean;
+            optionName?: string;
+            description?: string;
+            currency?: string;
+            total?: number;
+            items?: { name: string; quantity: string | number; price: string | number }[];
+        }[];
+        brief?: {
+            template?: { name: string; schema: { id: string; label: string }[] };
+            responses?: Record<string, string | string[]>;
+        };
+    };
+    collaborators?: { id: string; workspace: { id: string; businessName?: string; logo?: string; name?: string }; role: string }[];
+    [key: string]: unknown;
+}
+
 interface ProjectContextType {
-    project: any;
+    project: ProjectData;
     isOwner: boolean;
     isViewer: boolean;
     refreshProject: () => Promise<void>;
@@ -34,7 +63,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
     
     const { activeWorkspace } = useAuth();
     const { fetchProject, isLoading } = useProjects();
-    const [project, setProject] = useState<any | null>(null);
+    const [project, setProject] = useState<ProjectData | null>(null);
 
     const loadProject = async () => {
         if (!activeWorkspace || !projectId) return;
@@ -66,7 +95,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
     const clientName = deal?.client?.name || 'Cliente sin nombre';
     
     const isOwner = project.workspaceId === activeWorkspace?.id;
-    const collabMatch = project.collaborators?.find((c: any) => c.workspace.id === activeWorkspace?.id);
+    const collabMatch = project.collaborators?.find((c) => c.workspace.id === activeWorkspace?.id);
 
     const isViewer = !isOwner && collabMatch?.role === 'viewer';
 

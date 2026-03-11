@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
 import { DealRoadmapSidebar } from './DealRoadmapSidebar';
 import { DealCanvas } from './DealCanvas';
 import { useDeals } from '@/hooks/use-deals';
@@ -19,15 +18,24 @@ import {
 
 export type DealStep = 'brief' | 'quotation' | 'payment_plan' | 'won';
 
+interface DealData {
+    id: string;
+    currentStep?: string;
+    status?: string;
+    briefTemplateId?: string;
+    workspace?: { id: string };
+    workspaceId?: string;
+    [key: string]: unknown;
+}
+
 interface DealBuilderProps {
     dealId: string;
 }
 
 export function DealBuilder({ dealId }: DealBuilderProps) {
-    const router = useRouter();
     const { fetchDeal, updateDeal } = useDeals();
 
-    const [deal, setDeal] = useState<any | null>(null);
+    const [deal, setDeal] = useState<DealData | null>(null);
     const [activeStep, setActiveStep] = useState<DealStep>('brief');
     const [isLoading, setIsLoading] = useState(true);
     const [showWonDialog, setShowWonDialog] = useState(false);
@@ -43,12 +51,13 @@ export function DealBuilder({ dealId }: DealBuilderProps) {
     }, [dealId, fetchDeal]);
 
     useEffect(() => {
-        loadDeal();
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        void loadDeal();
     }, [loadDeal]);
 
     const handleStepChange = async (step: DealStep) => {
         setActiveStep(step);
-        
+
         const indexMap: Record<DealStep, number> = { brief: 0, quotation: 1, payment_plan: 2, won: 3 };
         const currentHighest = (deal?.currentStep as DealStep) || 'brief';
 
@@ -56,7 +65,7 @@ export function DealBuilder({ dealId }: DealBuilderProps) {
         if (indexMap[step] > indexMap[currentHighest]) {
             await updateDeal(dealId, { currentStep: step });
             // Keep local deal state in sync so the sidebar's isLocked logic reflects the new currentStep
-            setDeal((prev: any) => ({ ...prev, currentStep: step }));
+            setDeal((prev) => prev ? { ...prev, currentStep: step } : null);
         }
     };
 
@@ -90,9 +99,6 @@ export function DealBuilder({ dealId }: DealBuilderProps) {
         setShowWonDialog(false);
     };
 
-    const handleDealUpdate = (updated: any) => {
-        setDeal(updated);
-    };
 
     if (isLoading) {
         return (
@@ -134,7 +140,6 @@ export function DealBuilder({ dealId }: DealBuilderProps) {
                         onWon={() => setShowWonDialog(true)}
                         onNextStep={handleStepChange}
                         onUpdateBrief={handleUpdateBrief}
-                        onDealUpdate={handleDealUpdate}
                         onRefreshDeal={refreshDeal}
                     />
                 </div>

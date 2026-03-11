@@ -1,17 +1,44 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CheckCircle2, Lock, Eye, Play, StickyNote, Users } from 'lucide-react';
+import { CheckCircle2, Lock, Eye, Play, StickyNote } from 'lucide-react';
 import { DealStep } from './DealBuilder';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 
+interface DealData {
+    id?: string;
+    slug?: string;
+    name?: string;
+    status?: string;
+    currentStep?: string;
+    notes?: string;
+    currency?: { symbol?: string };
+    client?: { name?: string };
+    brief?: {
+        template?: { name?: string };
+        isCompleted?: boolean;
+        responses?: unknown;
+        publicToken?: string;
+    };
+    quotations?: Array<{
+        isApproved?: boolean;
+        total?: number;
+        currency?: string;
+        optionName?: string;
+        items?: unknown[];
+    }>;
+    paymentPlan?: { milestones?: unknown[] };
+    collaborators?: Array<{ workspace: { id: string }; role: string }>;
+    [key: string]: unknown;
+}
+
 interface SidebarProps {
-    deal: any;
+    deal: DealData;
     activeStep: DealStep;
     onStepChange: (step: DealStep) => void;
-    updateDeal?: (dealId: string, partial: any) => Promise<any>;
+    updateDeal?: (dealId: string, partial: Record<string, unknown>) => Promise<unknown>;
 }
 
 export function DealRoadmapSidebar({ deal, activeStep, onStepChange, updateDeal }: SidebarProps) {
@@ -37,7 +64,7 @@ export function DealRoadmapSidebar({ deal, activeStep, onStepChange, updateDeal 
     };
 
     // Derive totals from real data
-    const approvedQuotation = deal?.quotations?.find((q: any) => q.isApproved);
+    const approvedQuotation = deal?.quotations?.find((q) => q.isApproved);
     const anyQuotation = deal?.quotations?.[0];
     const quotationTotal = approvedQuotation?.total ?? anyQuotation?.total ?? null;
     const hasQuotationItems = (approvedQuotation?.items ?? anyQuotation?.items ?? []).length > 0;
@@ -48,7 +75,7 @@ export function DealRoadmapSidebar({ deal, activeStep, onStepChange, updateDeal 
     const quotationCurrency = approvedQuotation?.currency || anyQuotation?.currency;
     if (quotationCurrency) {
         if (activeWorkspace?.currencies && activeWorkspace.currencies.length > 0) {
-            const found = activeWorkspace.currencies.find((c: any) => c.code === quotationCurrency);
+            const found = activeWorkspace.currencies.find((c: { code: string; symbol: string }) => c.code === quotationCurrency);
             if (found) symbol = found.symbol;
             else symbol = quotationCurrency;
         } else {
@@ -223,7 +250,7 @@ export function DealRoadmapSidebar({ deal, activeStep, onStepChange, updateDeal 
                     onBlur={async () => {
                         if (!updateDeal || notes === (deal?.notes || '')) return;
                         setIsSavingNotes(true);
-                        await updateDeal(deal.slug || deal.id, { notes });
+                        await updateDeal((deal.slug || deal.id) as string, { notes });
                         setIsSavingNotes(false);
                     }}
                 />

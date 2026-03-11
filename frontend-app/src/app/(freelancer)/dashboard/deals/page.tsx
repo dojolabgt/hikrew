@@ -65,6 +65,18 @@ function StatusBadge({ status }: { status: string }) {
     );
 }
 
+interface DealItem {
+    id: string;
+    slug?: string;
+    name?: string;
+    status?: string;
+    client?: { name: string };
+    workspace?: { id: string; businessName?: string; name?: string };
+    quotations?: { isApproved?: boolean; total?: number | string; currency?: string }[];
+    currency?: { code: string; symbol: string };
+    createdAt: string;
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DealsPage() {
@@ -78,7 +90,7 @@ export default function DealsPage() {
     const [clientId, setClientId] = useState('');
     const [clients, setClients] = useState<Client[]>([]);
     const [statusFilter, setStatusFilter] = useState<string>('ALL');
-    const [dealToDelete, setDealToDelete] = useState<any | null>(null);
+    const [dealToDelete, setDealToDelete] = useState<DealItem | null>(null);
 
     useEffect(() => {
         if (activeWorkspace) {
@@ -110,10 +122,10 @@ export default function DealsPage() {
         setDealToDelete(null);
     };
 
-    const getClientName = (deal: any) => deal.client?.name ?? '—';
+    const getClientName = (deal: DealItem) => deal.client?.name ?? '—';
 
-    const getDealTotal = (deal: any) => {
-        const approved = deal.quotations?.find((q: any) => q.isApproved);
+    const getDealTotal = (deal: DealItem) => {
+        const approved = deal.quotations?.find((q) => q.isApproved);
         const any = deal.quotations?.[0];
         const total = approved?.total ?? any?.total ?? null;
         if (total === null) return null;
@@ -125,7 +137,7 @@ export default function DealsPage() {
         ? deals
         : deals.filter(d => d.status?.toUpperCase() === statusFilter);
 
-    const columns: ColumnDef<any>[] = [
+    const columns: ColumnDef<DealItem>[] = [
         {
             key: 'name',
             header: 'Propuesta',
@@ -166,13 +178,13 @@ export default function DealsPage() {
                 // en activeWorkspace.currencies si estuviera disponible en el contexto. 
                 // Sin embargo, getDealTotal saca el total de approvedQuotation o la primera, 
                 // así que usemos el currency de la quotation si coincide.
-                const approved = deal.quotations?.find((q: any) => q.isApproved);
+                const approved = deal.quotations?.find((q) => q.isApproved);
                 const any = deal.quotations?.[0];
                 const q = approved || any;
 
                 if (q?.currency) {
                     if (activeWorkspace?.currencies && activeWorkspace.currencies.length > 0) {
-                        const found = activeWorkspace.currencies.find((c: any) => c.code === q.currency);
+                        const found = activeWorkspace.currencies.find((c: { code: string; symbol: string }) => c.code === q.currency);
                         if (found) symbol = found.symbol;
                         else symbol = q.currency;
                     } else {
@@ -228,7 +240,7 @@ export default function DealsPage() {
                         <DialogHeader>
                             <DialogTitle>Crear nueva Propuesta</DialogTitle>
                             <DialogDescription>
-                                Nombra este trato (ej. "Rediseño Web V2") y asígnale el cliente.
+                                Nombra este trato (ej. &quot;Rediseño Web V2&quot;) y asígnale el cliente.
                             </DialogDescription>
                         </DialogHeader>
 
@@ -332,7 +344,7 @@ export default function DealsPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>¿Eliminar esta propuesta?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Se eliminará <strong>"{dealToDelete?.name}"</strong> junto con su brief, cotizaciones y plan de pagos. Esta acción no se puede deshacer.
+                            Se eliminará <strong>&quot;{dealToDelete?.name}&quot;</strong> junto con su brief, cotizaciones y plan de pagos. Esta acción no se puede deshacer.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

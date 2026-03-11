@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { usePaymentPlan } from '@/hooks/use-payment-plan';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, AlertCircle, CheckCircle2, AlertTriangle, BadgeCheck, Loader2 } from 'lucide-react';
+import { Plus, Trash2, AlertCircle, CheckCircle2, AlertTriangle, BadgeCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
@@ -20,10 +20,11 @@ import {
 
 interface PaymentPlanStepProps {
     dealId: string;
-    quotations: any[];
+    quotations: { id: string; optionName?: string; total?: number | string; isApproved?: boolean; currency?: string }[];
     currency?: { code: string; symbol: string };
     readonly?: boolean;
-    deal?: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    deal?: Record<string, any>;
 }
 
 const MILESTONE_STATUS_STYLES: Record<string, string> = {
@@ -62,7 +63,7 @@ interface FieldErrors {
 }
 
 export function PaymentPlanStep({ dealId, quotations, currency, readonly, deal }: PaymentPlanStepProps) {
-    const { plan: paymentPlan, fetchPaymentPlan, createOrUpdatePlan: createPaymentPlan, addMilestone, updateMilestone: updateMilestoneApi, deleteMilestone, isLoading } = usePaymentPlan(dealId, deal?.workspace?.id || deal?.workspaceId);
+    const { plan: paymentPlan, fetchPaymentPlan, createOrUpdatePlan: createPaymentPlan, addMilestone, updateMilestone: updateMilestoneApi, deleteMilestone } = usePaymentPlan(dealId, deal?.workspace?.id || deal?.workspaceId);
     const [milestones, setMilestones] = useState<NewMilestone[]>([emptyMilestone()]);
     const [isSaving, setIsSaving] = useState(false);
     const [isAddingToExisting, setIsAddingToExisting] = useState(false);
@@ -84,6 +85,7 @@ export function PaymentPlanStep({ dealId, quotations, currency, readonly, deal }
     useEffect(() => {
         if (quotations.length > 0 && !selectedQuotationId) {
             const approved = quotations.find(q => q.isApproved);
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSelectedQuotationId(approved?.id || quotations[0]?.id || '');
         }
     }, [quotations, selectedQuotationId]);
@@ -252,7 +254,7 @@ export function PaymentPlanStep({ dealId, quotations, currency, readonly, deal }
     const handleMarkAsPaid = async () => {
         if (!markPaidId) return;
         setIsMarkingPaid(true);
-        const milestone = paymentPlan?.milestones?.find((m: any) => m.id === markPaidId);
+        const milestone = paymentPlan?.milestones?.find((m: { id: string; status: string }) => m.id === markPaidId);
         const newStatus = milestone?.status === 'PAID' ? 'PENDING' : 'PAID';
         await updateMilestoneApi(markPaidId, { status: newStatus });
         setMarkPaidId(null);
@@ -265,7 +267,7 @@ export function PaymentPlanStep({ dealId, quotations, currency, readonly, deal }
     // ── Summary calculations ─────────────────────────────────────────────────
 
     const planDraftTotal = milestones.reduce((s, m) => s + (Number(m.amount) || 0), 0);
-    const existingPlanTotal = paymentPlan?.milestones?.reduce((s: number, m: any) => s + Number(m.amount), 0) ?? 0;
+    const existingPlanTotal = paymentPlan?.milestones?.reduce((s: number, m: { amount: number }) => s + Number(m.amount), 0) ?? 0;
     const hasQuotationMismatch = quotationTotal !== null && Math.abs(planDraftTotal - quotationTotal) > 0.01 && planDraftTotal > 0;
 
     // ── EXISTING PLAN VIEW ──────────────────────────────────────────────────
@@ -302,7 +304,7 @@ export function PaymentPlanStep({ dealId, quotations, currency, readonly, deal }
                             <div className="col-span-1" />
                         </div>
 
-                        {paymentPlan.milestones?.map((milestone: any) => (
+                        {paymentPlan.milestones?.map((milestone: { id: string; name: string; description?: string; status: string; percentage?: number; amount: number; dueDate?: string }) => (
                             <div key={milestone.id} className="border-b border-zinc-100 dark:border-zinc-800/50">
                                 <div className="grid grid-cols-12 gap-2 items-center px-4 py-3 group hover:bg-zinc-50/50 dark:hover:bg-zinc-900/20">
                                 <div className="col-span-4">
@@ -321,7 +323,7 @@ export function PaymentPlanStep({ dealId, quotations, currency, readonly, deal }
                                     {milestone.percentage ? `${milestone.percentage}%` : '—'}
                                 </div>
                                 <div className="col-span-3 text-right font-semibold text-sm text-zinc-900 dark:text-white">
-                                    {fmt(milestone.amount)}
+                                    {fmt(Number(milestone.amount))}
                                 </div>
                                 <div className="col-span-2 text-center text-xs text-zinc-500">
                                     {milestone.dueDate ? new Date(milestone.dueDate).toLocaleDateString('es-GT') : '—'}
@@ -507,12 +509,12 @@ export function PaymentPlanStep({ dealId, quotations, currency, readonly, deal }
                     <AlertDialogContent>
                         <AlertDialogHeader>
                             <AlertDialogTitle>
-                                {paymentPlan?.milestones?.find((m: any) => m.id === markPaidId)?.status === 'PAID'
+                                {paymentPlan?.milestones?.find((m: { id: string; status: string }) => m.id === markPaidId)?.status === 'PAID'
                                     ? '¿Marcar como Pendiente?'
                                     : '¿Confirmar pago recibido?'}
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                                {paymentPlan?.milestones?.find((m: any) => m.id === markPaidId)?.status === 'PAID'
+                                {paymentPlan?.milestones?.find((m: { id: string; status: string }) => m.id === markPaidId)?.status === 'PAID'
                                     ? 'El hito regresará al estado Pendiente.'
                                     : 'Confirma que ya recibiste el pago de este hito. Esta acción puede revertirse.'}
                             </AlertDialogDescription>
@@ -541,7 +543,7 @@ export function PaymentPlanStep({ dealId, quotations, currency, readonly, deal }
                     <div className="mb-5">
                         <p className="text-xs text-zinc-500 font-medium mb-2">Basado en cotización</p>
                         <div className="flex gap-2 flex-wrap">
-                            {quotations.map((q: any) => (
+                            {quotations.map((q) => (
                                 <button
                                     key={q.id}
                                     onClick={() => setSelectedQuotationId(q.id)}
@@ -552,7 +554,7 @@ export function PaymentPlanStep({ dealId, quotations, currency, readonly, deal }
                                             : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-primary/50'
                                     )}
                                 >
-                                    {q.optionName} — {fmt(q.total ?? 0)}
+                                    {q.optionName} — {fmt(Number(q.total ?? 0))}
                                 </button>
                             ))}
                         </div>

@@ -3,11 +3,9 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   UseGuards,
-  Query,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -27,10 +25,7 @@ export class ProjectsController {
   }
 
   @Get(':id')
-  findOne(
-    @Param('workspaceId') workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  findOne(@Param('workspaceId') workspaceId: string, @Param('id') id: string) {
     return this.projectsService.findOne(workspaceId, id);
   }
 
@@ -40,9 +35,14 @@ export class ProjectsController {
   addCollaborator(
     @Param('workspaceId') workspaceId: string,
     @Param('id') projectId: string,
-    @Body() body: { collaboratorWorkspaceId: string, role?: ProjectRole },
+    @Body() body: { collaboratorWorkspaceId: string; role?: ProjectRole },
   ) {
-    return this.projectsService.addCollaborator(workspaceId, projectId, body.collaboratorWorkspaceId, body.role);
+    return this.projectsService.addCollaborator(
+      workspaceId,
+      projectId,
+      body.collaboratorWorkspaceId,
+      body.role,
+    );
   }
 
   @Delete(':id/collaborators/:collaboratorId')
@@ -52,7 +52,11 @@ export class ProjectsController {
     @Param('id') projectId: string,
     @Param('collaboratorId') collaboratorId: string,
   ) {
-    return this.projectsService.removeCollaborator(workspaceId, projectId, collaboratorId);
+    return this.projectsService.removeCollaborator(
+      workspaceId,
+      projectId,
+      collaboratorId,
+    );
   }
 
   // ─── MILESTONE SPLITS ───────────────────────────────────────────────────
@@ -64,7 +68,12 @@ export class ProjectsController {
     @Param('milestoneId') milestoneId: string,
     @Body() dto: CreateMilestoneSplitDto,
   ) {
-    return this.projectsService.addMilestoneSplit(workspaceId, projectId, milestoneId, dto);
+    return this.projectsService.addMilestoneSplit(
+      workspaceId,
+      projectId,
+      milestoneId,
+      dto,
+    );
   }
 
   @Delete(':id/milestones/:milestoneId/splits/:splitId')
@@ -75,6 +84,11 @@ export class ProjectsController {
     @Param('milestoneId') milestoneId: string,
     @Param('splitId') splitId: string,
   ) {
-    return this.projectsService.deleteMilestoneSplit(workspaceId, projectId, milestoneId, splitId);
+    return this.projectsService.deleteMilestoneSplit(
+      workspaceId,
+      projectId,
+      milestoneId,
+      splitId,
+    );
   }
 }

@@ -1,10 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useEffect, useState } from 'react';
 import { useBriefTemplates } from '@/hooks/use-brief-templates';
 import { Button } from '@/components/ui/button';
 import {
-    Plus,
     FileText,
     ArrowRight,
     CheckCircle2,
@@ -33,7 +33,7 @@ import {
 import { DataTable, ColumnDef } from '@/components/common/DataTable';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { Badge } from '@/components/ui/badge';
+
 
 interface BriefStepProps {
     initialSelectedTemplateId?: string | null;
@@ -105,17 +105,17 @@ const FIELD_TYPE_CONFIG: Record<string, { label: string; icon: React.ReactNode; 
     },
 };
 
-function FieldMockPreview({ field }: { field: any }) {
+function FieldMockPreview({ field }: { field: Record<string, any> }) {
     const config = FIELD_TYPE_CONFIG[field.type];
     if (!config) return null;
 
     if (['radio', 'checkbox'].includes(field.type) && field.options?.length > 0) {
         return (
             <div className="mt-2 space-y-1.5">
-                {field.options.slice(0, 3).map((opt: any, i: number) => (
+                {field.options.slice(0, 3).map((opt: string | { label: string }, i: number) => (
                     <div key={i} className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
                         <div className={`w-3.5 h-3.5 flex-shrink-0 border border-zinc-300 dark:border-zinc-600 ${field.type === 'radio' ? 'rounded-full' : 'rounded'} bg-zinc-50 dark:bg-zinc-900`} />
-                        <span>{opt.label || opt}</span>
+                        <span>{typeof opt === 'string' ? opt : opt.label}</span>
                     </div>
                 ))}
                 {field.options.length > 3 && (
@@ -181,7 +181,7 @@ export function BriefStep({
     // ── Template list view ────────────────────────────────────────────────
 
     if (!selectedTemplate) {
-        const columns: ColumnDef<any>[] = [
+        const columns: ColumnDef<{ id: string; name: string; description?: string; isActive?: boolean; schema?: any[] }>[] = [
             {
                 key: 'name',
                 header: 'Nombre de Plantilla',
@@ -271,7 +271,7 @@ export function BriefStep({
     // ── Template preview view (Redesigned — Document style) ────────────────
 
     const tpl = templates.find(t => t.id === selectedTemplate);
-    const schema: any[] = tpl?.schema || [];
+    const schema: Record<string, any>[] = tpl?.schema || [];
 
     return (
         <div className="space-y-6">
@@ -454,7 +454,7 @@ export function BriefStep({
                                             {responses[field.id] !== undefined && responses[field.id] !== '' ? (
                                                 Array.isArray(responses[field.id]) ? (
                                                     <ul className="list-disc pl-4 space-y-1">
-                                                        {responses[field.id].map((ans: string, i: number) => <li key={i}>{ans}</li>)}
+                                                        {(responses[field.id] as string[]).map((ans: string, i: number) => <li key={i}>{ans}</li>)}
                                                     </ul>
                                                 ) : (
                                                     <p className="whitespace-pre-wrap">{String(responses[field.id])}</p>

@@ -17,4 +17,4 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
   controllers: [BillingController, BillingWebhookController],
   exports: [BillingService],
 })
-export class BillingModule { }
+export class BillingModule {}

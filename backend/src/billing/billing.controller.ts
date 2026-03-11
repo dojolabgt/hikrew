@@ -12,6 +12,7 @@ import { BillingService } from './billing.service';
 import { SubscribeDto } from './dto/subscribe.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WorkspaceGuard } from '../common/guards/workspace.guard';
+import type { AuthRequest } from '../common/types/auth-request';
 
 @UseGuards(JwtAuthGuard, WorkspaceGuard)
 @Controller('billing')
@@ -22,7 +23,7 @@ export class BillingController {
    * Returns the current plan, planExpiresAt, active subscription, and pricing.
    */
   @Get('status')
-  getStatus(@Request() req: any) {
+  getStatus(@Request() req: AuthRequest) {
     return this.billingService.getStatus(req.workspaceId);
   }
 
@@ -31,7 +32,7 @@ export class BillingController {
    * Returns the checkout URL to redirect the user.
    */
   @Post('subscribe')
-  subscribe(@Request() req: any, @Body() dto: SubscribeDto) {
+  subscribe(@Request() req: AuthRequest, @Body() dto: SubscribeDto) {
     return this.billingService.subscribe(req.workspaceId, dto);
   }
 
@@ -39,7 +40,10 @@ export class BillingController {
    * Development override to instantly switch plans
    */
   @Post('dev-override')
-  devOverride(@Request() req: any, @Body() dto: { plan: 'pro' | 'premium' }) {
+  devOverride(
+    @Request() req: AuthRequest,
+    @Body() dto: { plan: 'pro' | 'premium' },
+  ) {
     return this.billingService.devOverridePlan(req.workspaceId, dto.plan);
   }
 
@@ -48,7 +52,7 @@ export class BillingController {
    */
   @Post('cancel')
   @HttpCode(HttpStatus.NO_CONTENT)
-  cancel(@Request() req: any) {
+  cancel(@Request() req: AuthRequest) {
     return this.billingService.cancelSubscription(req.workspaceId);
   }
 
@@ -56,7 +60,7 @@ export class BillingController {
    * Returns the billing history (all subscriptions) for the workspace.
    */
   @Get('history')
-  getHistory(@Request() req: any) {
+  getHistory(@Request() req: AuthRequest) {
     return this.billingService.getHistory(req.workspaceId);
   }
 }

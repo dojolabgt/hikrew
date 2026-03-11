@@ -106,4 +106,4 @@ import { ProjectsModule } from './projects/projects.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

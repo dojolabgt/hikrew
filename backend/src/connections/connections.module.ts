@@ -6,12 +6,9 @@ import { WorkspaceConnection } from './entities/workspace-connection.entity';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([WorkspaceConnection]),
-    WorkspacesModule,
-  ],
+  imports: [TypeOrmModule.forFeature([WorkspaceConnection]), WorkspacesModule],
   providers: [ConnectionsService],
   controllers: [ConnectionsController],
   exports: [ConnectionsService],
 })
-export class ConnectionsModule { }
+export class ConnectionsModule {}
