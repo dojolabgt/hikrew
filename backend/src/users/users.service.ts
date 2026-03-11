@@ -86,16 +86,30 @@ export class UsersService {
 
   async findAll(): Promise<User[]> {
     return this.usersRepository.find({
-      select: [
-        'id',
-        'email',
-        'firstName',
-        'lastName',
-        'role',
-        'profileImage',
-        'createdAt',
-        'updatedAt',
-      ],
+      relations: ['workspaceMembers', 'workspaceMembers.workspace'],
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        profileImage: true,
+        createdAt: true,
+        updatedAt: true,
+        workspaceMembers: {
+          id: true,
+          role: true,
+          workspace: {
+            id: true,
+            businessName: true,
+            plan: true,
+            logo: true,
+          },
+        },
+      },
+      order: {
+        createdAt: 'DESC',
+      },
     });
   }
 

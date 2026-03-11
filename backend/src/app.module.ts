@@ -20,6 +20,7 @@ import { ClientsModule } from './clients/clients.module';
 import { DealsModule } from './deals/deals.module';
 import { ConnectionsModule } from './connections/connections.module';
 import { ProjectsModule } from './projects/projects.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -96,6 +97,7 @@ import { ProjectsModule } from './projects/projects.module';
     DealsModule,
     ConnectionsModule,
     ProjectsModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [
