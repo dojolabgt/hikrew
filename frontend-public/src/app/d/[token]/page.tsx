@@ -136,7 +136,7 @@ export default function PublicDealPage({ params }: { params: Promise<{ token: st
                     </p>
                     <div className="p-6 bg-zinc-50 rounded-xl border border-zinc-100">
                         <div className="flex items-center justify-center gap-2 text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-2">
-                           Inversión Acordada
+                            Inversión Acordada
                         </div>
                         <div className="text-4xl font-bold tracking-tight text-zinc-900">{fmtFor(approvedQuotation.total, approvedQuotation)}</div>
                     </div>
@@ -182,313 +182,301 @@ export default function PublicDealPage({ params }: { params: Promise<{ token: st
                 </div>
             </header>
 
-            <main className="max-w-6xl mx-auto px-6 py-16 md:py-24">
+            <main className="max-w-4xl mx-auto px-4 sm:px-6 py-12 md:py-20">
+                <div className="bg-white rounded-2xl md:rounded-[32px] shadow-sm border border-zinc-200 overflow-hidden">
+                    <div className="p-8 md:p-14 lg:p-16">
+                        {/* Hero / Header Section */}
+                        <div className="mb-16">
+                            <div className="flex mb-6">
+                                <div className="flex items-center gap-2 text-xs font-bold text-zinc-800 uppercase tracking-widest bg-zinc-100 px-3 py-1.5 rounded-md">
+                                    <Star className="w-3 h-3 fill-zinc-800 text-zinc-800" />
+                                    Propuesta
+                                </div>
+                            </div>
+                            <h1 className="text-4xl md:text-5xl font-bold text-zinc-900 tracking-tight leading-[1.1] mb-6">
+                                {dealData.name}
+                            </h1>
 
-                {/* Hero / Header Section */}
-                <div className="text-center mb-16 max-w-3xl mx-auto">
-                    <div className="flex justify-center mb-6">
-                       <div className="flex items-center gap-2 text-xs font-bold text-zinc-800 uppercase tracking-widest bg-zinc-100 px-4 py-1.5 rounded-full">
-                           <Star className="w-3 h-3 fill-zinc-800 text-zinc-800" />
-                           Propuesta
-                           <Star className="w-3 h-3 fill-zinc-800 text-zinc-800" />
-                       </div>
-                    </div>
-                    <h1 className="text-4xl md:text-5xl font-bold text-zinc-900 tracking-tight leading-[1.1] mb-6">
-                        {dealData.name}
-                    </h1>
+                            <div className="flex flex-wrap items-center gap-4 text-sm font-medium">
+                                {dealData.validUntil && (
+                                    <div className="flex items-center gap-2 text-zinc-600 bg-zinc-50 border border-zinc-200 px-4 py-2 rounded-lg shadow-sm">
+                                        <Clock className="w-4 h-4" />
+                                        Válida hasta {new Date(dealData.validUntil).toLocaleDateString('es-GT', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
 
-                    <div className="flex flex-wrap items-center justify-center gap-4 text-sm font-medium">
-                        {dealData.validUntil && (
-                            <div className="flex items-center gap-2 text-zinc-600 bg-white border border-zinc-200 px-4 py-2 rounded-full shadow-sm">
-                                <Clock className="w-4 h-4" />
-                                Válida hasta {new Date(dealData.validUntil).toLocaleDateString('es-GT', { year: 'numeric', month: 'long', day: 'numeric' })}
+                        {/* Proposal Intro Markdown */}
+                        {dealData.proposalIntro && (
+                            <div className="mb-16">
+                                <div className="prose prose-sm md:prose-base prose-zinc max-w-none text-zinc-700 leading-relaxed whitespace-pre-wrap">
+                                    {dealData.proposalIntro}
+                                </div>
                             </div>
                         )}
-                    </div>
-                </div>
 
-                {/* Proposal Intro Markdown */}
-                {dealData.proposalIntro && (
-                    <div className="bg-white rounded-2xl p-6 md:p-10 mb-12 border border-zinc-200 shadow-sm">
-                        <div className="prose prose-sm md:prose-base prose-zinc max-w-none text-zinc-700 leading-relaxed whitespace-pre-wrap">
-                            {dealData.proposalIntro}
-                        </div>
-                    </div>
-                )}
-
-                {/* Quotations Section */}
-                {quotations.length === 0 ? (
-                    <div className="text-center py-20 bg-white rounded-2xl border border-zinc-200">
-                        <FileText className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold text-zinc-900 mb-2">Propuesta en elaboración</h3>
-                        <p className="text-zinc-500">Aún no hay opciones disponibles.</p>
-                    </div>
-                ) : (
-                    <div className="mb-20">
-                        {isSingleOption ? (
-                            /* --- SINGLE OPTION VIEW --- */
-                            <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
-                                <div>
-                                    <div className="p-8 md:p-10 border-b border-zinc-100 flex flex-col md:flex-row md:items-center justify-between gap-6 bg-zinc-50/50">
-                                        <div className="flex-1">
-                                            <h2 className="text-2xl font-bold text-zinc-900 mb-2">{quotations[0].optionName}</h2>
-                                            {quotations[0].description && (
-                                                <p className="text-zinc-500 text-sm md:text-base leading-relaxed">{quotations[0].description}</p>
-                                            )}
-                                        </div>
-                                        <div className="md:text-right shrink-0">
-                                            <div className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1.5">Inversión</div>
-                                            <div className="text-4xl font-bold tracking-tight text-zinc-900">{fmtFor(quotations[0].total, quotations[0])}</div>
-                                        </div>
-                                    </div>
-
-                                    {/* Items */}
-                                    <div className="p-8 md:p-10">
-                                        <h3 className="text-lg font-bold text-zinc-900 mb-6 flex items-center gap-2">
-                                            <Sparkles className="w-4 h-4 text-zinc-400" />
-                                            Desglose de la propuesta
-                                        </h3>
-                                        <div className="space-y-4">
-                                            <div className="flex flex-col">
-                                                {quotations[0].items?.map((item: any) => {
-                                                    const qty = Number(item.quantity || 1);
-                                                    const price = Number(item.unitPrice || item.price || 0);
-                                                    const disc = Number(item.discount || 0);
-                                                    const lineTotal = qty * price * (1 - disc / 100);
-                                                    return (
-                                                        <div key={item.id} className="flex flex-col md:flex-row md:items-center justify-between py-4 border-b border-zinc-100 last:border-0 gap-3">
-                                                            <div className="md:flex-1">
-                                                                <div className="font-semibold text-zinc-900 text-sm">{item.name}</div>
-                                                                {item.description && <div className="text-zinc-500 text-sm mt-1 leading-relaxed">{item.description}</div>}
-                                                            </div>
-                                                            <div className="flex flex-row items-center justify-between md:justify-end gap-6 md:min-w-[300px]">
-                                                                <div className="text-sm text-zinc-500">
-                                                                    {qty} x {fmtFor(price, quotations[0])}
-                                                                    {disc > 0 && <span className="ml-2 text-[10px] font-bold text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded">-{disc}%</span>}
-                                                                </div>
-                                                                <div className="font-bold text-zinc-900 text-sm md:text-right w-24">{fmtFor(lineTotal, quotations[0])}</div>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-8 border-t border-zinc-200 pt-6 flex flex-col items-end space-y-2">
-                                            {Number(quotations[0].discount) > 0 && (
-                                                <div className="flex justify-between w-full md:w-64 text-sm">
-                                                    <span className="text-zinc-500">Descuento</span>
-                                                    <span className="font-semibold text-zinc-900">-{fmtFor(quotations[0].discount, quotations[0])}</span>
-                                                </div>
-                                            )}
-                                            <div className="flex justify-between w-full md:w-64 text-xl font-bold pt-4 border-t border-zinc-100 mt-2">
-                                                <span className="text-zinc-900">Total</span>
-                                                <span className="text-zinc-900">{fmtFor(quotations[0].total, quotations[0])}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Payment Plan */}
-                                    {dealData.paymentPlan?.milestones?.length > 0 && (
-                                        <div className="px-8 md:px-10 pb-10">
-                                            <h3 className="text-lg font-bold text-zinc-900 mb-6 flex items-center gap-2">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-zinc-900"></span>
-                                                Plan de Pagos
-                                            </h3>
-                                            <div className="grid grid-cols-1 gap-4">
-                                                {dealData.paymentPlan.milestones.map((m: any, idx: number) => (
-                                                    <div key={m.id} className="p-5 md:p-6 rounded-xl bg-white border border-zinc-200 flex flex-col md:flex-row md:items-center justify-between hover:border-zinc-300 transition-colors shadow-sm gap-4">
-                                                        <div className="flex items-start gap-4">
-                                                            <div className="w-8 h-8 rounded-full bg-zinc-50 border border-zinc-100 text-zinc-600 text-xs font-bold flex items-center justify-center shrink-0">{idx + 1}</div>
-                                                            <div>
-                                                                <div className="font-bold text-sm text-zinc-900">{m.name}</div>
-                                                                {m.dueDate && (
-                                                                    <div className="text-xs text-zinc-500 mt-1 flex items-center gap-1">
-                                                                        <Calendar className="w-3 h-3" />
-                                                                        {new Date(m.dueDate).toLocaleDateString('es-GT', { year: 'numeric', month: 'long', day: 'numeric' })}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-4 border-t md:border-t-0 md:border-l border-zinc-100 pt-4 md:pt-0 md:pl-6 mt-2 md:mt-0">
-                                                            <div className="text-xl font-bold text-zinc-900">{fmtFor(m.amount, quotations[0])}</div>
-                                                            {m.percentage && <div className="text-sm font-bold text-zinc-700 bg-zinc-100 px-2.5 py-1 rounded-md">{m.percentage}%</div>}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Action */}
-                                    <div className="p-8 md:p-10 bg-zinc-50 border-t border-zinc-100 flex justify-center">
-                                        <button
-                                            onClick={() => setConfirmApproveId(quotations[0].id)}
-                                            className="w-full md:w-auto px-10 h-12 bg-zinc-900 hover:bg-black text-white rounded-xl font-bold text-sm flex items-center justify-center gap-3 transition-transform active:scale-95 shadow-md shadow-zinc-900/10 group"
-                                        >
-                                            <span>Aceptar Propuesta</span>
-                                            <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
-                                                <ArrowRight className="w-3.5 h-3.5" />
-                                            </div>
-                                        </button>
-                                    </div>
-                                </div>
+                        {/* Quotations Section */}
+                        {quotations.length === 0 ? (
+                            <div className="text-center py-20 border-t border-zinc-100">
+                                <FileText className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
+                                <h3 className="text-xl font-semibold text-zinc-900 mb-2">Propuesta en elaboración</h3>
+                                <p className="text-zinc-500">Aún no hay opciones disponibles.</p>
                             </div>
                         ) : (
-                            /* --- MULTIPLE OPTIONS VIEW (TABS) --- */
-                            <div className="flex flex-col gap-8">
-                                <div className="flex flex-wrap items-center gap-2 p-1.5 bg-zinc-100/80 rounded-xl max-w-max mx-auto border border-zinc-200/50">
-                                    {quotations.map((q: any) => {
-                                        const isActive = activeTabId === q.id;
-                                        return (
-                                            <button
-                                                key={q.id}
-                                                onClick={() => setActiveTabId(q.id)}
-                                                className={`flex-1 min-w-[140px] py-2.5 px-6 rounded-lg text-sm font-semibold transition-all ${isActive
-                                                    ? 'bg-white text-zinc-900 shadow-sm border border-zinc-200/80'
-                                                    : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50'
-                                                    }`}
-                                            >
-                                                {q.optionName}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-
-                                {activeTabQuotation && (
-                                    <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                        <div>
-                                            <div className="p-8 md:p-10 border-b border-zinc-100 flex flex-col md:flex-row md:items-center justify-between gap-6 bg-zinc-50/50">
-                                                <div className="flex-1">
-                                                    <h2 className="text-2xl font-bold text-zinc-900 mb-2">{activeTabQuotation.optionName}</h2>
-                                                    {activeTabQuotation.description && (
-                                                        <p className="text-zinc-500 text-sm md:text-base leading-relaxed">{activeTabQuotation.description}</p>
-                                                    )}
-                                                </div>
-                                                <div className="md:text-right shrink-0">
-                                                    <div className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1.5">Inversión</div>
-                                                    <div className="text-4xl font-bold tracking-tight text-zinc-900">{fmtFor(activeTabQuotation.total, activeTabQuotation)}</div>
-                                                </div>
+                            <div className="mb-16 border-t border-zinc-100 pt-16">
+                                {isSingleOption ? (
+                                    /* --- SINGLE OPTION VIEW --- */
+                                    <div>
+                                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+                                            <div className="flex-1">
+                                                <h2 className="text-2xl font-bold text-zinc-900 mb-2">{quotations[0].optionName}</h2>
+                                                {quotations[0].description && (
+                                                    <p className="text-zinc-500 text-sm md:text-base leading-relaxed">{quotations[0].description}</p>
+                                                )}
                                             </div>
-
-                                            {/* Items */}
-                                            <div className="p-8 md:p-10">
-                                                <h3 className="text-lg font-bold text-zinc-900 mb-6 flex items-center gap-2">
-                                                    <Sparkles className="w-4 h-4 text-zinc-400" />
-                                                    Desglose de la propuesta
-                                                </h3>
-                                                <div className="space-y-4">
-                                                    <div className="flex flex-col">
-                                                        {activeTabQuotation.items?.map((item: any) => {
-                                                            const qty = Number(item.quantity || 1);
-                                                            const price = Number(item.unitPrice || item.price || 0);
-                                                            const disc = Number(item.discount || 0);
-                                                            const lineTotal = qty * price * (1 - disc / 100);
-                                                            return (
-                                                                <div key={item.id} className="flex flex-col md:flex-row md:items-center justify-between py-4 border-b border-zinc-100 last:border-0 gap-3">
-                                                                    <div className="md:flex-1">
-                                                                        <div className="font-semibold text-zinc-900 text-sm">{item.name}</div>
-                                                                        {item.description && <div className="text-zinc-500 text-sm mt-1 leading-relaxed">{item.description}</div>}
-                                                                    </div>
-                                                                    <div className="flex flex-row items-center justify-between md:justify-end gap-6 md:min-w-[300px]">
-                                                                        <div className="text-sm text-zinc-500">
-                                                                            {qty} x {fmtFor(price, activeTabQuotation)}
-                                                                            {disc > 0 && <span className="ml-2 text-[10px] font-bold text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded">-{disc}%</span>}
-                                                                        </div>
-                                                                        <div className="font-bold text-zinc-900 text-sm md:text-right w-24">{fmtFor(lineTotal, activeTabQuotation)}</div>
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-
-                                                <div className="mt-8 border-t border-zinc-200 pt-6 flex flex-col items-end space-y-2">
-                                                    {Number(activeTabQuotation.discount) > 0 && (
-                                                        <div className="flex justify-between w-full md:w-64 text-sm">
-                                                            <span className="text-zinc-500">Descuento</span>
-                                                            <span className="font-semibold text-zinc-900">-{fmtFor(activeTabQuotation.discount, activeTabQuotation)}</span>
-                                                        </div>
-                                                    )}
-                                                    <div className="flex justify-between w-full md:w-64 text-xl font-bold pt-4 border-t border-zinc-100 mt-2">
-                                                        <span className="text-zinc-900">Total</span>
-                                                        <span className="text-zinc-900">{fmtFor(activeTabQuotation.total, activeTabQuotation)}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Payment Plan */}
-                                            {dealData.paymentPlan?.milestones?.length > 0 && (
-                                                <div className="px-8 md:px-10 pb-10">
-                                                    <h3 className="text-lg font-bold text-zinc-900 mb-6 flex items-center gap-2">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-900"></span>
-                                                        Plan de Pagos
-                                                    </h3>
-                                                    <div className="grid grid-cols-1 gap-4">
-                                                        {dealData.paymentPlan.milestones.map((m: any, idx: number) => (
-                                                            <div key={m.id} className="p-5 md:p-6 rounded-xl bg-white border border-zinc-200 flex flex-col md:flex-row md:items-center justify-between hover:border-zinc-300 transition-colors shadow-sm gap-4">
-                                                                <div className="flex items-start gap-4">
-                                                                    <div className="w-8 h-8 rounded-full bg-zinc-50 border border-zinc-100 text-zinc-600 text-xs font-bold flex items-center justify-center shrink-0">{idx + 1}</div>
-                                                                    <div>
-                                                                        <div className="font-bold text-sm text-zinc-900">{m.name}</div>
-                                                                        {m.dueDate && (
-                                                                            <div className="text-xs text-zinc-500 mt-1 flex items-center gap-1">
-                                                                                <Calendar className="w-3 h-3" />
-                                                                                {new Date(m.dueDate).toLocaleDateString('es-GT', { year: 'numeric', month: 'long', day: 'numeric' })}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                                <div className="flex items-center gap-4 border-t md:border-t-0 md:border-l border-zinc-100 pt-4 md:pt-0 md:pl-6 mt-2 md:mt-0">
-                                                                    <div className="text-xl font-bold text-zinc-900">{fmtFor(m.amount, activeTabQuotation)}</div>
-                                                                    {m.percentage && <div className="text-sm font-bold text-zinc-700 bg-zinc-100 px-2.5 py-1 rounded-md">{m.percentage}%</div>}
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Action */}
-                                            <div className="p-8 md:p-10 bg-zinc-50 border-t border-zinc-100 flex justify-center">
-                                                <button
-                                                    onClick={() => setConfirmApproveId(activeTabQuotation.id)}
-                                                    className="w-full md:w-auto px-10 h-12 bg-zinc-900 hover:bg-black text-white rounded-xl font-bold text-sm flex items-center justify-center gap-3 transition-transform active:scale-95 shadow-md shadow-zinc-900/10 group"
-                                                >
-                                                    <span>Aceptar Opción {activeTabQuotation.optionName}</span>
-                                                    <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
-                                                        <ArrowRight className="w-3.5 h-3.5" />
-                                                    </div>
-                                                </button>
+                                            <div className="md:text-right shrink-0">
+                                                <div className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1.5">Inversión</div>
+                                                <div className="text-4xl font-bold tracking-tight text-zinc-900">{fmtFor(quotations[0].total, quotations[0])}</div>
                                             </div>
                                         </div>
+
+                                        {/* Items */}
+                                        <div className="mb-12">
+                                            <h3 className="text-lg font-bold text-zinc-900 mb-6 flex items-center gap-2">
+                                                <Sparkles className="w-4 h-4 text-zinc-400" />
+                                                Desglose de la propuesta
+                                            </h3>
+                                            <div className="space-y-4">
+                                                <div className="flex flex-col">
+                                                    {quotations[0].items?.map((item: any) => {
+                                                        const qty = Number(item.quantity || 1);
+                                                        const price = Number(item.unitPrice || item.price || 0);
+                                                        const disc = Number(item.discount || 0);
+                                                        const lineTotal = qty * price * (1 - disc / 100);
+                                                        return (
+                                                            <div key={item.id} className="flex flex-col md:flex-row md:items-center justify-between py-4 border-b border-zinc-100 last:border-0 gap-3">
+                                                                <div className="md:flex-1">
+                                                                    <div className="font-semibold text-zinc-900 text-sm">{item.name}</div>
+                                                                    {item.description && <div className="text-zinc-500 text-sm mt-1 leading-relaxed">{item.description}</div>}
+                                                                </div>
+                                                                <div className="flex flex-row items-center justify-between md:justify-end gap-6 md:min-w-[300px]">
+                                                                    <div className="text-sm text-zinc-500">
+                                                                        {qty} x {fmtFor(price, quotations[0])}
+                                                                        {disc > 0 && <span className="ml-2 text-[10px] font-bold text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded">-{disc}%</span>}
+                                                                    </div>
+                                                                    <div className="font-bold text-zinc-900 text-sm md:text-right w-24">{fmtFor(lineTotal, quotations[0])}</div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-8 border-t border-zinc-200 pt-6 flex flex-col items-end space-y-2">
+                                                {Number(quotations[0].discount) > 0 && (
+                                                    <div className="flex justify-between w-full md:w-64 text-sm">
+                                                        <span className="text-zinc-500">Descuento</span>
+                                                        <span className="font-semibold text-zinc-900">-{fmtFor(quotations[0].discount, quotations[0])}</span>
+                                                    </div>
+                                                )}
+                                                <div className="flex justify-between w-full md:w-64 text-xl font-bold pt-4 border-t border-zinc-100 mt-2">
+                                                    <span className="text-zinc-900">Total</span>
+                                                    <span className="text-zinc-900">{fmtFor(quotations[0].total, quotations[0])}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Payment Plan */}
+                                        {dealData.paymentPlan?.milestones?.length > 0 && (
+                                            <div className="mb-12">
+                                                <h3 className="text-lg font-bold text-zinc-900 mb-6 flex items-center gap-2">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>
+                                                    Plan de Pagos
+                                                </h3>
+                                                <div className="space-y-0">
+                                                    {dealData.paymentPlan.milestones.map((m: any, idx: number) => (
+                                                        <div key={m.id} className="py-4 border-b border-zinc-100 last:border-0 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                            <div className="flex items-start gap-4">
+                                                                <div className="w-6 text-zinc-400 text-xs font-bold pt-0.5">{idx + 1}.</div>
+                                                                <div>
+                                                                    <div className="font-semibold text-sm text-zinc-900">{m.name}</div>
+                                                                    {m.dueDate && (
+                                                                        <div className="text-xs text-zinc-500 mt-1 flex items-center gap-1">
+                                                                            <Calendar className="w-3 h-3" />
+                                                                            {new Date(m.dueDate).toLocaleDateString('es-GT', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-4 pl-10 md:pl-0">
+                                                                <div className="text-lg font-bold text-zinc-900">{fmtFor(m.amount, quotations[0])}</div>
+                                                                {m.percentage && <div className="text-xs font-bold text-zinc-500">{m.percentage}%</div>}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Action */}
+                                        <div className="flex justify-start pt-6 border-t border-zinc-100">
+                                            <button
+                                                onClick={() => setConfirmApproveId(quotations[0].id)}
+                                                className="w-full md:w-auto px-8 h-12 bg-zinc-900 hover:bg-black text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-3 transition-transform active:scale-95 shadow-md shadow-zinc-900/10"
+                                            >
+                                                <span>Aceptar Propuesta</span>
+                                                <ArrowRight className="w-4 h-4 text-white/70" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    /* --- MULTIPLE OPTIONS VIEW (TABS) --- */
+                                    <div className="flex flex-col gap-10">
+                                        <div className="flex flex-wrap items-center gap-2 mb-4 border-b border-zinc-100 pb-px">
+                                            {quotations.map((q: any) => {
+                                                const isActive = activeTabId === q.id;
+                                                return (
+                                                    <button
+                                                        key={q.id}
+                                                        onClick={() => setActiveTabId(q.id)}
+                                                        className={`pb-3 px-1 text-sm font-semibold transition-all border-b-2 relative -mb-px ${isActive
+                                                            ? 'text-zinc-900 border-zinc-900'
+                                                            : 'text-zinc-400 border-transparent hover:text-zinc-700 hover:border-zinc-300'
+                                                            }`}
+                                                    >
+                                                        {q.optionName}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {activeTabQuotation && (
+                                            <div className="animate-in fade-in duration-500">
+                                                <div>
+                                                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+                                                        <div className="flex-1">
+                                                            <h2 className="text-2xl font-bold text-zinc-900 mb-2">{activeTabQuotation.optionName}</h2>
+                                                            {activeTabQuotation.description && (
+                                                                <p className="text-zinc-500 text-sm md:text-base leading-relaxed">{activeTabQuotation.description}</p>
+                                                            )}
+                                                        </div>
+                                                        <div className="md:text-right shrink-0">
+                                                            <div className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1.5">Inversión</div>
+                                                            <div className="text-4xl font-bold tracking-tight text-zinc-900">{fmtFor(activeTabQuotation.total, activeTabQuotation)}</div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Items */}
+                                                    <div className="mb-12">
+                                                        <h3 className="text-lg font-bold text-zinc-900 mb-6 flex items-center gap-2">
+                                                            <Sparkles className="w-4 h-4 text-zinc-400" />
+                                                            Desglose de la propuesta
+                                                        </h3>
+                                                        <div className="space-y-4">
+                                                            <div className="flex flex-col">
+                                                                {activeTabQuotation.items?.map((item: any) => {
+                                                                    const qty = Number(item.quantity || 1);
+                                                                    const price = Number(item.unitPrice || item.price || 0);
+                                                                    const disc = Number(item.discount || 0);
+                                                                    const lineTotal = qty * price * (1 - disc / 100);
+                                                                    return (
+                                                                        <div key={item.id} className="flex flex-col md:flex-row md:items-center justify-between py-4 border-b border-zinc-100 last:border-0 gap-3">
+                                                                            <div className="md:flex-1">
+                                                                                <div className="font-semibold text-zinc-900 text-sm">{item.name}</div>
+                                                                                {item.description && <div className="text-zinc-500 text-sm mt-1 leading-relaxed">{item.description}</div>}
+                                                                            </div>
+                                                                            <div className="flex flex-row items-center justify-between md:justify-end gap-6 md:min-w-[300px]">
+                                                                                <div className="text-sm text-zinc-500">
+                                                                                    {qty} x {fmtFor(price, activeTabQuotation)}
+                                                                                    {disc > 0 && <span className="ml-2 text-[10px] font-bold text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded">-{disc}%</span>}
+                                                                                </div>
+                                                                                <div className="font-bold text-zinc-900 text-sm md:text-right w-24">{fmtFor(lineTotal, activeTabQuotation)}</div>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="mt-8 border-t border-zinc-200 pt-6 flex flex-col items-end space-y-2">
+                                                            {Number(activeTabQuotation.discount) > 0 && (
+                                                                <div className="flex justify-between w-full md:w-64 text-sm">
+                                                                    <span className="text-zinc-500">Descuento</span>
+                                                                    <span className="font-semibold text-zinc-900">-{fmtFor(activeTabQuotation.discount, activeTabQuotation)}</span>
+                                                                </div>
+                                                            )}
+                                                            <div className="flex justify-between w-full md:w-64 text-xl font-bold pt-4 border-t border-zinc-100 mt-2">
+                                                                <span className="text-zinc-900">Total</span>
+                                                                <span className="text-zinc-900">{fmtFor(activeTabQuotation.total, activeTabQuotation)}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Payment Plan */}
+                                                    {dealData.paymentPlan?.milestones?.length > 0 && (
+                                                        <div className="mb-12">
+                                                            <h3 className="text-lg font-bold text-zinc-900 mb-6 flex items-center gap-2">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>
+                                                                Plan de Pagos
+                                                            </h3>
+                                                            <div className="space-y-0">
+                                                                {dealData.paymentPlan.milestones.map((m: any, idx: number) => (
+                                                                    <div key={m.id} className="py-4 border-b border-zinc-100 last:border-0 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                                        <div className="flex items-start gap-4">
+                                                                            <div className="w-6 text-zinc-400 text-xs font-bold pt-0.5">{idx + 1}.</div>
+                                                                            <div>
+                                                                                <div className="font-semibold text-sm text-zinc-900">{m.name}</div>
+                                                                                {m.dueDate && (
+                                                                                    <div className="text-xs text-zinc-500 mt-1 flex items-center gap-1">
+                                                                                        <Calendar className="w-3 h-3" />
+                                                                                        {new Date(m.dueDate).toLocaleDateString('es-GT', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-4 pl-10 md:pl-0">
+                                                                            <div className="text-lg font-bold text-zinc-900">{fmtFor(m.amount, activeTabQuotation)}</div>
+                                                                            {m.percentage && <div className="text-xs font-bold text-zinc-500">{m.percentage}%</div>}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Action */}
+                                                    <div className="flex justify-start pt-6 border-t border-zinc-100">
+                                                        <button
+                                                            onClick={() => setConfirmApproveId(activeTabQuotation.id)}
+                                                            className="w-full md:w-auto px-8 h-12 bg-zinc-900 hover:bg-black text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-3 transition-transform active:scale-95 shadow-md shadow-zinc-900/10"
+                                                        >
+                                                            <span>Aceptar Opción {activeTabQuotation.optionName}</span>
+                                                            <ArrowRight className="w-4 h-4 text-white/70" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
                         )}
-                    </div>
-                )}
 
-                {/* Terms and Conditions */}
-                {dealData.proposalTerms && (
-                    <div className="mt-16 bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
-                        <div>
-                            <div className="p-6 md:px-10 md:py-8 border-b border-zinc-100 flex items-center gap-4 bg-zinc-50/50">
-                                <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center border border-zinc-200 shadow-sm">
-                                    <ShieldCheck className="w-5 h-5 text-zinc-600" />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-bold text-zinc-900">Términos y Condiciones</h3>
-                                    <p className="text-zinc-500 text-sm mt-0.5">Consideraciones legales y acuerdos aplicables al proyecto.</p>
+                        {/* Terms and Conditions */}
+                        {dealData.proposalTerms && (
+                            <div className="mt-16 pt-16 border-t border-zinc-200">
+                                <h3 className="text-lg font-bold text-zinc-900 mb-6 flex items-center gap-2">
+                                    <ShieldCheck className="w-4 h-4 text-zinc-400" />
+                                    Términos y Condiciones
+                                </h3>
+                                <div className="prose prose-sm prose-zinc max-w-none text-zinc-500 leading-relaxed whitespace-pre-wrap">
+                                    {dealData.proposalTerms}
                                 </div>
                             </div>
-                            <div className="p-6 md:p-10 prose prose-sm md:prose-base prose-zinc max-w-none text-zinc-600 leading-relaxed whitespace-pre-wrap">
-                                {dealData.proposalTerms}
-                            </div>
-                        </div>
+                        )}
                     </div>
-                )}
-
+                </div>
             </main>
 
             <footer className="border-t border-zinc-200 bg-white py-12 text-center mt-10">
