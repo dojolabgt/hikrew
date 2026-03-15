@@ -54,11 +54,11 @@ import { AdminModule } from './admin/admin.module';
         MAIL_USER: Joi.string().allow('').optional(),
         MAIL_PASSWORD: Joi.string().allow('').optional(),
         MAIL_FROM: Joi.string().required(),
-        // Krew Vault encryption
+        // Krew encryption
         ENCRYPTION_KEY: Joi.string().length(32).required(),
-        // Krew Vault's own Recurrente keys (for billing freelancers)
-        KREW_VAULT_RECURRENTE_PUBLIC_KEY: Joi.string().required(),
-        KREW_VAULT_RECURRENTE_SECRET_KEY: Joi.string().required(),
+        // Krew's own Recurrente keys (for billing freelancers)
+        KREW_RECURRENTE_PUBLIC_KEY: Joi.string().required(),
+        KREW_RECURRENTE_SECRET_KEY: Joi.string().required(),
       }),
     }),
     ThrottlerModule.forRoot([

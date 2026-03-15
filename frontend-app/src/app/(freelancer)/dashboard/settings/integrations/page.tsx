@@ -126,7 +126,7 @@ export default function SettingsPage() {
                                             className="object-contain dark:invert"
                                         />
                                     }
-                                    name="Krew Vault API"
+                                    name="Krew API"
                                     description={t('integrations.apiDesc')}
                                     isConfigured={false}
                                     onConfigure={() => { }}

@@ -1,11 +1,11 @@
 <div align="center">
-  <img src="./assets/KrewLogo.png" alt="Krew Logo" width="200" height="auto" />
-  <h1>Krew Vault 🚀</h1>
+  <img src="./assets/HiKrewLogo.png" alt="Krew Logo" width="200" height="auto" />
+  <h1>HI KREW 🚀</h1>
   <p>
     <b>The All-in-One Operating System for Freelancers & Agencies</b>
   </p>
   <p>
-    Krew Vault es una plataforma SaaS diseñada para revolucionar cómo los creativos y profesionales independientes gestionan sus negocios. Desde la prospección de clientes y envío de cotizaciones, hasta la facturación y colaboración B2B en proyectos compartidos.
+    Hi Krew es una plataforma SaaS diseñada para revolucionar cómo los creativos y profesionales independientes gestionan sus negocios. Desde la prospección de clientes y envío de cotizaciones, hasta la facturación y colaboración B2B en proyectos compartidos.
   </p>
 </div>
 
@@ -36,13 +36,13 @@ El proyecto está construido sobre una arquitectura moderna, escalable y robusta
 
 ## ✨ Módulos Principales (Core Features)
 
-La arquitectura de Krew Vault está dividida en módulos de dominio altamente cohesionados para reflejar el ciclo de vida real de un proyecto freelance:
+La arquitectura de Krew está dividida en módulos de dominio altamente cohesionados para reflejar el ciclo de vida real de un proyecto freelance:
 
 ### 🏢 Workspaces (Multitenancy)
 El corazón de la plataforma. Cada usuario opera dentro de un `Workspace` aislado que maneja su propia configuración regional:
 - Formatos de moneda y zonas horarias personalizadas.
 - Gestión de impuestos (tax inclusive/exclusive pricing).
-- Suscripciones (Integración nativa con **Recurrente** para planes Krew Vault Pro/Premium).
+- Suscripciones (Integración nativa con **Recurrente** para planes Krew Pro/Premium).
 
 ### 💼 Deals Pipeline
 Un flujo de ventas completo y profesional para cerrar más clientes:
@@ -57,7 +57,7 @@ Conversión automática de un `Deal` ganado a un proyecto activo.
 - Sincronización con el plan de pagos previamente aprobado.
 
 ### 🤝 B2B Connections (La Red Freelance)
-Krew Vault no es solo un CRM, es una red profesional:
+Krew no es solo un CRM, es una red profesional:
 - Los Workspaces en planes Pro pueden generar enlaces de invitación o enviar correos a otros profesionales.
 - Al aceptar una conexión, los Workspaces pueden colaborar e invitarse mutuamente a sus `Projects` (subcontratación o trabajo en equipo).
 
@@ -68,7 +68,7 @@ Krew Vault no es solo un CRM, es una red profesional:
 El repositorio está estructurado para mantener una separación limpia de responsabilidades:
 
 ```bash
-Krew Vault/
+KREW/
 ├── backend/                # API RESTful en NestJS
 │   ├── src/
 │   │   ├── auth/           # Autenticación JWT y Guards

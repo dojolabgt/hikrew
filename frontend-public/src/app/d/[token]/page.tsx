@@ -162,11 +162,11 @@ export default function PublicDealPage({ params }: { params: Promise<{ token: st
                                 </div>
                             )
                         ) : (
-                            <img src="/KrewVaultLogo.png" alt="Krew Vault" className="h-8 w-auto object-contain" />
+                            <img src="/HiKrewLogo.png" alt="Hi Krew" className="h-8 w-auto object-contain" />
                         )}
                         <div>
                             <span className="font-semibold text-base text-black block leading-none mb-1.5">
-                                {isProOrPremium ? workspace?.name : 'Krew Vault'}
+                                {isProOrPremium ? workspace?.name : 'Hi Krew'}
                             </span>
                             <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-semibold text-zinc-600 uppercase tracking-widest bg-zinc-100 px-2 py-0.5 rounded-full w-max">
                                 <Sparkles className="w-3 h-3 text-zinc-400" />
@@ -482,11 +482,11 @@ export default function PublicDealPage({ params }: { params: Promise<{ token: st
             <footer className="border-t border-zinc-200 bg-white py-12 text-center mt-10">
                 <div className="px-6 flex flex-col items-center gap-4">
                     <p className="text-sm font-medium text-zinc-500">
-                        Una propuesta profesional enviada por <strong className="text-black">{isProOrPremium ? workspace?.name : 'Krew Vault'}</strong>.
+                        Una propuesta profesional enviada por <strong className="text-black">{isProOrPremium ? workspace?.name : 'Hi Krew'}</strong>.
                     </p>
                     <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400 uppercase tracking-widest bg-zinc-50 px-3 py-1.5 rounded-full border border-zinc-100">
                         Powered by
-                        <img src="/KrewVaultLogo.png" alt="Krew Vault" className="h-4 object-contain ml-1 grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all" />
+                        <img src="/HiKrewLogo.png" alt="Hi Krew" className="h-4 object-contain ml-1 grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all" />
                     </div>
                 </div>
             </footer>

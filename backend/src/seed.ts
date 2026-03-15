@@ -27,7 +27,7 @@ async function bootstrap() {
     {
       email: adminEmail,
       password: adminPassword,
-      firstName: 'Krew Vault',
+      firstName: 'Krew',
       lastName: 'Admin',
       role: UserRole.ADMIN,
     },
@@ -86,9 +86,9 @@ async function bootstrap() {
     const settingsRepository = settingsService['settingsRepository'];
     await settingsRepository.save({
       id: 1,
-      appName: 'Krew Vault',
-      appLogo: '/public/branding/KrewLogo.png',
-      appFavicon: '/public/branding/favicon.ico',
+      appName: 'Hi Krew',
+      appLogo: '/public/branding/HiKrewLogo.png',
+      appFavicon: '/public/branding/HiKrewLogo.png',
       primaryColor: '#6366f1',
       secondaryColor: '#1e1b4b',
       allowRegistration: true,

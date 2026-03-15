@@ -12,7 +12,7 @@ import { SkipThrottle } from '@nestjs/throttler';
 /**
  * Public webhook endpoint for Recurrente billing events.
  * This controller has NO authentication — Recurrente calls it directly.
- * Security: we validate metadata.context === 'krew_vault_billing' inside BillingService.
+ * Security: we validate metadata.context === 'krew_billing' inside BillingService.
  */
 @SkipThrottle()
 @Controller('webhooks/recurrente/billing')

@@ -11,7 +11,7 @@ import {
   BillingSubscription,
   BillingSubscriptionStatus,
 } from './billing-subscription.entity';
-import { RecurrenteKrewVaultService } from './recurrente-krewvault.service';
+import { RecurrenteHiKrewService } from './recurrente-hi-krew.service';
 import { Workspace, WorkspacePlan } from '../workspaces/workspace.entity';
 import { SubscribeDto } from './dto/subscribe.dto';
 
@@ -24,7 +24,7 @@ export class BillingService {
     private readonly subscriptionRepo: Repository<BillingSubscription>,
     @InjectRepository(Workspace)
     private readonly workspaceRepo: Repository<Workspace>,
-    private readonly recurrenteKrewVault: RecurrenteKrewVaultService,
+    private readonly recurrenteHiKrewService: RecurrenteHiKrewService,
     private readonly configService: ConfigService,
   ) { }
 
@@ -48,7 +48,7 @@ export class BillingService {
       plan: workspace.plan,
       planExpiresAt: workspace.planExpiresAt,
       subscription: activeSubscription ?? null,
-      prices: this.recurrenteKrewVault.prices,
+      prices: this.recurrenteHiKrewService.prices,
     };
   }
 
@@ -87,7 +87,7 @@ export class BillingService {
     const successUrl = `${frontendUrl}/dashboard/billing?success=1`;
     const cancelUrl = `${frontendUrl}/dashboard/billing?cancelled=1`;
 
-    const checkout = await this.recurrenteKrewVault.createSubscriptionCheckout(
+    const checkout = await this.recurrenteHiKrewService.createSubscriptionCheckout(
       workspaceId,
       dto.plan,
       dto.interval === 'year',
@@ -178,7 +178,7 @@ export class BillingService {
       subscription.recurrenteSubscriptionId &&
       !subscription.recurrenteSubscriptionId.startsWith('dev_')
     ) {
-      await this.recurrenteKrewVault.cancelSubscription(
+      await this.recurrenteHiKrewService.cancelSubscription(
         subscription.recurrenteSubscriptionId,
       );
     }
@@ -224,8 +224,8 @@ export class BillingService {
     const metadata = (body['metadata'] ?? {}) as Record<string, string>;
     const data = (body['data'] ?? {}) as Record<string, unknown>;
 
-    // Safety check — only handle krew_vault_billing context
-    if (metadata['context'] !== 'krew_vault_billing') {
+    // Safety check — only handle krew_billing context
+    if (metadata['context'] !== 'krew_billing') {
       this.logger.warn(
         `Received webhook with unexpected context: ${metadata['context']}`,
       );
@@ -298,7 +298,7 @@ export class BillingService {
           !oldSub.recurrenteSubscriptionId.startsWith('dev_')
         ) {
           try {
-            await this.recurrenteKrewVault.cancelSubscription(
+            await this.recurrenteHiKrewService.cancelSubscription(
               oldSub.recurrenteSubscriptionId,
             );
           } catch {

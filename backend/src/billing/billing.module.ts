@@ -4,7 +4,7 @@ import { BillingSubscription } from './billing-subscription.entity';
 import { BillingService } from './billing.service';
 import { BillingController } from './billing.controller';
 import { BillingWebhookController } from './billing-webhook.controller';
-import { RecurrenteKrewVaultService } from './recurrente-krewvault.service';
+import { RecurrenteHiKrewService } from './recurrente-hi-krew.service';
 import { Workspace } from '../workspaces/workspace.entity';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
 
@@ -13,7 +13,7 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
     TypeOrmModule.forFeature([BillingSubscription, Workspace]),
     WorkspacesModule,
   ],
-  providers: [BillingService, RecurrenteKrewVaultService],
+  providers: [BillingService, RecurrenteHiKrewService],
   controllers: [BillingController, BillingWebhookController],
   exports: [BillingService],
 })

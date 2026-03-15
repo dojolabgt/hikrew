@@ -286,7 +286,7 @@ export function BriefStep({
                         <p className={`text-xs mt-1 max-w-xl ${isCompleted ? 'text-emerald-600 dark:text-emerald-500' : 'text-zinc-600 dark:text-zinc-400'}`}>
                             {isCompleted
                                 ? 'El cliente ya ha llenado este cuestionario exitosamente y sus respuestas fueron guardadas.'
-                                : 'Copia y envía este enlace seguro a tu cliente. Podrá llenar el Brief sin necesidad de crear una cuenta en Krew Vault.'}
+                                : 'Copia y envía este enlace seguro a tu cliente. Podrá llenar el Brief sin necesidad de crear una cuenta en Krew.'}
                         </p>
                     </div>
                     {!isCompleted && (() => {

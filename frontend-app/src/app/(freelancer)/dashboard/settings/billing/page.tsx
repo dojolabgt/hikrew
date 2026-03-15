@@ -173,7 +173,7 @@ export default function BillingPage() {
                                     </p>
                                     <div className="flex items-center gap-3 mb-2">
                                         <span className="text-3xl font-extrabold tracking-tight capitalize text-zinc-900 dark:text-zinc-100">
-                                            Krew Vault {planKey}
+                                            Hi Krew {planKey}
                                         </span>
                                         {planKey === 'premium' ? (
                                             <Badge className="bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20 py-1 px-3 shadow-sm rounded-full">
@@ -495,7 +495,7 @@ export default function BillingPage() {
                                         <div key={sub.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50 transition-colors">
                                             <div>
                                                 <p className="text-sm font-semibold capitalize flex items-center gap-2">
-                                                    Krew Vault {(sub as unknown as { plan?: string }).plan || 'Pro'}
+                                                    Hi Krew {(sub as unknown as { plan?: string }).plan || 'Pro'}
                                                     <span className="text-muted-foreground font-normal text-xs uppercase tracking-wider">
                                                         ({sub.interval === 'month' ? t('billing.monthly') : t('billing.yearly')})
                                                     </span>

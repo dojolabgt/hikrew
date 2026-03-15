@@ -156,11 +156,11 @@ export default function PublicBriefPage({ params }: { params: Promise<{ token: s
                                 </div>
                             )
                         ) : (
-                            <img src="/KrewVaultLogo.png" alt="Krew Vault" className="h-8 w-auto object-contain dark:invert" />
+                            <img src="/HiKrewLogo.png" alt="Hi Krew" className="h-8 w-auto object-contain dark:invert" />
                         )}
                         <div>
                             <span className="font-semibold text-base text-black dark:text-white block leading-none mb-1">
-                                {isProOrPremium ? workspace?.name : 'Krew Vault'}
+                                {isProOrPremium ? workspace?.name : 'Hi Krew'}
                             </span>
                             <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Cuestionario de Proyecto</span>
                         </div>
@@ -398,11 +398,11 @@ export default function PublicBriefPage({ params }: { params: Promise<{ token: s
             <footer className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 py-12 text-center mt-10">
                 <div className="px-6 flex flex-col items-center gap-4">
                     <p className="text-sm font-medium text-zinc-500">
-                        Cuestionario enviado por <strong className="text-black dark:text-white">{isProOrPremium ? workspace?.name : 'Krew Vault'}</strong>.
+                        Cuestionario enviado por <strong className="text-black dark:text-white">{isProOrPremium ? workspace?.name : 'Hi Krew'}</strong>.
                     </p>
                     <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-900 px-3 py-1.5 rounded-full border border-zinc-100 dark:border-zinc-800">
                         Powered by
-                        <img src="/KrewVaultLogo.png" alt="Krew Vault" className="h-4 object-contain ml-1 grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all dark:invert" />
+                        <img src="/HiKrewLogo.png" alt="Hi Krew" className="h-4 object-contain ml-1 grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all dark:invert" />
                     </div>
                 </div>
             </footer>

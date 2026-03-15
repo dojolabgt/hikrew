@@ -19,13 +19,13 @@ const dm_sans = DM_Sans({
 export const metadata = {
   title: {
     absolute: '',
-    default: 'Krew Vault',
-    template: '%s | Krew Vault',
+    default: 'Hi Krew',
+    template: '%s | Hi Krew',
   },
-  description: 'Krew Vault',
+  description: 'Hi Krew',
   openGraph: {
-    title: 'Krew Vault',
-    description: 'Krew Vault',
+    title: 'Hi Krew',
+    description: 'Hi Krew',
   },
 };
 
@@ -34,7 +34,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <head>
         <meta name="author" content="Themeservices" />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/HiKrewLogo.png" sizes="any" />
       </head>
       <body className={`${sora.variable} ${dm_sans.variable}`}>
         {children}

@@ -25,9 +25,9 @@ export function Sidebar({ navItems }: SidebarProps) {
 
     // Branding Logic
     const isProOrPremium = activeWorkspace?.plan === 'pro' || activeWorkspace?.plan === 'premium';
-    const businessName = isProOrPremium ? (activeWorkspace?.businessName || 'Mi Espacio') : 'Krew Vault';
-    const displayLogo = isProOrPremium ? (activeWorkspace?.logo || undefined) : '/KrewVaultLogo.png';
-    const initials = isProOrPremium ? businessName.substring(0, 2).toUpperCase() : 'KV';
+    const businessName = isProOrPremium ? (activeWorkspace?.businessName || 'Mi Espacio') : 'Hi Krew';
+    const displayLogo = isProOrPremium ? (activeWorkspace?.logo || undefined) : '/HiKrewLogo.png';
+    const initials = isProOrPremium ? businessName.substring(0, 2).toUpperCase() : 'HK';
 
     // Optional style based on brandColor
     const brandColorStyle = (isProOrPremium && activeWorkspace?.brandColor) ? { color: activeWorkspace.brandColor } : {};
