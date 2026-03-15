@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { LogOut } from 'lucide-react';
 import { NavItem, NavItemConfig } from './NavItem';
 import { cn, getImageUrl } from '@/lib/utils';
@@ -9,11 +8,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface SidebarProps {
     navItems: NavItemConfig[];
-    mobileMenuOpen?: boolean;
-    onMobileMenuClose?: () => void;
 }
 
-export function Sidebar({ navItems, mobileMenuOpen, onMobileMenuClose }: SidebarProps) {
+export function Sidebar({ navItems }: SidebarProps) {
     const { user, activeWorkspace, activeWorkspaceId, switchWorkspace, logout } = useAuth();
 
     const groupedItems = navItems.reduce((acc, item) => {
@@ -33,14 +30,7 @@ export function Sidebar({ navItems, mobileMenuOpen, onMobileMenuClose }: Sidebar
     const userInitial = (user?.firstName?.[0] || user?.email?.[0] || '?').toUpperCase();
 
     return (
-        <>
-            <aside className={cn(
-                "fixed inset-y-0 left-0 z-50 w-60 bg-white dark:bg-zinc-950",
-                "border-r border-zinc-100 dark:border-zinc-800/60",
-                "flex flex-col transform transition-transform duration-300 ease-in-out",
-                "md:translate-x-0 md:static md:z-auto",
-                mobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
-            )}>
+        <aside className="hidden md:flex flex-col w-60 bg-white dark:bg-zinc-950 border-r border-zinc-100 dark:border-zinc-800/60 shrink-0">
                 {/* Brand / Logo header */}
                 <div className="h-14 flex items-center px-4 border-b border-zinc-100 dark:border-zinc-800/60 shrink-0 gap-2.5">
                     <Avatar className="w-7 h-7 rounded-lg shrink-0 border border-zinc-200 dark:border-zinc-700">
@@ -80,7 +70,6 @@ export function Sidebar({ navItems, mobileMenuOpen, onMobileMenuClose }: Sidebar
                                         <NavItem
                                             key={item.href}
                                             item={item}
-                                            onClick={onMobileMenuClose}
                                         />
                                     ))}
                                 </div>
@@ -115,15 +104,6 @@ export function Sidebar({ navItems, mobileMenuOpen, onMobileMenuClose }: Sidebar
                         </button>
                     </div>
                 </div>
-            </aside>
-
-            {/* Mobile backdrop */}
-            {mobileMenuOpen && (
-                <div
-                    className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm z-40 md:hidden"
-                    onClick={onMobileMenuClose}
-                />
-            )}
-        </>
+        </aside>
     );
 }

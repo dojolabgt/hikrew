@@ -35,7 +35,7 @@ export function TopHeader({ mobileMenuOpen, onMobileMenuToggle }: TopHeaderProps
     const initials = (user.firstName?.[0] || user.email[0]).toUpperCase();
 
     return (
-        <header className="sticky top-0 z-30 flex h-14 w-full items-center justify-between px-4 bg-white dark:bg-zinc-950 border-b border-zinc-100 dark:border-zinc-800/60 shrink-0">
+        <header className="sticky top-0 z-30 hidden md:flex h-14 w-full items-center justify-between px-4 bg-white dark:bg-zinc-950 border-b border-zinc-100 dark:border-zinc-800/60 shrink-0">
             {/* Mobile left: hamburger + brand name */}
             <div className="flex items-center gap-2.5 md:hidden">
                 <button
