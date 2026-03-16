@@ -44,7 +44,7 @@ export default function FreelancerLayout({ children }: { children: React.ReactNo
     if (activeWorkspace && !activeWorkspace.onboardingCompleted) return null; // wait for redirect
 
     return (
-        <div className="flex h-screen overflow-hidden bg-zinc-50 dark:bg-zinc-950">
+        <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
             <Sidebar navItems={freelancerNavItems} />
             <main className="flex-1 flex flex-col min-w-0">
                 <TopHeader />
