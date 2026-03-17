@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
-import { ArrowRight, Loader2, CheckCircle2, Sparkles, Calendar, ShieldCheck, Clock, FileText, Star } from 'lucide-react';
+import { ArrowRight, Loader2, CheckCircle2, Sparkles, Calendar, ShieldCheck, Clock, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { getImageUrl } from '@/lib/image-utils';
 import { motion } from 'framer-motion';
@@ -371,7 +371,9 @@ export default function PublicDealPage({ params }: { params: Promise<{ token: st
                                 <Sparkles className="w-6 h-6 text-white/50" strokeWidth={1.5} />
                             </div>
                             <h2 className="text-2xl font-black text-center text-white mb-1 tracking-tight">Confirmar selección</h2>
-                            <p className="text-white/35 text-center text-[13px] mb-2 font-light">Opción <strong className="text-white/60 font-semibold">{q?.optionName}</strong></p>
+                            <p className="text-white/35 text-center text-[13px] mb-2 font-light">
+                                Opción <strong className="text-white/60 font-semibold">{q?.optionName}</strong>
+                            </p>
                             <p className="text-center text-4xl font-black text-white mt-5 mb-2 tracking-tight">{q && fmtFor(q.total, q)}</p>
                             <p className="text-center text-[12px] text-white/25 mb-8 leading-relaxed font-light">
                                 Al confirmar, notificaremos al equipo para iniciar el proyecto.
