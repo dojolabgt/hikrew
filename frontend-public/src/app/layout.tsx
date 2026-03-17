@@ -62,7 +62,7 @@ export default function RootLayout({
     }, [settings]);
 
     return (
-        <html lang="es" className="scroll-smooth">
+        <html lang="es" className="scroll-smooth overflow-x-hidden">
             <head>
                 <link rel="icon" href="/HiKrewLogo.png" sizes="any" id="favicon" />
             </head>
