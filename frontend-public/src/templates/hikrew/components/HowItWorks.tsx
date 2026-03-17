@@ -159,7 +159,7 @@ const STEPS = [
 
 export function HowItWorks() {
     return (
-        <section id="funciones" className="bg-[#0d0d0d] pb-24 overflow-hidden">
+        <section id="funciones" className="bg-[#0d0d0d] pb-24 overflow-hidden relative">
 
             {/* Separator from Hero */}
             <div className="container mx-auto px-5 md:px-8 max-w-5xl">
