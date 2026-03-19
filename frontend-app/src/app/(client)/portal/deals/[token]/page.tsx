@@ -148,7 +148,8 @@ function BriefForm({ deal, onSubmitted }: { deal: PortalDealDetail; onSubmitted:
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
 
-    const isVisible = (field: { dependsOn?: { fieldId: string; value: string } }) => {
+    type SchemaField = NonNullable<NonNullable<PortalDealDetail['brief']>['template']>['schema'][number];
+    const isVisible = (field: SchemaField) => {
         if (!field.dependsOn) return true;
         const val = responses[field.dependsOn.fieldId];
         if (Array.isArray(val)) return val.includes(field.dependsOn.value);
