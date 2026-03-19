@@ -64,6 +64,7 @@ export interface PortalDealDetail extends PortalDeal {
                 required: boolean;
                 options?: Array<string | { label: string; value: string }>;
                 allowOther?: boolean;
+                dependsOn?: { fieldId: string; value: string };
             }>;
         };
     };
