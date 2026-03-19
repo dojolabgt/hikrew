@@ -110,7 +110,7 @@ function DealCard({ deal }: { deal: PortalDeal }) {
 
     return (
         <Link
-            href={`/d/${deal.publicToken}`}
+            href={`/portal/deals/${deal.publicToken}`}
             className="group block bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 shadow-sm hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 transition-all"
         >
             {/* Header row */}

@@ -14,6 +14,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 type BriefFieldType = 'text' | 'textarea' | 'select' | 'radio' | 'checkbox' | 'rating';
 
+type BriefOption = string | { label: string; value: string };
+
 interface BriefField {
     id: string;
     type: BriefFieldType;
@@ -21,9 +23,16 @@ interface BriefField {
     description?: string;
     tooltip?: string;
     required: boolean;
-    options?: string[];
+    options?: BriefOption[];
     allowOther?: boolean;
     dependsOn?: { fieldId: string; value: string };
+}
+
+function optLabel(opt: BriefOption): string {
+    return typeof opt === 'string' ? opt : opt.label;
+}
+function optValue(opt: BriefOption): string {
+    return typeof opt === 'string' ? opt : opt.value;
 }
 
 interface QuotationItem {
@@ -222,7 +231,7 @@ function BriefForm({ deal, onSubmitted }: {
                             >
                                 <option value="" className="bg-zinc-900">Selecciona una opción</option>
                                 {field.options?.map(opt => (
-                                    <option key={opt} value={opt} className="bg-zinc-900">{opt}</option>
+                                    <option key={optValue(opt)} value={optValue(opt)} className="bg-zinc-900">{optLabel(opt)}</option>
                                 ))}
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
@@ -232,12 +241,12 @@ function BriefForm({ deal, onSubmitted }: {
                     {field.type === 'radio' && (
                         <div className="space-y-2">
                             {field.options?.map(opt => (
-                                <label key={opt} className="flex items-center gap-3 cursor-pointer group">
-                                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${responses[field.id] === opt ? 'border-white bg-white' : 'border-white/20 group-hover:border-white/40'}`}>
-                                        {responses[field.id] === opt && <div className="w-1.5 h-1.5 rounded-full bg-zinc-900" />}
+                                <label key={optValue(opt)} className="flex items-center gap-3 cursor-pointer group">
+                                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${responses[field.id] === optValue(opt) ? 'border-white bg-white' : 'border-white/20 group-hover:border-white/40'}`}>
+                                        {responses[field.id] === optValue(opt) && <div className="w-1.5 h-1.5 rounded-full bg-zinc-900" />}
                                     </div>
-                                    <input type="radio" className="sr-only" checked={responses[field.id] === opt} onChange={() => setResponse(field.id, opt)} />
-                                    <span className="text-sm text-white/70">{opt}</span>
+                                    <input type="radio" className="sr-only" checked={responses[field.id] === optValue(opt)} onChange={() => setResponse(field.id, optValue(opt))} />
+                                    <span className="text-sm text-white/70">{optLabel(opt)}</span>
                                 </label>
                             ))}
                             {field.allowOther && (
@@ -266,14 +275,15 @@ function BriefForm({ deal, onSubmitted }: {
                     {field.type === 'checkbox' && (
                         <div className="space-y-2">
                             {field.options?.map(opt => {
-                                const checked = ((responses[field.id] as string[]) || []).includes(opt);
+                                const val = optValue(opt);
+                                const checked = ((responses[field.id] as string[]) || []).includes(val);
                                 return (
-                                    <label key={opt} className="flex items-center gap-3 cursor-pointer group">
+                                    <label key={val} className="flex items-center gap-3 cursor-pointer group">
                                         <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${checked ? 'border-white bg-white' : 'border-white/20 group-hover:border-white/40'}`}>
                                             {checked && <svg className="w-2.5 h-2.5 text-zinc-900" fill="none" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
                                         </div>
-                                        <input type="checkbox" className="sr-only" checked={checked} onChange={() => toggleCheckbox(field.id, opt)} />
-                                        <span className="text-sm text-white/70">{opt}</span>
+                                        <input type="checkbox" className="sr-only" checked={checked} onChange={() => toggleCheckbox(field.id, val)} />
+                                        <span className="text-sm text-white/70">{optLabel(opt)}</span>
                                     </label>
                                 );
                             })}

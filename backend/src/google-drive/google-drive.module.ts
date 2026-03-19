@@ -21,5 +21,6 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
     ProjectDriveController,
   ],
   providers: [GoogleDriveService],
+  exports: [GoogleDriveService],
 })
 export class GoogleDriveModule {}
