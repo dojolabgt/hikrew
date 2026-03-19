@@ -77,7 +77,7 @@ export class PublicClientInviteController {
     return this.clientsService.getInviteDetails(token);
   }
 
-  /** POST /clients/invite/:token/accept */
+  /** POST /clients/invite/:token/accept — for new users (password required) */
   @Post(':token/accept')
   @HttpCode(HttpStatus.NO_CONTENT)
   acceptInvite(
@@ -85,5 +85,23 @@ export class PublicClientInviteController {
     @Body() dto: AcceptInviteDto,
   ): Promise<void> {
     return this.clientsService.acceptInvite(token, dto.password);
+  }
+}
+
+// ─── Authenticated invite acceptance (JWT required, no password needed) ───────
+
+@Controller('clients/invite')
+@UseGuards(JwtAuthGuard)
+export class AuthenticatedClientInviteController {
+  constructor(private readonly clientsService: ClientsService) {}
+
+  /** POST /clients/invite/:token/accept-authenticated */
+  @Post(':token/accept-authenticated')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  acceptInviteAuthenticated(
+    @Param('token') token: string,
+    @Req() req: AuthRequest,
+  ): Promise<void> {
+    return this.clientsService.acceptInviteForUser(token, req.user.id);
   }
 }

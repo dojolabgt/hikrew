@@ -1,4 +1,26 @@
 services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  mailer:
+    build:
+      context: ./mailer
+      dockerfile: Dockerfile.dev
+    environment:
+      REDIS_URL: redis://redis:6379
+      REDIS_QUEUE_NAME: ${REDIS_QUEUE_NAME:-email_queue}
+      MAIL_FROM: ${MAIL_FROM:-"Hi Krew <noreply@hikrew.com>"}
+      MAIL_PROVIDERS: ${MAIL_PROVIDERS:-resend,brevo}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+    volumes:
+      - ./mailer/app:/app/app
+    depends_on:
+      - redis
+    restart: unless-stopped
+
   postgres:
     image: postgres:16-alpine
     environment:
@@ -41,11 +63,8 @@ services:
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD}
       SEED_FREELANCER_EMAIL: ${SEED_FREELANCER_EMAIL}
       SEED_FREELANCER_PASSWORD: ${SEED_FREELANCER_PASSWORD}
-      MAIL_HOST: ${MAIL_HOST}
-      MAIL_PORT: ${MAIL_PORT}
-      MAIL_USER: ${MAIL_USER}
-      MAIL_PASSWORD: ${MAIL_PASSWORD}
-      MAIL_FROM: ${MAIL_FROM}
+      REDIS_URL: redis://redis:6379
+      REDIS_QUEUE_NAME: ${REDIS_QUEUE_NAME:-email_queue}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       KREW_RECURRENTE_PUBLIC_KEY: ${KREW_RECURRENTE_PUBLIC_KEY}
       KREW_RECURRENTE_SECRET_KEY: ${KREW_RECURRENTE_SECRET_KEY}
@@ -63,6 +82,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     command: npm run start:dev
 
   frontend-app:

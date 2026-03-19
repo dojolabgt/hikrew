@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   BadRequestException,
   ForbiddenException,
@@ -14,13 +15,17 @@ import { WorkspacesService } from '../workspaces/workspaces.service';
 import { WorkspacePlan } from '../workspaces/workspace.entity';
 import { randomBytes } from 'crypto';
 import { InviteConnectionDto } from './dto/invite-connection.dto';
+import { MailService } from '../core/mail/mail.service';
 
 @Injectable()
 export class ConnectionsService {
+  private readonly logger = new Logger(ConnectionsService.name);
+
   constructor(
     @InjectRepository(WorkspaceConnection)
     private connectionsRepository: Repository<WorkspaceConnection>,
     private workspacesService: WorkspacesService,
+    private mailService: MailService,
   ) {}
 
   async inviteConnection(inviterWorkspaceId: string, dto: InviteConnectionDto) {
@@ -70,8 +75,11 @@ export class ConnectionsService {
 
     const savedConnection = await this.connectionsRepository.save(connection);
 
-    // TODO: Send Email using mailService
-    // await this.mailService.sendConnectionInvite(dto.email, inviterWorkspaceId, token);
+    this.mailService
+      .sendConnectionInvite(dto.email, workspace.businessName, token)
+      .catch((err) =>
+        this.logger.error('Failed to enqueue connection invite email', err),
+      );
 
     return {
       message: 'Invitación enviada por correo',

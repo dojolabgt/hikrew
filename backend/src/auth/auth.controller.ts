@@ -150,8 +150,12 @@ export class AuthController {
 
   @SkipThrottle()
   @Get('google')
-  async googleLogin(@Res() res: ExpressResponse) {
-    const url = this.authService.getGoogleAuthUrl('login');
+  async googleLogin(
+    @Query('inviteToken') inviteToken: string | undefined,
+    @Res() res: ExpressResponse,
+  ) {
+    const state = inviteToken ? `invite:${inviteToken}` : 'login';
+    const url = this.authService.getGoogleAuthUrl(state);
     res.redirect(url);
   }
 
@@ -178,6 +182,12 @@ export class AuthController {
       const { accessToken, refreshToken, isNew } =
         await this.authService.loginOrRegisterWithGoogle(code);
       this.setAuthCookies(res, accessToken, refreshToken);
+
+      if (state?.startsWith('invite:')) {
+        const inviteToken = state.replace('invite:', '');
+        return res.redirect(`${frontendUrl}/invite/client?token=${inviteToken}`);
+      }
+
       return res.redirect(
         isNew ? `${frontendUrl}/onboarding` : `${frontendUrl}/dashboard`,
       );

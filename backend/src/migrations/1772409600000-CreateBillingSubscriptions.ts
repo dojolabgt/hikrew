@@ -5,24 +5,30 @@ export class CreateBillingSubscriptions1772409600000 implements MigrationInterfa
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
-            CREATE TYPE "public"."billing_subscriptions_status_enum" AS ENUM (
-                'pending',
-                'active',
-                'past_due',
-                'cancelled',
-                'unable_to_start'
-            )
+            DO $$ BEGIN
+                CREATE TYPE "public"."billing_subscriptions_status_enum" AS ENUM (
+                    'pending',
+                    'active',
+                    'past_due',
+                    'cancelled',
+                    'unable_to_start'
+                );
+            EXCEPTION WHEN duplicate_object THEN NULL;
+            END $$
         `);
 
     await queryRunner.query(`
-            CREATE TYPE "public"."billing_subscriptions_interval_enum" AS ENUM (
-                'month',
-                'year'
-            )
+            DO $$ BEGIN
+                CREATE TYPE "public"."billing_subscriptions_interval_enum" AS ENUM (
+                    'month',
+                    'year'
+                );
+            EXCEPTION WHEN duplicate_object THEN NULL;
+            END $$
         `);
 
     await queryRunner.query(`
-            CREATE TABLE "billing_subscriptions" (
+            CREATE TABLE IF NOT EXISTS "billing_subscriptions" (
                 "id"                          uuid              NOT NULL DEFAULT uuid_generate_v4(),
                 "freelancerId"                uuid              NOT NULL,
                 "recurrenteCheckoutId"        character varying NOT NULL,
@@ -39,16 +45,19 @@ export class CreateBillingSubscriptions1772409600000 implements MigrationInterfa
         `);
 
     await queryRunner.query(`
-            CREATE INDEX "IDX_billing_subscriptions_freelancerId"
+            CREATE INDEX IF NOT EXISTS "IDX_billing_subscriptions_freelancerId"
             ON "billing_subscriptions" ("freelancerId")
         `);
 
     await queryRunner.query(`
-            ALTER TABLE "billing_subscriptions"
-            ADD CONSTRAINT "FK_billing_subscriptions_freelancer"
-            FOREIGN KEY ("freelancerId")
-            REFERENCES "freelancer_profiles"("userId")
-            ON DELETE CASCADE
+            DO $$ BEGIN
+                ALTER TABLE "billing_subscriptions"
+                ADD CONSTRAINT "FK_billing_subscriptions_freelancer"
+                FOREIGN KEY ("freelancerId")
+                REFERENCES "freelancer_profiles"("userId")
+                ON DELETE CASCADE;
+            EXCEPTION WHEN duplicate_object THEN NULL;
+            END $$
         `);
   }
 

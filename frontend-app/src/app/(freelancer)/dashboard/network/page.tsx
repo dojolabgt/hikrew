@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { QRCodeSVG } from 'qrcode.react';
-import { Loader2, UserPlus, Check, Copy, Network, Clock } from 'lucide-react';
+import { Loader2, UserPlus, Check, Copy, Network, Clock, Mail, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
     Dialog,
@@ -29,9 +29,12 @@ export default function NetworkPage() {
         isLoading,
         fetchConnections,
         generateLink,
+        sendInvite,
     } = useNetwork();
 
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+    const [inviteTab, setInviteTab] = useState<'email' | 'link'>('email');
+    const [inviteEmail, setInviteEmail] = useState('');
     const [generatedLinkToken, setGeneratedLinkToken] = useState<string | null>(null);
     const [isCopied, setIsCopied] = useState(false);
 
@@ -58,6 +61,17 @@ export default function NetworkPage() {
     const handleCloseModal = () => {
         setIsInviteModalOpen(false);
         setGeneratedLinkToken(null);
+        setInviteEmail('');
+        setInviteTab('email');
+    };
+
+    const handleSendEmailInvite = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const ok = await sendInvite(inviteEmail);
+        if (ok) {
+            setInviteEmail('');
+            handleCloseModal();
+        }
     };
 
     const columns: ColumnDef<WorkspaceConnection>[] = [
@@ -174,46 +188,87 @@ export default function NetworkPage() {
                         <DialogTitle>{t('network.inviteModalTitle')}</DialogTitle>
                         <DialogDescription>{t('network.inviteModalDesc')}</DialogDescription>
                     </DialogHeader>
-                    <div className="flex flex-col items-center py-4 space-y-4 w-full mt-2">
-                        {!generatedLinkToken ? (
-                            <>
-                                <p className="text-sm text-center text-muted-foreground w-4/5">
-                                    {t('network.inviteExplain')}
+
+                    {/* Tabs */}
+                    <div className="flex gap-1 p-1 bg-muted rounded-lg mt-2">
+                        <button
+                            onClick={() => setInviteTab('email')}
+                            className={`flex-1 flex items-center justify-center gap-2 text-sm font-medium py-1.5 rounded-md transition-colors ${inviteTab === 'email' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                        >
+                            <Mail className="w-3.5 h-3.5" />
+                            Por correo
+                        </button>
+                        <button
+                            onClick={() => setInviteTab('link')}
+                            className={`flex-1 flex items-center justify-center gap-2 text-sm font-medium py-1.5 rounded-md transition-colors ${inviteTab === 'link' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                        >
+                            <Link2 className="w-3.5 h-3.5" />
+                            Por enlace
+                        </button>
+                    </div>
+
+                    <div className="flex flex-col items-center py-2 space-y-4 w-full">
+                        {inviteTab === 'email' ? (
+                            <form onSubmit={handleSendEmailInvite} className="w-full space-y-3">
+                                <p className="text-sm text-muted-foreground">
+                                    Envía una invitación directa al correo del freelancer o agencia con quien quieres conectarte.
                                 </p>
-                                <Button onClick={handleGenerateLink} disabled={isLoading} className="mt-2 text-md">
+                                <Input
+                                    type="email"
+                                    placeholder="correo@ejemplo.com"
+                                    value={inviteEmail}
+                                    onChange={(e) => setInviteEmail(e.target.value)}
+                                    required
+                                    autoFocus
+                                />
+                                <Button type="submit" disabled={isLoading} className="w-full">
                                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    {t('network.generateBtn')}
+                                    Enviar invitación
                                 </Button>
-                            </>
+                            </form>
                         ) : (
-                            <div className="flex flex-col items-center space-y-4 animate-in fade-in duration-300 w-full">
-                                <div className="p-4 bg-white border border-gray-100 shadow-sm rounded-xl">
-                                    <QRCodeSVG
-                                        value={`${window.location.origin}/invite/connection?token=${generatedLinkToken}`}
-                                        size={180}
-                                        level="Q"
-                                        includeMargin={false}
-                                        fgColor="#000000"
-                                        bgColor="#ffffff"
-                                    />
-                                </div>
-                                <div className="flex gap-2 w-full mt-4">
-                                    <Input
-                                        readOnly
-                                        value={`${window.location.origin}/invite/connection?token=${generatedLinkToken}`}
-                                        className="font-mono text-xs text-muted-foreground"
-                                    />
-                                    <Button variant="secondary" onClick={handleCopyLink} className="w-28 shrink-0">
-                                        {isCopied
-                                            ? <><Check className="w-4 h-4 mr-1.5" />{t('network.copiedBtn')}</>
-                                            : <><Copy className="w-4 h-4 mr-1.5" />{t('network.copyBtn')}</>
-                                        }
-                                    </Button>
-                                </div>
-                                <p className="text-xs text-muted-foreground text-center">
-                                    {t('network.qrNote')}
-                                </p>
-                            </div>
+                            <>
+                                {!generatedLinkToken ? (
+                                    <>
+                                        <p className="text-sm text-center text-muted-foreground w-4/5">
+                                            {t('network.inviteExplain')}
+                                        </p>
+                                        <Button onClick={handleGenerateLink} disabled={isLoading} className="mt-2 text-md">
+                                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                            {t('network.generateBtn')}
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <div className="flex flex-col items-center space-y-4 animate-in fade-in duration-300 w-full">
+                                        <div className="p-4 bg-white border border-gray-100 shadow-sm rounded-xl">
+                                            <QRCodeSVG
+                                                value={`${window.location.origin}/invite/connection?token=${generatedLinkToken}`}
+                                                size={180}
+                                                level="Q"
+                                                includeMargin={false}
+                                                fgColor="#000000"
+                                                bgColor="#ffffff"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2 w-full mt-4">
+                                            <Input
+                                                readOnly
+                                                value={`${window.location.origin}/invite/connection?token=${generatedLinkToken}`}
+                                                className="font-mono text-xs text-muted-foreground"
+                                            />
+                                            <Button variant="secondary" onClick={handleCopyLink} className="w-28 shrink-0">
+                                                {isCopied
+                                                    ? <><Check className="w-4 h-4 mr-1.5" />{t('network.copiedBtn')}</>
+                                                    : <><Copy className="w-4 h-4 mr-1.5" />{t('network.copyBtn')}</>
+                                                }
+                                            </Button>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground text-center">
+                                            {t('network.qrNote')}
+                                        </p>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 </DialogContent>

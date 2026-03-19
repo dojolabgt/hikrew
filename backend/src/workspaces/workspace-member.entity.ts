@@ -15,6 +15,7 @@ export enum WorkspaceRole {
   OWNER = 'owner',
   COLLABORATOR = 'collaborator',
   GUEST = 'guest',
+  CLIENT = 'client',
 }
 
 @Entity('workspace_members')

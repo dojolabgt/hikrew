@@ -1,8 +1,7 @@
 'use client';
 
-import { useRequireRole } from '@/features/auth/hooks/useRequireRole';
+import { useRequireClientMembership } from '@/features/auth/hooks/useRequireRole';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { UserRole } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -12,12 +11,18 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, ChevronDown, LayoutDashboard } from 'lucide-react';
+import { LogOut, ChevronDown, LayoutDashboard, Briefcase } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 function ClientNav() {
     const { user, logout } = useAuth();
+    const router = useRouter();
+
+    const hasOwnerWorkspace = user?.workspaceMembers?.some(
+        (wm) => wm.role === 'owner' || wm.role === 'collaborator',
+    );
 
     const initials = user
         ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || user.email[0].toUpperCase()
@@ -64,6 +69,15 @@ function ClientNav() {
                             <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                         </div>
                         <DropdownMenuSeparator />
+                        {hasOwnerWorkspace && (
+                            <DropdownMenuItem
+                                onClick={() => router.push('/dashboard')}
+                                className="cursor-pointer"
+                            >
+                                <Briefcase className="mr-2 h-4 w-4" />
+                                Ir a mi dashboard
+                            </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                             onClick={logout}
                             className="text-red-500 focus:text-red-500 focus:bg-red-50 dark:focus:bg-red-950/30 cursor-pointer"
@@ -79,7 +93,7 @@ function ClientNav() {
 }
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
-    const { isAuthorized, isLoading } = useRequireRole(UserRole.CLIENT);
+    const { isAuthorized, isLoading } = useRequireClientMembership();
 
     if (isLoading) {
         return (

@@ -11,20 +11,23 @@ import type { Workspace } from '@/features/workspaces/types';
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /**
- * Maps a UserRole directly to its intended dashboard route.
+ * Determines the correct post-login destination based on workspace memberships.
+ * Priority: admin > context selector (dual role) > portal (client only) > dashboard
  */
-function getDashboardRoute(role: UserRole): string {
-    switch (role) {
-        case UserRole.ADMIN:
-        case UserRole.SUPPORT:
-            return '/admin';
-        case UserRole.FREELANCER:
-            return '/dashboard';
-        case UserRole.CLIENT:
-            return '/portal';
-        default:
-            return '/login';
-    }
+function getPostLoginRoute(user: User): string {
+    if (user.role === UserRole.ADMIN || user.role === UserRole.SUPPORT) return '/admin';
+
+    const ownerMemberships = user.workspaceMembers?.filter(
+        (wm) => wm.role === 'owner' || wm.role === 'collaborator',
+    ) ?? [];
+    const clientMemberships = user.workspaceMembers?.filter((wm) => wm.role === 'client') ?? [];
+
+    // Legacy: user-level CLIENT role (pre-migration data)
+    if (user.role === UserRole.CLIENT) return '/portal';
+
+    if (ownerMemberships.length > 0 && clientMemberships.length > 0) return '/select-context';
+    if (clientMemberships.length > 0) return '/portal';
+    return '/dashboard';
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -36,15 +39,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [error, setError] = useState<string | null>(null);
 
     const checkAndSetWorkspace = (userData: User) => {
-        if (!userData.workspaceMembers || userData.workspaceMembers.length === 0) return;
+        // Only consider non-CLIENT memberships for the active workspace context
+        const memberships = userData.workspaceMembers?.filter((wm) => wm.role !== 'client') ?? [];
+        if (memberships.length === 0) return;
+
         let storedId = localStorage.getItem('activeWorkspaceId');
+        let workspaceData = memberships.find((wm) => wm.workspaceId === storedId);
 
-        // Check if storedId is valid for the user
-        let workspaceData = userData.workspaceMembers.find(wm => wm.workspaceId === storedId);
-
-        // Fallback to first available workspace normally OWNER if sorted
         if (!workspaceData) {
-            workspaceData = userData.workspaceMembers[0];
+            workspaceData = memberships[0];
             storedId = workspaceData.workspaceId;
             localStorage.setItem('activeWorkspaceId', storedId);
         }
@@ -74,7 +77,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const response = await api.get<User>('/auth/me');
             setUser(response.data);
 
-            if (response.data.role === UserRole.FREELANCER) {
+            const hasDashboardAccess = response.data.workspaceMembers?.some(
+                (wm) => wm.role === 'owner' || wm.role === 'collaborator',
+            );
+            if (hasDashboardAccess) {
                 checkAndSetWorkspace(response.data);
             }
 
@@ -111,20 +117,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setIsLoading(true);
             setError(null);
             const response = await api.post<{ user: User }>('/auth/login', credentials);
-            setUser(response.data.user);
+            const userData = response.data.user;
+            setUser(userData);
 
-            if (response.data.user.role === UserRole.FREELANCER) {
-                checkAndSetWorkspace(response.data.user);
+            const ownerMemberships = userData.workspaceMembers?.filter(
+                (wm) => wm.role === 'owner' || wm.role === 'collaborator',
+            ) ?? [];
 
-                // Redirect to onboarding if not completed yet
-                const workspace = response.data.user.workspaceMembers?.[0]?.workspace;
+            if (ownerMemberships.length > 0) {
+                checkAndSetWorkspace(userData);
+
+                // Redirect to onboarding if the first owned workspace hasn't completed it
+                const workspace = ownerMemberships[0]?.workspace;
                 if (workspace && !workspace.onboardingCompleted) {
                     router.push('/onboarding');
                     return;
                 }
             }
 
-            router.push(getDashboardRoute(response.data.user.role));
+            router.push(getPostLoginRoute(userData));
         } catch (err: unknown) {
             const apiErr = err as { response?: { data?: { message?: string } }; message?: string };
             setError(apiErr.response?.data?.message || 'Error occurred during login');
@@ -141,9 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const response = await api.post<{ user: User }>('/auth/register', credentials);
             setUser(response.data.user);
 
-            if (response.data.user.role === UserRole.FREELANCER) {
-                checkAndSetWorkspace(response.data.user);
-            }
+            checkAndSetWorkspace(response.data.user);
 
             // Always send new registrations to onboarding
             router.push('/onboarding');

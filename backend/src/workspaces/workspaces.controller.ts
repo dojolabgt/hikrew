@@ -30,6 +30,26 @@ export class WorkspacesController {
     return this.workspacesService.findByUserId(req.user.id);
   }
 
+  /**
+   * Creates a new workspace for an already-authenticated user.
+   * Used when a client user wants to also operate as a freelancer/owner.
+   */
+  @Post('create')
+  async createWorkspace(@Req() req: AuthRequest) {
+    const existing = await this.workspacesService.findByUserId(req.user.id);
+    const alreadyOwner = existing.some(
+      (m) => m.role === 'owner' || m.role === 'collaborator',
+    );
+    if (alreadyOwner) {
+      // Return the existing workspace instead of creating a duplicate
+      const ownerMembership = existing.find(
+        (m) => m.role === 'owner' || m.role === 'collaborator',
+      );
+      return ownerMembership!.workspace;
+    }
+    return this.workspacesService.createDefaultWorkspace(req.user.id);
+  }
+
   @Patch('current')
   @UseGuards(WorkspaceGuard)
   async updateWorkspace(

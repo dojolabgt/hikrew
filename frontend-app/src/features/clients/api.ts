@@ -31,6 +31,8 @@ export const clientsApi = {
     getInvite: async (token: string): Promise<{
         clientName: string;
         email: string;
+        hasAccount: boolean;
+        hasPassword: boolean;
         workspace: { businessName?: string; logo?: string };
     }> => {
         return api.get(`/clients/invite/${token}`).then((res) => res.data);

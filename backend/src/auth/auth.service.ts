@@ -47,6 +47,10 @@ export class AuthService {
     // Auto-create an empty Workspace linked to the new user as OWNER
     await this.workspacesService.createDefaultWorkspace(newUser.id);
 
+    this.mailService.sendWelcome(newUser).catch((err) =>
+      this.logger.error('Failed to enqueue welcome email', err),
+    );
+
     const userWithWorkspaces = await this.usersService.findOneById(newUser.id);
 
     const userForToken = this.mapToAuthenticatedUser(userWithWorkspaces!);
@@ -206,6 +210,9 @@ export class AuthService {
           role: UserRole.FREELANCER,
         });
         await this.workspacesService.createDefaultWorkspace(newUser.id);
+        this.mailService.sendWelcome(newUser).catch((err) =>
+          this.logger.error('Failed to enqueue welcome email', err),
+        );
         user = await this.usersService.findOneById(newUser.id);
       }
     }

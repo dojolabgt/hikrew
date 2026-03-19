@@ -37,11 +37,13 @@ function LoginContent() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
 
+    const callbackUrl = searchParams.get('callbackUrl');
+
     useEffect(() => {
         if (!isLoading && user) {
-            router.replace(getDashboardRoute(user.role));
+            router.replace(callbackUrl || getDashboardRoute(user.role));
         }
-    }, [isLoading, user, router]);
+    }, [isLoading, user, router, callbackUrl]);
 
     useEffect(() => {
         if (searchParams.get('error') === 'google_auth_failed') {

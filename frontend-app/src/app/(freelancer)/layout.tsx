@@ -33,16 +33,19 @@ export default function FreelancerLayout({ children }: { children: React.ReactNo
         { href: '/dashboard/settings/personal-info', label: t('sidebar.settings'), icon: Settings, section: t('sidebar.settingsSection') },
     ];
 
-    // Guard: redirect to onboarding if not completed yet
+    // Guard: redirect to onboarding if no workspace yet or onboarding incomplete
     useEffect(() => {
-        if (!isLoading && isAuthorized && activeWorkspace && !activeWorkspace.onboardingCompleted) {
-            router.replace('/onboarding');
+        if (!isLoading && isAuthorized) {
+            if (!activeWorkspace || !activeWorkspace.onboardingCompleted) {
+                router.replace('/onboarding');
+            }
         }
     }, [isLoading, isAuthorized, activeWorkspace, router]);
 
     if (isLoading) return null;
     if (!isAuthorized || !user) return null;
-    if (activeWorkspace && !activeWorkspace.onboardingCompleted) return null; // wait for redirect
+    // Block render until workspace is confirmed — prevents API calls without x-workspace-id
+    if (!activeWorkspace || !activeWorkspace.onboardingCompleted) return null;
 
     return (
         <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">

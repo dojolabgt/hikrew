@@ -1,10 +1,17 @@
 'use client';
 
-import { LogOut, ChevronsUpDown } from 'lucide-react';
+import { LogOut, ChevronsUpDown, Check, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 import { NavItem, NavItemConfig } from './NavItem';
 import { cn, getImageUrl } from '@/lib/utils';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface SidebarProps {
     navItems: NavItemConfig[];
@@ -12,6 +19,15 @@ interface SidebarProps {
 
 export function Sidebar({ navItems }: SidebarProps) {
     const { user, activeWorkspace, activeWorkspaceId, switchWorkspace, logout } = useAuth();
+
+    // Only show owner/collaborator workspaces in the switcher — never client workspaces
+    const ownerWorkspaces = user?.workspaceMembers?.filter(
+        (wm) => wm.role === 'owner' || wm.role === 'collaborator',
+    ) ?? [];
+
+    const clientWorkspaces = user?.workspaceMembers?.filter(
+        (wm) => wm.role === 'client',
+    ) ?? [];
 
     const groupedItems = navItems.reduce((acc, item) => {
         const section = item.section || 'MAIN NAVIGATION';
@@ -57,21 +73,34 @@ export function Sidebar({ navItems }: SidebarProps) {
                     </div>
                 </div>
 
-                {user?.workspaceMembers && user.workspaceMembers.length > 1 && (
-                    <div className="relative shrink-0">
-                        <select
-                            className="appearance-none bg-transparent text-gray-500 text-xs pl-1 pr-5 py-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg outline-none transition-all duration-200"
-                            value={activeWorkspaceId || ''}
-                            onChange={(e) => switchWorkspace(e.target.value)}
-                        >
-                            {user.workspaceMembers.map(wm => (
-                                <option key={wm.workspaceId} value={wm.workspaceId}>
-                                    {wm.workspace.businessName}
-                                </option>
+                {ownerWorkspaces.length > 1 && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button className="shrink-0 flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors outline-none">
+                                <ChevronsUpDown className="h-3.5 w-3.5 text-gray-400 dark:text-white/40" />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-52">
+                            {ownerWorkspaces.map((wm) => (
+                                <DropdownMenuItem
+                                    key={wm.workspaceId}
+                                    onClick={() => switchWorkspace(wm.workspaceId)}
+                                    className="flex items-center gap-2 cursor-pointer"
+                                >
+                                    <Avatar className="h-5 w-5 rounded-md shrink-0">
+                                        <AvatarImage src={getImageUrl(wm.workspace.logo)} className="object-cover" />
+                                        <AvatarFallback className="text-[9px] font-bold bg-zinc-200 dark:bg-zinc-700 rounded-md">
+                                            {wm.workspace.businessName?.substring(0, 2).toUpperCase()}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <span className="flex-1 truncate text-sm">{wm.workspace.businessName}</span>
+                                    {wm.workspaceId === activeWorkspaceId && (
+                                        <Check className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
+                                    )}
+                                </DropdownMenuItem>
                             ))}
-                        </select>
-                        <ChevronsUpDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-500 pointer-events-none" />
-                    </div>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 )}
             </div>
 
@@ -93,8 +122,29 @@ export function Sidebar({ navItems }: SidebarProps) {
                 </div>
             </nav>
 
+            {/* ── Client portal link ── */}
+            {clientWorkspaces.length > 0 && (
+                <div className="shrink-0 px-3 pb-1 border-t border-gray-100 dark:border-white/[0.06] pt-3">
+                    <Link
+                        href="/portal"
+                        className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-all duration-200 group"
+                    >
+                        <div className="h-5 w-5 rounded-md bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center shrink-0">
+                            <ExternalLink className="h-3 w-3" />
+                        </div>
+                        <span className="flex-1 text-[12px] font-medium truncate">
+                            {clientWorkspaces.length === 1
+                                ? `Portal · ${clientWorkspaces[0].workspace.businessName}`
+                                : `Portal de cliente (${clientWorkspaces.length})`
+                            }
+                        </span>
+                        <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                    </Link>
+                </div>
+            )}
+
             {/* ── User footer ── */}
-            <div className="shrink-0 p-3 border-t border-gray-100 dark:border-white/[0.06]">
+            <div className={cn("shrink-0 p-3 border-t border-gray-100 dark:border-white/[0.06]", clientWorkspaces.length > 0 && "border-t-0")}>
                 <div className="flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-all duration-200 group cursor-default">
                     <Avatar className="h-8 w-8 ring-1 ring-gray-200 dark:ring-white/[0.12] shrink-0">
                         <AvatarImage src={getImageUrl(user?.profileImage)} alt={userFullName} className="object-cover" />

@@ -1,4 +1,30 @@
 services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - app-network
+    expose:
+      - "6379"
+
+  mailer:
+    build:
+      context: ./mailer
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - REDIS_QUEUE_NAME=${REDIS_QUEUE_NAME:-email_queue}
+      - MAIL_FROM=${MAIL_FROM}
+      - MAIL_PROVIDERS=${MAIL_PROVIDERS:-resend,brevo}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - BREVO_API_KEY=${BREVO_API_KEY}
+    depends_on:
+      - redis
+    networks:
+      - app-network
+
   frontend:
     build:
       context: ./frontend-app
@@ -80,11 +106,8 @@ services:
       - SEED_ADMIN_PASSWORD=${SEED_ADMIN_PASSWORD}
       - SEED_FREELANCER_EMAIL=${SEED_FREELANCER_EMAIL}
       - SEED_FREELANCER_PASSWORD=${SEED_FREELANCER_PASSWORD}
-      - MAIL_HOST=${MAIL_HOST}
-      - MAIL_PORT=${MAIL_PORT}
-      - MAIL_USER=${MAIL_USER}
-      - MAIL_PASSWORD=${MAIL_PASSWORD}
-      - MAIL_FROM=${MAIL_FROM}
+      - REDIS_URL=redis://redis:6379
+      - REDIS_QUEUE_NAME=${REDIS_QUEUE_NAME:-email_queue}
       - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
@@ -98,6 +121,7 @@ services:
       - BILLING_PREMIUM_YEARLY_CENTS=${BILLING_PREMIUM_YEARLY_CENTS}
     depends_on:
       - postgres
+      - redis
     volumes:
       - uploads:/app/uploads
     restart: unless-stopped

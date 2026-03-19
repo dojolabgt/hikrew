@@ -32,6 +32,11 @@ export class WorkspaceGuard implements CanActivate {
       throw new ForbiddenException('You do not have access to this workspace');
     }
 
+    // Clients are not allowed to use the workspace dashboard API
+    if (membership.role === 'client') {
+      throw new ForbiddenException('Client accounts cannot access the workspace dashboard');
+    }
+
     // Inject workspace membership data into request for downstream controllers
     request.workspaceId = workspaceId;
     request.workspaceRole = membership.role;

@@ -3,14 +3,16 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { portalApi, PortalDeal } from '@/features/portal/api';
 import { getImageUrl, cn } from '@/lib/utils';
 import {
     FileText, Clock, CheckCircle2, ArrowRight, Loader2,
-    CreditCard, Inbox, AlertCircle,
+    CreditCard, Inbox, AlertCircle, Plus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import api from '@/lib/api';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -164,9 +166,11 @@ function DealCard({ deal }: { deal: PortalDeal }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function PortalPage() {
-    const { user } = useAuth();
+    const { user, checkAuth, switchWorkspace } = useAuth();
+    const router = useRouter();
     const [deals, setDeals] = useState<PortalDeal[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -176,7 +180,23 @@ export default function PortalPage() {
             .finally(() => setIsLoading(false));
     }, []);
 
+    const handleCreateWorkspace = async () => {
+        setIsCreatingWorkspace(true);
+        try {
+            const res = await api.post<{ id: string }>('/workspaces/create');
+            await checkAuth();
+            switchWorkspace(res.data.id);
+            router.push('/onboarding');
+        } catch {
+            setError('No se pudo crear el espacio de trabajo. Inténtalo de nuevo.');
+            setIsCreatingWorkspace(false);
+        }
+    };
+
     const firstName = user?.firstName || user?.email?.split('@')[0] || 'cliente';
+    const hasOwnerWorkspace = user?.workspaceMembers?.some(
+        (wm) => wm.role === 'owner' || wm.role === 'collaborator',
+    );
 
     const activeDeals = deals.filter((d) => resolveDealStage(d) !== 'approved');
     const approvedDeals = deals.filter((d) => resolveDealStage(d) === 'approved');
@@ -200,6 +220,31 @@ export default function PortalPage() {
                     Aquí puedes revisar y gestionar todas tus propuestas.
                 </p>
             </div>
+
+            {/* Upgrade to freelancer banner — only for pure clients */}
+            {!hasOwnerWorkspace && (
+                <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+                    <div className="min-w-0">
+                        <p className="text-sm font-medium">¿Quieres ofrecer tus servicios?</p>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                            Crea tu propio espacio de trabajo y gestiona clientes y proyectos.
+                        </p>
+                    </div>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0 rounded-full gap-1.5"
+                        onClick={handleCreateWorkspace}
+                        disabled={isCreatingWorkspace}
+                    >
+                        {isCreatingWorkspace
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : <Plus className="h-3.5 w-3.5" />
+                        }
+                        Crear espacio
+                    </Button>
+                </div>
+            )}
 
             {/* Error */}
             {error && (

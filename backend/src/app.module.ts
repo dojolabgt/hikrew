@@ -52,11 +52,15 @@ import { GoogleDriveModule } from './google-drive/google-drive.module';
           .default('local'),
         UPLOAD_MAX_SIZE: Joi.number().default(5242880),
         ALLOWED_IMAGE_TYPES: Joi.string().default('jpg,jpeg,png,webp,gif'),
-        MAIL_HOST: Joi.string().required(),
-        MAIL_PORT: Joi.number().required(),
+        // Redis (used by MailService to enqueue emails)
+        REDIS_URL: Joi.string().required(),
+        REDIS_QUEUE_NAME: Joi.string().default('email_queue'),
+        // Legacy SMTP vars kept optional (consumed by the mailer worker, not NestJS)
+        MAIL_HOST: Joi.string().optional(),
+        MAIL_PORT: Joi.number().optional(),
         MAIL_USER: Joi.string().allow('').optional(),
         MAIL_PASSWORD: Joi.string().allow('').optional(),
-        MAIL_FROM: Joi.string().required(),
+        MAIL_FROM: Joi.string().optional(),
         // Google OAuth (shared for Drive + Auth)
         GOOGLE_CLIENT_ID: Joi.string().optional(),
         GOOGLE_CLIENT_SECRET: Joi.string().optional(),
@@ -86,8 +90,8 @@ import { GoogleDriveModule } from './google-drive/google-drive.module';
         database: configService.get<string>('DATABASE_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
-        synchronize: configService.get('NODE_ENV') !== 'production', // auto-sync in dev
-        migrationsRun: configService.get('NODE_ENV') === 'production',
+        synchronize: false,
+        migrationsRun: false,
       }),
       inject: [ConfigService],
     }),
