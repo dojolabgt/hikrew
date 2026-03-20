@@ -279,14 +279,21 @@ export class DealsService {
 
     if (updateDealDto.status === DealStatus.WON) {
       deal.wonAt = new Date();
-      // Ensure we immediately create the project so it is present via the UI after the API call.
-      await this.projectsService.createFromDeal(deal.workspaceId, deal);
     }
     if (updateDealDto.status === DealStatus.SENT) {
       deal.sentAt = new Date();
     }
 
-    return await this.dealsRepository.save(deal);
+    const savedDeal = await this.dealsRepository.save(deal);
+
+    // Create project AFTER saving the deal. If called before, dealsRepository.save()
+    // resets project.deal_id to NULL because deal.project was loaded as null
+    // (relations: ['project'] in findDealOrFail) and TypeORM "detaches" the project.
+    if (updateDealDto.status === DealStatus.WON) {
+      await this.projectsService.createFromDeal(savedDeal.workspaceId, savedDeal);
+    }
+
+    return savedDeal;
   }
 
   async deleteDeal(workspaceId: string, dealId: string): Promise<void> {

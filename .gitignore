@@ -3,3 +3,5 @@
 .env.local
 .env.production
 .claude
+
+__pycache__

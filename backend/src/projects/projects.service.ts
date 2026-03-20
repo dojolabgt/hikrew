@@ -97,17 +97,25 @@ export class ProjectsService {
       where: { dealId: deal.id },
     });
     if (existing) return existing;
-    // Pass the full deal relation object so TypeORM correctly sets deal_id FK.
-    // Setting only dealId (string) alongside a nullable OneToOne relation causes
-    // TypeORM to override the FK with null when the relation property is undefined.
+
     const project = this.projectsRepository.create({
       workspaceId,
-      deal,
-      dealId: deal.id,
       name: deal.name,
       status: ProjectStatus.ACTIVE,
     });
-    return this.projectsRepository.save(project);
+    const saved = await this.projectsRepository.save(project);
+
+    // Set deal_id via raw SQL. Using repository.save() or repository.update() fails
+    // because TypeORM's expose-FK pattern (@Column dealId + @JoinColumn deal on the
+    // same column) causes the FK to be ignored or reset during ORM processing.
+    await this.projectsRepository.manager.query(
+      `UPDATE "projects" SET "deal_id" = $1 WHERE "id" = $2`,
+      [deal.id, saved.id],
+    );
+
+    saved.dealId = deal.id;
+    saved.deal = deal;
+    return saved;
   }
 
   async findAll(

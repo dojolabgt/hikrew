@@ -16,7 +16,7 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       BREVO_API_KEY: ${BREVO_API_KEY:-}
     volumes:
-      - ./mailer/app:/app/app
+      - ./mailer/app:/app/app:z
     depends_on:
       - redis
     restart: unless-stopped
@@ -77,7 +77,7 @@ services:
       GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
     volumes:
-      - ./backend:/app
+      - ./backend:/app:z
       - /app/node_modules
     depends_on:
       postgres:
@@ -97,7 +97,7 @@ services:
       NEXT_PUBLIC_IMAGE_BACKEND_URL: ${NEXT_PUBLIC_IMAGE_BACKEND_URL}
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
     volumes:
-      - ./frontend-app:/app
+      - ./frontend-app:/app:z
       - /app/node_modules
       - /app/.next
     depends_on:
@@ -120,7 +120,7 @@ services:
       NEXT_PUBLIC_PRO_PRICE: ${NEXT_PUBLIC_PRO_PRICE}
       NEXT_PUBLIC_PREMIUM_PRICE: ${NEXT_PUBLIC_PREMIUM_PRICE}
     volumes:
-      - ./frontend-public:/app
+      - ./frontend-public:/app:z
       - /app/node_modules
       - /app/.next
     depends_on:
