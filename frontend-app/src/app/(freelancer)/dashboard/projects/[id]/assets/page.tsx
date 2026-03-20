@@ -8,6 +8,7 @@ import {
     Loader2, HardDrive, FolderOpen, File, FileImage, FileVideo,
     FileArchive, Settings, Plus, ChevronDown, ChevronUp,
     LayoutTemplate, CheckCircle2, Circle, ArrowLeft, ArrowRight,
+    Copy, Check,
 } from 'lucide-react';
 import { useProject } from '../layout';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -119,7 +120,6 @@ function AddBriefDialog({
 
                 <div className="flex-1 overflow-y-auto px-6 py-5">
                     {!selected ? (
-                        /* Step 1 — pick a template */
                         isLoading ? (
                             <div className="flex items-center justify-center py-12 text-zinc-400 gap-2">
                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -171,7 +171,6 @@ function AddBriefDialog({
                             </div>
                         )
                     ) : (
-                        /* Step 2 — name + preview */
                         <div className="space-y-5">
                             <div className="space-y-1.5">
                                 <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t('assets.briefNameLabel')}</label>
@@ -182,8 +181,6 @@ function AddBriefDialog({
                                     autoFocus
                                 />
                             </div>
-
-                            {/* Template preview */}
                             <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
                                 <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800">
                                     <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">{t('assets.briefPreviewLabel')}</p>
@@ -211,7 +208,6 @@ function AddBriefDialog({
                     )}
                 </div>
 
-                {/* Footer */}
                 <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-zinc-100 dark:border-zinc-800 shrink-0">
                     {selected ? (
                         <>
@@ -235,13 +231,12 @@ function AddBriefDialog({
     );
 }
 
-// ─── Brief Item ───────────────────────────────────────────────────────────────
+// ─── Brief Card ───────────────────────────────────────────────────────────────
 
-function BriefItem({
+function BriefCard({
     brief,
     isOwner,
     onDelete,
-    onUpdateResponse,
 }: {
     brief: {
         id: string;
@@ -252,47 +247,68 @@ function BriefItem({
     };
     isOwner: boolean;
     onDelete?: (id: string) => void;
-    onUpdateResponse?: (id: string, responses: Record<string, unknown>) => void;
 }) {
     const { t } = useWorkspaceSettings();
     const [expanded, setExpanded] = useState(false);
     const fields = brief.templateSnapshot ?? [];
-    const hasFields = fields.length > 0;
+    const totalFields = fields.length;
+    const answeredFields = fields.filter((f) => {
+        const ans = brief.responses?.[f.id];
+        return ans !== undefined && ans !== '' && !(Array.isArray(ans) && ans.length === 0);
+    }).length;
 
     return (
-        <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
-            {/* Use div+role to avoid <button> inside <button> hydration error */}
+        <div className={cn(
+            'border rounded-xl overflow-hidden transition-colors',
+            brief.isCompleted
+                ? 'border-emerald-200 dark:border-emerald-800/40 bg-emerald-50/30 dark:bg-emerald-900/5'
+                : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950',
+        )}>
             <div
                 role="button"
                 tabIndex={0}
                 onClick={() => setExpanded(!expanded)}
                 onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setExpanded(!expanded)}
-                className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors cursor-pointer"
             >
-                <div className="flex items-center gap-3 min-w-0">
-                    <div className={cn(
-                        'w-6 h-6 rounded-full flex items-center justify-center shrink-0',
-                        brief.isCompleted
-                            ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
-                            : 'bg-zinc-100 text-zinc-400 dark:bg-zinc-800',
-                    )}>
-                        {brief.isCompleted
-                            ? <CheckCircle2 className="w-3.5 h-3.5" />
-                            : <Circle className="w-3.5 h-3.5" />
-                        }
-                    </div>
-                    <div className="min-w-0">
-                        <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                            {brief.name}
-                        </p>
-                        {hasFields && (
-                            <p className="text-[11px] text-zinc-400">
-                                {fields.length} {t('assets.briefQuestions')}
-                            </p>
-                        )}
-                    </div>
+                {/* Completion icon */}
+                <div className={cn(
+                    'w-8 h-8 rounded-lg flex items-center justify-center shrink-0',
+                    brief.isCompleted
+                        ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'
+                        : 'bg-zinc-100 text-zinc-400 dark:bg-zinc-800',
+                )}>
+                    {brief.isCompleted
+                        ? <CheckCircle2 className="w-4 h-4" />
+                        : <Circle className="w-4 h-4" />
+                    }
                 </div>
-                <div className="flex items-center gap-2 shrink-0 ml-3">
+
+                <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                        {brief.name}
+                    </p>
+                    {totalFields > 0 && (
+                        <p className="text-[11px] text-zinc-400 mt-0.5">
+                            {answeredFields}/{totalFields} {t('assets.briefQuestions')}
+                            {totalFields > 0 && (
+                                <span className="ml-2">
+                                    <span
+                                        className="inline-block h-1 rounded-full bg-zinc-200 dark:bg-zinc-700 relative overflow-hidden"
+                                        style={{ width: 32 }}
+                                    >
+                                        <span
+                                            className={cn('absolute left-0 top-0 h-full rounded-full', brief.isCompleted ? 'bg-emerald-500' : 'bg-violet-400')}
+                                            style={{ width: `${totalFields > 0 ? Math.round((answeredFields / totalFields) * 100) : 0}%` }}
+                                        />
+                                    </span>
+                                </span>
+                            )}
+                        </p>
+                    )}
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
                     {brief.isCompleted && (
                         <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border-0 text-[10px] px-1.5">
                             {t('assets.briefCompleted')}
@@ -302,7 +318,7 @@ function BriefItem({
                         <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); onDelete(brief.id); }}
-                            className="p-1 rounded text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                            className="p-1 rounded text-zinc-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                         >
                             <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -313,8 +329,8 @@ function BriefItem({
 
             {expanded && (
                 <div className="border-t border-zinc-100 dark:border-zinc-800 px-4 py-4 bg-zinc-50/50 dark:bg-zinc-900/20">
-                    {hasFields ? (
-                        <div className="space-y-5">
+                    {fields.length > 0 ? (
+                        <div className="space-y-4">
                             {fields.map((field, idx) => {
                                 const answer = brief.responses?.[field.id];
                                 return (
@@ -322,9 +338,7 @@ function BriefItem({
                                         <div className="absolute -left-[9px] top-0.5 w-4 h-4 rounded-full bg-zinc-100 dark:bg-zinc-800 border-2 border-white dark:border-zinc-950 flex items-center justify-center text-[9px] font-bold text-zinc-500">
                                             {idx + 1}
                                         </div>
-                                        <p className="text-[13px] font-semibold text-zinc-800 dark:text-zinc-200 mb-1.5">
-                                            {field.label}
-                                        </p>
+                                        <p className="text-[13px] font-semibold text-zinc-800 dark:text-zinc-200 mb-1.5">{field.label}</p>
                                         <div className="text-[13px] text-zinc-600 dark:text-zinc-300 bg-white dark:bg-zinc-900/50 p-3 rounded-lg border border-zinc-100 dark:border-zinc-800/50">
                                             {answer !== undefined && answer !== '' ? (
                                                 Array.isArray(answer) ? (
@@ -343,9 +357,7 @@ function BriefItem({
                             })}
                         </div>
                     ) : (
-                        <p className="text-sm text-zinc-400 italic text-center py-4">
-                            {t('assets.briefNoTemplate')}
-                        </p>
+                        <p className="text-sm text-zinc-400 italic text-center py-4">{t('assets.briefNoTemplate')}</p>
                     )}
                 </div>
             )}
@@ -382,7 +394,7 @@ function BriefsSection() {
     const hasBriefs = !!dealBrief || projectBriefs.length > 0;
 
     return (
-        <div>
+        <div className="flex flex-col h-full">
             <div className="flex items-center justify-between mb-4">
                 <div>
                     <h3 className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">
@@ -391,12 +403,7 @@ function BriefsSection() {
                     <p className="text-[12px] text-zinc-500">{t('assets.briefsDesc')}</p>
                 </div>
                 {isOwner && (
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setShowAdd(true)}
-                        className="gap-1.5 text-xs"
-                    >
+                    <Button size="sm" variant="outline" onClick={() => setShowAdd(true)} className="gap-1.5 text-xs">
                         <Plus className="w-3.5 h-3.5" />
                         {t('assets.addBriefBtn')}
                     </Button>
@@ -404,10 +411,9 @@ function BriefsSection() {
             </div>
 
             {hasBriefs ? (
-                <div className="space-y-3">
-                    {/* Deal brief (read-only) */}
+                <div className="space-y-2">
                     {dealBrief && (
-                        <BriefItem
+                        <BriefCard
                             brief={{
                                 id: 'deal-brief',
                                 name: t('assets.dealBriefLabel'),
@@ -422,12 +428,11 @@ function BriefsSection() {
                             isOwner={false}
                         />
                     )}
-                    {/* Project briefs */}
                     {projectBriefs
                         .slice()
                         .sort((a, b) => a.sortOrder - b.sortOrder)
                         .map((brief) => (
-                            <BriefItem
+                            <BriefCard
                                 key={brief.id}
                                 brief={{
                                     id: brief.id,
@@ -442,17 +447,12 @@ function BriefsSection() {
                         ))}
                 </div>
             ) : (
-                <div className="rounded-xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 p-8 text-center">
+                <div className="flex-1 rounded-xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 p-6 text-center flex flex-col items-center justify-center">
                     <LayoutTemplate className="w-8 h-8 text-zinc-300 dark:text-zinc-600 mx-auto mb-3" />
                     <p className="text-[13px] font-medium text-zinc-500 mb-1">{t('assets.briefsEmptyTitle')}</p>
                     <p className="text-[12px] text-zinc-400">{t('assets.briefsEmptyDesc')}</p>
                     {isOwner && (
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="mt-4 gap-1.5 text-xs"
-                            onClick={() => setShowAdd(true)}
-                        >
+                        <Button size="sm" variant="outline" className="mt-4 gap-1.5 text-xs" onClick={() => setShowAdd(true)}>
                             <Plus className="w-3.5 h-3.5" />
                             {t('assets.addBriefBtn')}
                         </Button>
@@ -474,6 +474,33 @@ function BriefsSection() {
 }
 
 // ─── Drive Section ────────────────────────────────────────────────────────────
+
+function CopyLinkButton({ url }: { url: string }) {
+    const { t } = useWorkspaceSettings();
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        try {
+            await navigator.clipboard.writeText(url);
+            setCopied(true);
+            toast.success(t('assets.driveLinkCopied'));
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            toast.error('Could not copy link');
+        }
+    };
+
+    return (
+        <button
+            onClick={handleCopy}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-400 dark:text-white/35 hover:text-zinc-700 dark:hover:text-white/70 hover:bg-zinc-100 dark:hover:bg-white/[0.07] transition-colors"
+            title={t('assets.driveCopyLink')}
+        >
+            {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+        </button>
+    );
+}
 
 function DriveSection() {
     const { project, refreshProject } = useProject();
@@ -545,22 +572,17 @@ function DriveSection() {
 
     if (!isDriveConnected) {
         return (
-            <div className="rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 p-8 text-center">
-                <div className="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-white/[0.05] flex items-center justify-center mx-auto mb-4">
-                    <HardDrive className="w-6 h-6 text-zinc-400 dark:text-white/30" />
+            <div className="rounded-xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 p-6 text-center flex flex-col items-center justify-center h-full min-h-[160px]">
+                <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-white/[0.05] flex items-center justify-center mb-3">
+                    <HardDrive className="w-5 h-5 text-zinc-400 dark:text-white/30" />
                 </div>
-                <h3 className="font-semibold text-[15px] text-zinc-900 dark:text-white mb-1.5">
+                <h3 className="font-semibold text-[14px] text-zinc-900 dark:text-white mb-1">
                     {t('assets.driveNotConnectedTitle')}
                 </h3>
-                <p className="text-[13px] text-zinc-500 dark:text-white/45 max-w-xs mx-auto mb-5 leading-relaxed">
+                <p className="text-[12px] text-zinc-500 dark:text-white/45 max-w-[220px] mx-auto mb-4 leading-relaxed">
                     {t('assets.driveNotConnectedDesc')}
                 </p>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => router.push('/dashboard/settings/integrations')}
-                    className="gap-2"
-                >
+                <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/settings/integrations')} className="gap-2 text-xs">
                     <Settings className="w-3.5 h-3.5" />
                     {t('assets.driveNotConnectedBtn')}
                 </Button>
@@ -570,17 +592,17 @@ function DriveSection() {
 
     if (!hasDriveFolder) {
         return (
-            <div className="rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 p-8 text-center">
-                <div className="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-white/[0.05] flex items-center justify-center mx-auto mb-4">
-                    <FolderPlus className="w-6 h-6 text-zinc-400 dark:text-white/30" />
+            <div className="rounded-xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 p-6 text-center flex flex-col items-center justify-center h-full min-h-[160px]">
+                <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-white/[0.05] flex items-center justify-center mb-3">
+                    <FolderPlus className="w-5 h-5 text-zinc-400 dark:text-white/30" />
                 </div>
-                <h3 className="font-semibold text-[15px] text-zinc-900 dark:text-white mb-1.5">
+                <h3 className="font-semibold text-[14px] text-zinc-900 dark:text-white mb-1">
                     {t('assets.driveNoFolderTitle')}
                 </h3>
-                <p className="text-[13px] text-zinc-500 dark:text-white/45 max-w-xs mx-auto mb-5 leading-relaxed">
+                <p className="text-[12px] text-zinc-500 dark:text-white/45 max-w-[220px] mx-auto mb-4 leading-relaxed">
                     {t('assets.driveNoFolderDesc')}
                 </p>
-                <Button size="sm" onClick={handleCreateFolder} disabled={creatingFolder} className="gap-2">
+                <Button size="sm" onClick={handleCreateFolder} disabled={creatingFolder} className="gap-2 text-xs">
                     {creatingFolder ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FolderPlus className="w-3.5 h-3.5" />}
                     {creatingFolder ? t('assets.driveCreatingFolder') : t('assets.driveCreateFolderBtn')}
                 </Button>
@@ -589,12 +611,13 @@ function DriveSection() {
     }
 
     return (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-            <div className="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2.5">
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-3 bg-zinc-50/50 dark:bg-zinc-900/30">
+                <div className="flex items-center gap-2">
                     <FolderOpen className="w-4 h-4 text-zinc-500 dark:text-white/50" />
                     <div>
-                        <p className="text-[13px] font-semibold text-zinc-900 dark:text-white">
+                        <p className="text-[13px] font-semibold text-zinc-900 dark:text-white leading-tight">
                             {t('assets.driveSection')}
                         </p>
                         <p className="text-[11px] text-zinc-400 dark:text-white/35">
@@ -602,52 +625,53 @@ function DriveSection() {
                         </p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0">
                     {project.driveFolderUrl && (
                         <a
                             href={project.driveFolderUrl as string}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 text-[12px] font-medium text-zinc-600 dark:text-white/60 hover:bg-zinc-50 dark:hover:bg-white/[0.05] transition-colors"
+                            className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-[11px] font-medium text-zinc-600 dark:text-white/60 hover:bg-zinc-50 dark:hover:bg-white/[0.05] transition-colors"
                         >
-                            <ExternalLink className="w-3.5 h-3.5" />
+                            <ExternalLink className="w-3 h-3" />
                             {t('assets.driveViewFolder')}
                         </a>
                     )}
                     <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploadingFile}
-                        className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[12px] font-semibold hover:bg-zinc-800 dark:hover:bg-white/90 transition-colors disabled:opacity-50"
+                        className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[11px] font-semibold hover:bg-zinc-800 dark:hover:bg-white/90 transition-colors disabled:opacity-50"
                     >
-                        {uploadingFile ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                        {uploadingFile ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
                         {uploadingFile ? t('assets.driveUploading') : t('assets.driveUploadBtn')}
                     </button>
                     <input ref={fileInputRef} type="file" className="hidden" onChange={handleUpload} />
                 </div>
             </div>
 
+            {/* File list */}
             {loadingFiles ? (
-                <div className="flex items-center justify-center gap-2 py-10 text-[13px] text-zinc-400 dark:text-white/35">
+                <div className="flex items-center justify-center gap-2 py-8 text-[12px] text-zinc-400 dark:text-white/35">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     {t('assets.driveLoading')}
                 </div>
             ) : files.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center px-6">
-                    <div className="w-10 h-10 rounded-xl bg-zinc-50 dark:bg-white/[0.04] flex items-center justify-center mb-3">
-                        <Upload className="w-5 h-5 text-zinc-300 dark:text-white/25" />
+                <div className="flex flex-col items-center justify-center py-10 text-center px-4">
+                    <div className="w-9 h-9 rounded-xl bg-zinc-50 dark:bg-white/[0.04] flex items-center justify-center mb-2">
+                        <Upload className="w-4 h-4 text-zinc-300 dark:text-white/25" />
                     </div>
                     <p className="text-[13px] font-medium text-zinc-700 dark:text-white/60 mb-1">{t('assets.driveEmptyTitle')}</p>
-                    <p className="text-[12px] text-zinc-400 dark:text-white/35 max-w-xs">{t('assets.driveEmptyDesc')}</p>
+                    <p className="text-[11px] text-zinc-400 dark:text-white/35">{t('assets.driveEmptyDesc')}</p>
                 </div>
             ) : (
-                <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                <div className="divide-y divide-zinc-100 dark:divide-zinc-800 overflow-y-auto">
                     {files.map((file) => (
                         <div
                             key={file.id}
-                            className="group flex items-center gap-3 px-5 py-3 hover:bg-zinc-50/60 dark:hover:bg-white/[0.02] transition-colors"
+                            className="group flex items-center gap-3 px-4 py-2.5 hover:bg-zinc-50/60 dark:hover:bg-white/[0.02] transition-colors"
                         >
-                            <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-white/[0.06] flex items-center justify-center shrink-0">
-                                <FileIcon mimeType={file.mimeType} className="w-4 h-4 text-zinc-500 dark:text-white/50" />
+                            <div className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-white/[0.06] flex items-center justify-center shrink-0">
+                                <FileIcon mimeType={file.mimeType} className="w-3.5 h-3.5 text-zinc-500 dark:text-white/50" />
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-[13px] font-medium text-zinc-900 dark:text-white truncate">{file.name}</p>
@@ -655,7 +679,8 @@ function DriveSection() {
                                     {formatBytes(file.size)} · {formatDate(file.createdTime)}
                                 </p>
                             </div>
-                            <div className={cn('flex items-center gap-1 transition-opacity', 'opacity-0 group-hover:opacity-100')}>
+                            <div className={cn('flex items-center gap-0.5 transition-opacity', 'opacity-0 group-hover:opacity-100')}>
+                                <CopyLinkButton url={file.webViewLink} />
                                 <a
                                     href={file.webViewLink}
                                     target="_blank"
@@ -668,7 +693,7 @@ function DriveSection() {
                                 <button
                                     onClick={() => handleDelete(file.id)}
                                     disabled={deletingFileId === file.id}
-                                    className="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-40"
+                                    className="w-7 h-7 flex items-center justify-center rounded-lg text-red-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-40"
                                     title={t('assets.driveDeleteFile')}
                                 >
                                     {deletingFileId === file.id
@@ -691,27 +716,24 @@ export default function ProjectAssetsPage() {
     const { t } = useWorkspaceSettings();
 
     return (
-        <div className="space-y-8">
-            <div>
+        <div className="space-y-2">
+            <div className="mb-5">
                 <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">{t('assets.title')}</h2>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">{t('assets.titleDesc')}</p>
             </div>
 
-            {/* Briefs */}
-            <BriefsSection />
-
-            {/* Divider */}
-            <div className="border-t border-zinc-200 dark:border-zinc-800" />
-
-            {/* Drive files */}
-            <div>
-                <div className="mb-4">
-                    <h3 className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">
-                        {t('assets.driveSection')}
-                    </h3>
-                    <p className="text-[12px] text-zinc-500">{t('assets.driveSectionDesc')}</p>
+            {/* 2-col layout: Briefs | Drive */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                <BriefsSection />
+                <div>
+                    <div className="mb-4">
+                        <h3 className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">
+                            {t('assets.driveSection')}
+                        </h3>
+                        <p className="text-[12px] text-zinc-500">{t('assets.driveSectionDesc')}</p>
+                    </div>
+                    <DriveSection />
                 </div>
-                <DriveSection />
             </div>
         </div>
     );

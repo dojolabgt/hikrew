@@ -320,7 +320,26 @@
         "noClientAssigned": "Sin cliente asignado",
         "portalLink": "Portal del cliente",
         "openPortal": "Abrir portal",
-        "quickNav": "Secciones del proyecto"
+        "quickNav": "Secciones del proyecto",
+        "statsPaid": "pagados",
+        "statsPending": "pendientes",
+        "statsComplete": "completos",
+        "statsNoPlan": "Sin plan",
+        "statsNoBriefs": "Sin briefs"
+    },
+    "editProject": {
+        "title": "Editar Proyecto",
+        "saveBtn": "Guardar Cambios",
+        "savingBtn": "Guardando...",
+        "nameLabel": "Nombre del Proyecto",
+        "descLabel": "Descripción",
+        "statusLabel": "Estado",
+        "statusActive": "Activo",
+        "statusCompleted": "Completado",
+        "currencyLabel": "Moneda",
+        "budgetLabel": "Presupuesto",
+        "successMsg": "Proyecto actualizado",
+        "errorMsg": "No se pudo actualizar el proyecto"
     },
     "briefBuilder": {
         "addField": "Agregar Campo",
@@ -727,7 +746,9 @@
         "driveViewFolder": "Ver en Drive",
         "driveLoadError": "No se pudieron cargar los archivos de Drive.",
         "filesSingular": "archivo",
-        "filesPlural": "archivos"
+        "filesPlural": "archivos",
+        "driveCopyLink": "Copiar enlace",
+        "driveLinkCopied": "¡Enlace copiado!"
     },
     "payments": {
         "title": "Plan de Pagos",

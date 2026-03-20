@@ -10,6 +10,14 @@ export interface CreateProjectPayload {
     budget?: number;
 }
 
+export interface UpdateProjectPayload {
+    name?: string;
+    description?: string;
+    status?: string;
+    currency?: string;
+    budget?: number | null;
+}
+
 export const projectsApi = {
     getAll: async (
         workspaceId: string,
@@ -24,6 +32,12 @@ export const projectsApi = {
     create: async (workspaceId: string, dto: CreateProjectPayload): Promise<Project> => {
         return api
             .post(`/workspaces/${workspaceId}/projects`, dto)
+            .then((res) => res.data);
+    },
+
+    update: async (workspaceId: string, projectId: string, dto: UpdateProjectPayload): Promise<Project> => {
+        return api
+            .patch(`/workspaces/${workspaceId}/projects/${projectId}`, dto)
             .then((res) => res.data);
     },
 

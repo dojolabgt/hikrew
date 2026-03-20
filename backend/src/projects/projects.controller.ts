@@ -50,6 +50,15 @@ export class ProjectsController {
     return this.projectsService.findOne(workspaceId, id);
   }
 
+  @Patch(':id')
+  update(
+    @Param('workspaceId') workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: { name?: string; description?: string; status?: string; currency?: string; budget?: number | null },
+  ) {
+    return this.projectsService.update(workspaceId, id, dto);
+  }
+
   // ─── PROJECT BRIEFS ─────────────────────────────────────────────────────
 
   @Post(':id/briefs')

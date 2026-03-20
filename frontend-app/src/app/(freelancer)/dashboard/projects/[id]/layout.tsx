@@ -7,6 +7,7 @@ import { useProjects } from '@/hooks/use-projects';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Users, CreditCard, FolderOpen, CheckSquare, Folder } from 'lucide-react';
+import { EditProjectDialog } from './_components/EditProjectDialog';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
@@ -189,12 +190,19 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
     const clientName = getProjectClientName(project, t('projects.defaultClientName'));
     const valueDisplay = getProjectValue(project, currencySymbol);
 
+    // Badge counts derived from project data
+    const pendingMilestones = (() => {
+        const ms = project.directPaymentPlan?.milestones ?? project.deal?.paymentPlan?.milestones ?? [];
+        return ms.filter((m) => m.status === 'PENDING' || m.status === 'OVERDUE').length;
+    })();
+    const incompleteBriefs = (project.briefs ?? []).filter((b) => !b.isCompleted).length;
+
     const tabs = [
-        { name: t('projects.tabOverview'), href: `/dashboard/projects/${projectId}`, icon: Folder },
-        { name: t('projects.tabTasks'), href: `/dashboard/projects/${projectId}/tasks`, icon: CheckSquare },
-        { name: t('projects.tabAssets'), href: `/dashboard/projects/${projectId}/assets`, icon: FolderOpen },
-        { name: t('projects.tabPayments'), href: `/dashboard/projects/${projectId}/payments`, icon: CreditCard },
-        { name: t('projects.tabCollaborators'), href: `/dashboard/projects/${projectId}/team`, icon: Users },
+        { name: t('projects.tabOverview'), href: `/dashboard/projects/${projectId}`, icon: Folder, badge: 0, badgeColor: '' },
+        { name: t('projects.tabTasks'), href: `/dashboard/projects/${projectId}/tasks`, icon: CheckSquare, badge: 0, badgeColor: '' },
+        { name: t('projects.tabAssets'), href: `/dashboard/projects/${projectId}/assets`, icon: FolderOpen, badge: incompleteBriefs, badgeColor: 'violet' },
+        { name: t('projects.tabPayments'), href: `/dashboard/projects/${projectId}/payments`, icon: CreditCard, badge: pendingMilestones, badgeColor: 'amber' },
+        { name: t('projects.tabCollaborators'), href: `/dashboard/projects/${projectId}/team`, icon: Users, badge: 0, badgeColor: '' },
     ];
 
     return (
@@ -231,11 +239,15 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
                             >
                                 <Folder className="w-6 h-6" />
                             </div>
+
                             <div>
                                 <div className="flex items-center gap-2 flex-wrap">
                                     <h1 className="text-xl font-bold text-zinc-900 dark:text-white leading-tight">
                                         {project.name}
                                     </h1>
+                                    {isOwner && (
+                                        <EditProjectDialog project={project} onSaved={loadProject} />
+                                    )}
                                     <span
                                         className={cn(
                                             'px-2 py-0.5 rounded-md text-xs font-semibold',
@@ -313,6 +325,12 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
                             >
                                 <tab.icon className="w-4 h-4" />
                                 {tab.name}
+                                {tab.badge > 0 && (
+                                    <span className={cn(
+                                        'w-2 h-2 rounded-full shrink-0',
+                                        tab.badgeColor === 'amber' ? 'bg-amber-400' : 'bg-violet-500',
+                                    )} />
+                                )}
                             </Link>
                         );
                     })}

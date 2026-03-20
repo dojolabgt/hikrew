@@ -69,6 +69,29 @@ export class ProjectsService {
     return this.projectsRepository.save(project);
   }
 
+  async update(
+    workspaceId: string,
+    projectId: string,
+    dto: {
+      name?: string;
+      description?: string;
+      status?: string;
+      currency?: string;
+      budget?: number | null;
+    },
+  ): Promise<Project> {
+    const project = await this.projectsRepository.findOne({
+      where: { id: projectId, workspaceId },
+    });
+    if (!project) throw new NotFoundException('Project not found');
+    if (dto.name !== undefined) project.name = dto.name;
+    if (dto.description !== undefined) project.description = dto.description ?? null;
+    if (dto.status !== undefined) project.status = dto.status as ProjectStatus;
+    if (dto.currency !== undefined) project.currency = dto.currency ?? null;
+    if (dto.budget !== undefined) project.budget = dto.budget ?? null;
+    return this.projectsRepository.save(project);
+  }
+
   async createFromDeal(workspaceId: string, deal: Deal): Promise<Project> {
     const existing = await this.projectsRepository.findOne({
       where: { dealId: deal.id },
