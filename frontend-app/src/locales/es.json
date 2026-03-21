@@ -150,6 +150,7 @@
         "emptyTitle": "No tienes clientes aún",
         "emptyDesc": "Agrega clientes para enviarles cotizaciones y gestionar sus pagos.",
         "emptyBtn": "Agregar mi primer cliente",
+        "searchPlaceholder": "Buscar clientes...",
         "colName": "Cliente",
         "colContact": "Contacto",
         "colNotes": "Notas",

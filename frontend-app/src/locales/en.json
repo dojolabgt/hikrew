@@ -150,6 +150,7 @@
         "emptyTitle": "You don't have any clients yet",
         "emptyDesc": "Add clients to send them quotations and manage their payments.",
         "emptyBtn": "Add my first client",
+        "searchPlaceholder": "Search clients...",
         "colName": "Client",
         "colContact": "Contact",
         "colNotes": "Notes",

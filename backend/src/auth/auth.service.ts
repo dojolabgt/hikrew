@@ -179,6 +179,7 @@ export class AuthService {
 
   async loginOrRegisterWithGoogle(
     code: string,
+    loginOnly = false,
   ): Promise<{ accessToken: string; refreshToken: string; isNew: boolean }> {
     const client = this.getGoogleOAuthClient();
     const { tokens } = await client.getToken(code);
@@ -196,6 +197,10 @@ export class AuthService {
         await this.usersService.setGoogleId(existingByEmail.id, googleId);
         user = await this.usersService.findOneById(existingByEmail.id);
       } else {
+        // Block registration when coming from login
+        if (loginOnly) {
+          throw new ForbiddenException('google_login_only');
+        }
         // New user registration
         const settings = await this.settingsService.getSettings();
         if (!settings.allowRegistration) {

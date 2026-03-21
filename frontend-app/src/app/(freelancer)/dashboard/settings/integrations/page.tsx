@@ -79,11 +79,12 @@ export default function IntegrationsPage() {
 
     const handleDriveNotify = () => {
         setDriveConnected(true);
-        // Re-fetch to get email
+        // Re-fetch to get email, then auto-open the config sheet
         workspacesApi.getGoogleDriveStatus()
             .then(s => { setDriveConnected(s.connected); setDriveEmail(s.email); })
             .catch(() => {});
         toast.success(t('integrations.driveConnectSuccess'));
+        setDriveSheetOpen(true);
     };
 
     return (

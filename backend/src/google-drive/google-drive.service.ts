@@ -218,7 +218,7 @@ export class GoogleDriveService {
 
     const res = await drive.files.list({
       q: `'${project.driveFolderId}' in parents and trashed = false`,
-      fields: 'files(id, name, mimeType, webViewLink, size, createdTime, iconLink)',
+      fields: 'files(id, name, mimeType, webViewLink, size, createdTime, iconLink, thumbnailLink)',
       orderBy: 'createdTime desc',
     });
 
@@ -245,7 +245,7 @@ export class GoogleDriveService {
         mimeType: file.mimetype,
         body: stream,
       },
-      fields: 'id, name, mimeType, webViewLink, size, createdTime, iconLink',
+      fields: 'id, name, mimeType, webViewLink, size, createdTime, iconLink, thumbnailLink',
     });
 
     return res.data;
@@ -277,7 +277,7 @@ export class GoogleDriveService {
     // Folders listed first, then files — both included
     const res = await drive.files.list({
       q: `'${parentId}' in parents and trashed = false`,
-      fields: 'files(id, name, mimeType, webViewLink, size, createdTime, iconLink)',
+      fields: 'files(id, name, mimeType, webViewLink, size, createdTime, iconLink, thumbnailLink)',
       orderBy: 'folder,name',
     });
 
@@ -305,7 +305,7 @@ export class GoogleDriveService {
         parents: [ws.googleDriveRootFolderId],
       },
       media: { mimeType: file.mimetype, body: stream },
-      fields: 'id, name, mimeType, webViewLink, size, createdTime, iconLink',
+      fields: 'id, name, mimeType, webViewLink, size, createdTime, iconLink, thumbnailLink',
     });
 
     return res.data;

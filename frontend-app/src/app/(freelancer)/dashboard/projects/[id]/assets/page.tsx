@@ -590,7 +590,7 @@ function DriveSection() {
                 setFiles((prev) => prev.filter((f) => f.id !== fileId));
             }}
             folderUrl={project.driveFolderUrl ?? undefined}
-            defaultView="canvas"
+            defaultView="grid"
         />
         </div>
     );

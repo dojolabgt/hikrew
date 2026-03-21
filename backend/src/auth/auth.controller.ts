@@ -152,9 +152,10 @@ export class AuthController {
   @Get('google')
   async googleLogin(
     @Query('inviteToken') inviteToken: string | undefined,
+    @Query('mode') mode: string | undefined,
     @Res() res: ExpressResponse,
   ) {
-    const state = inviteToken ? `invite:${inviteToken}` : 'login';
+    const state = inviteToken ? `invite:${inviteToken}` : mode === 'login_only' ? 'login_only' : 'login';
     const url = this.authService.getGoogleAuthUrl(state);
     res.redirect(url);
   }
@@ -179,8 +180,9 @@ export class AuthController {
         );
       }
 
+      const loginOnly = state === 'login_only';
       const { accessToken, refreshToken, isNew } =
-        await this.authService.loginOrRegisterWithGoogle(code);
+        await this.authService.loginOrRegisterWithGoogle(code, loginOnly);
       this.setAuthCookies(res, accessToken, refreshToken);
 
       if (state?.startsWith('invite:')) {
@@ -193,7 +195,12 @@ export class AuthController {
       );
     } catch (error) {
       this.logger.error('Google OAuth error:', error);
-      return res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
+      const isMissingAccount = error?.message === 'google_login_only';
+      return res.redirect(
+        isMissingAccount
+          ? `${frontendUrl}/login?error=google_no_account`
+          : `${frontendUrl}/login?error=google_auth_failed`,
+      );
     }
   }
 

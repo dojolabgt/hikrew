@@ -4,7 +4,7 @@ import React, { useRef, useState, useCallback } from 'react';
 import {
     Upload, Trash2, ExternalLink, Loader2,
     File, FileImage, FileVideo, FileArchive, FileText,
-    LayoutGrid, List, Copy, Check, FolderOpen, Columns2, Folder,
+    LayoutGrid, List, Copy, Check, FolderOpen, Folder,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -40,12 +40,12 @@ function getFileIcon(mimeType: string, className?: string) {
 }
 
 const MIME_COLOR: Record<string, string> = {
-    'image/': 'text-violet-500 bg-violet-50 dark:bg-violet-900/20',
-    'video/': 'text-blue-500 bg-blue-50 dark:bg-blue-900/20',
-    'application/pdf': 'text-red-500 bg-red-50 dark:bg-red-900/20',
-    'zip': 'text-amber-500 bg-amber-50 dark:bg-amber-900/20',
-    'document': 'text-sky-500 bg-sky-50 dark:bg-sky-900/20',
-    'sheet': 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20',
+    'image/': 'text-violet-500 bg-violet-50 dark:bg-zinc-800',
+    'video/': 'text-blue-500 bg-blue-50 dark:bg-zinc-800',
+    'application/pdf': 'text-red-500 bg-red-50 dark:bg-zinc-800',
+    'zip': 'text-amber-500 bg-amber-50 dark:bg-zinc-800',
+    'document': 'text-sky-500 bg-sky-50 dark:bg-zinc-800',
+    'sheet': 'text-emerald-500 bg-emerald-50 dark:bg-zinc-800',
 };
 
 function getIconColor(mimeType: string) {
@@ -80,9 +80,9 @@ function CopyButton({ url }: { url: string }) {
     );
 }
 
-// ─── Folder card (canvas / grid) ─────────────────────────────────────────────
+// ─── Folder card ──────────────────────────────────────────────────────────────
 
-function FolderCard({ file, view, onOpen }: { file: DriveFile; view: 'canvas' | 'grid' | 'list'; onOpen: (f: DriveFile) => void }) {
+function FolderCard({ file, view, onOpen }: { file: DriveFile; view: 'grid' | 'list'; onOpen: (f: DriveFile) => void }) {
     if (view === 'list') {
         return (
             <button
@@ -104,113 +104,18 @@ function FolderCard({ file, view, onOpen }: { file: DriveFile; view: 'canvas' | 
     return (
         <button
             onClick={() => onOpen(file)}
-            className={cn(
-                'group relative flex flex-col rounded-2xl border bg-amber-50/60 dark:bg-amber-900/10 border-amber-200/60 dark:border-amber-800/30 overflow-hidden transition-all hover:border-amber-300 dark:hover:border-amber-700 hover:shadow-md text-left',
-                view === 'canvas' ? 'aspect-[4/3]' : 'h-[130px]',
-            )}
+            className="group relative flex flex-col rounded-xl border bg-amber-50/60 dark:bg-amber-900/10 border-amber-200/60 dark:border-amber-800/30 overflow-hidden transition-all hover:border-amber-300 dark:hover:border-amber-700 hover:shadow-sm text-left"
         >
-            <div className="flex-1 flex items-center justify-center">
-                <Folder className="w-10 h-10 text-amber-400 dark:text-amber-500" />
+            <div className="h-[72px] flex items-center justify-center">
+                <Folder className="w-9 h-9 text-amber-400 dark:text-amber-500" />
             </div>
-            <div className="px-3 py-2.5 border-t border-amber-200/40 dark:border-amber-800/20">
-                <p className="text-[12px] font-semibold text-zinc-700 dark:text-zinc-200 truncate" title={file.name}>
+            <div className="px-2.5 py-2 border-t border-amber-200/40 dark:border-amber-800/20">
+                <p className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-200 truncate" title={file.name}>
                     {file.name}
                 </p>
                 <p className="text-[10px] text-amber-500/70 mt-0.5">Carpeta</p>
             </div>
         </button>
-    );
-}
-
-// ─── Canvas card ──────────────────────────────────────────────────────────────
-
-function CanvasCard({
-    file,
-    deleting,
-    onDelete,
-    onDragStart,
-    onDragOver,
-    onDrop,
-}: {
-    file: DriveFile;
-    deleting: boolean;
-    onDelete: (id: string) => void;
-    onDragStart: (e: React.DragEvent, id: string) => void;
-    onDragOver: (e: React.DragEvent) => void;
-    onDrop: (e: React.DragEvent, id: string) => void;
-}) {
-    const isImage = file.mimeType.startsWith('image/');
-    const iconColor = getIconColor(file.mimeType);
-    const [dragOver, setDragOver] = useState(false);
-
-    return (
-        <div
-            draggable
-            onDragStart={(e) => onDragStart(e, file.id)}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); onDragOver(e); }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => { setDragOver(false); onDrop(e, file.id); }}
-            className={cn(
-                'group relative flex flex-col rounded-2xl border bg-white dark:bg-zinc-950 overflow-hidden cursor-grab active:cursor-grabbing transition-all duration-150',
-                dragOver
-                    ? 'border-primary/50 shadow-lg scale-[1.02]'
-                    : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md',
-            )}
-        >
-            {/* Thumbnail area */}
-            <div className="aspect-[4/3] flex items-center justify-center bg-zinc-50 dark:bg-zinc-900/60 overflow-hidden relative">
-                {isImage && file.iconLink ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                        src={file.iconLink}
-                        alt={file.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                    />
-                ) : (
-                    <div className={cn('w-14 h-14 rounded-2xl flex items-center justify-center', iconColor)}>
-                        {getFileIcon(file.mimeType, 'w-7 h-7')}
-                    </div>
-                )}
-
-                {/* Hover overlay with actions */}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-                    <a
-                        href={file.webViewLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/90 dark:bg-zinc-900/90 text-zinc-700 dark:text-zinc-200 hover:bg-white transition-colors shadow"
-                        title="Abrir en Drive"
-                    >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                    <div className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/90 dark:bg-zinc-900/90 shadow">
-                        <CopyButton url={file.webViewLink} />
-                    </div>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onDelete(file.id); }}
-                        disabled={deleting}
-                        className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/90 dark:bg-zinc-900/90 text-zinc-400 hover:text-red-500 transition-colors shadow disabled:opacity-40"
-                        title="Eliminar"
-                    >
-                        {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                    </button>
-                </div>
-            </div>
-
-            {/* Footer */}
-            <div className="px-3 py-2.5">
-                <p className="text-[12px] font-semibold text-zinc-800 dark:text-zinc-100 truncate leading-snug" title={file.name}>
-                    {file.name}
-                </p>
-                <p className="text-[10px] text-zinc-400 mt-0.5 tabular-nums">
-                    {[formatBytes(file.size), formatDate(file.createdTime)].filter(Boolean).join(' · ')}
-                </p>
-            </div>
-        </div>
     );
 }
 
@@ -226,51 +131,37 @@ function GridCard({
     onDelete: (id: string) => void;
 }) {
     const iconColor = getIconColor(file.mimeType);
-    const isImage = file.mimeType.startsWith('image/');
 
     return (
-        <div className="group relative flex flex-col rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden transition-shadow hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700">
-            <div className="h-28 flex items-center justify-center bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-100 dark:border-zinc-800/80">
-                {isImage && file.iconLink ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                        src={file.iconLink}
-                        alt={file.name}
-                        className="max-h-16 max-w-full object-contain opacity-80"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                ) : (
-                    <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center', iconColor)}>
-                        {getFileIcon(file.mimeType, 'w-6 h-6')}
+        <div className="group relative flex flex-col rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden transition-all hover:shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700">
+            {/* Icon area */}
+            <div className="h-[72px] flex items-center justify-center bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-100 dark:border-zinc-800/80 relative">
+                <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', iconColor)}>
+                    {getFileIcon(file.mimeType, 'w-5 h-5')}
+                </div>
+                {/* Hover actions overlay */}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
+                    <a href={file.webViewLink} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                        className="w-6 h-6 flex items-center justify-center rounded-md bg-white/90 dark:bg-zinc-900/90 text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white shadow transition-colors">
+                        <ExternalLink className="w-3 h-3" />
+                    </a>
+                    <div className="w-6 h-6 flex items-center justify-center rounded-md bg-white/90 dark:bg-zinc-900/90 shadow [&>button]:w-6 [&>button]:h-6">
+                        <CopyButton url={file.webViewLink} />
                     </div>
-                )}
+                    <button onClick={(e) => { e.stopPropagation(); onDelete(file.id); }} disabled={deleting}
+                        className="w-6 h-6 flex items-center justify-center rounded-md bg-white/90 dark:bg-zinc-900/90 text-zinc-400 hover:text-red-500 shadow transition-colors disabled:opacity-40">
+                        {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                    </button>
+                </div>
             </div>
-            <div className="px-3 py-2.5 flex-1 min-w-0">
-                <p className="text-[12px] font-semibold text-zinc-800 dark:text-zinc-100 truncate leading-snug" title={file.name}>
+            {/* Info */}
+            <div className="px-2.5 py-2 min-w-0">
+                <p className="text-[11px] font-semibold text-zinc-800 dark:text-zinc-100 truncate leading-snug" title={file.name}>
                     {file.name}
                 </p>
-                <p className="text-[11px] text-zinc-400 mt-0.5">
+                <p className="text-[10px] text-zinc-400 mt-0.5 truncate">
                     {[formatBytes(file.size), formatDate(file.createdTime)].filter(Boolean).join(' · ')}
                 </p>
-            </div>
-            <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <a
-                    href={file.webViewLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-7 h-7 flex items-center justify-center rounded-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:text-zinc-800 dark:hover:text-white transition-colors shadow-sm"
-                >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-                <CopyButton url={file.webViewLink} />
-                <button
-                    onClick={(e) => { e.stopPropagation(); onDelete(file.id); }}
-                    disabled={deleting}
-                    className="w-7 h-7 flex items-center justify-center rounded-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-400 hover:text-red-500 hover:border-red-300 dark:hover:border-red-700 transition-colors shadow-sm disabled:opacity-40"
-                >
-                    {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                </button>
             </div>
         </div>
     );
@@ -324,7 +215,7 @@ function ListRow({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export type FileManagerView = 'canvas' | 'grid' | 'list';
+export type FileManagerView = 'grid' | 'list';
 
 export interface FileManagerProps {
     files: DriveFile[];
@@ -361,7 +252,6 @@ export function FileManager({
     const [uploading, setUploading] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [dropDragging, setDropDragging] = useState(false); // file-from-OS drag
-    const dragItemId = useRef<string | null>(null);
 
     // Sync when parent updates files
     React.useEffect(() => { setFiles(initialFiles); }, [initialFiles]);
@@ -402,28 +292,6 @@ export function FileManager({
         if (file) handleUpload(file);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [onUpload]);
-
-    // Canvas drag-to-reorder
-    const handleCardDragStart = (_e: React.DragEvent, id: string) => {
-        dragItemId.current = id;
-    };
-    const handleCardDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-    };
-    const handleCardDrop = (_e: React.DragEvent, targetId: string) => {
-        const fromId = dragItemId.current;
-        if (!fromId || fromId === targetId) return;
-        setFiles((prev) => {
-            const arr = [...prev];
-            const fromIdx = arr.findIndex((f) => f.id === fromId);
-            const toIdx = arr.findIndex((f) => f.id === targetId);
-            if (fromIdx === -1 || toIdx === -1) return prev;
-            const [item] = arr.splice(fromIdx, 1);
-            arr.splice(toIdx, 0, item);
-            return arr;
-        });
-        dragItemId.current = null;
-    };
 
     // ── Needs folder state ─────────────────────────────────────────────────────
     if (needsFolder) {
@@ -469,9 +337,8 @@ export function FileManager({
                     {/* View toggle */}
                     <div className="flex items-center gap-0.5 bg-zinc-100 dark:bg-zinc-800/80 rounded-lg p-0.5">
                         {([
-                            { v: 'canvas', Icon: Columns2, title: 'Canvas' },
-                            { v: 'grid',   Icon: LayoutGrid, title: 'Cuadrícula' },
-                            { v: 'list',   Icon: List, title: 'Lista' },
+                            { v: 'grid', Icon: LayoutGrid, title: 'Cuadrícula' },
+                            { v: 'list', Icon: List,        title: 'Lista' },
                         ] as const).map(({ v, Icon, title }) => (
                             <button
                                 key={v}
@@ -546,26 +413,8 @@ export function FileManager({
                         Sube un archivo o arrástralo aquí
                     </p>
                 </div>
-            ) : view === 'canvas' ? (
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3">
-                    {files.map((file) =>
-                        isFolder(file) ? (
-                            <FolderCard key={file.id} file={file} view="canvas" onOpen={onFolderOpen ?? (() => {})} />
-                        ) : (
-                            <CanvasCard
-                                key={file.id}
-                                file={file}
-                                deleting={deletingId === file.id}
-                                onDelete={handleDelete}
-                                onDragStart={handleCardDragStart}
-                                onDragOver={handleCardDragOver}
-                                onDrop={handleCardDrop}
-                            />
-                        )
-                    )}
-                </div>
             ) : view === 'grid' ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5">
                     {files.map((file) =>
                         isFolder(file) ? (
                             <FolderCard key={file.id} file={file} view="grid" onOpen={onFolderOpen ?? (() => {})} />

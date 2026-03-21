@@ -46,8 +46,13 @@ function LoginContent() {
     }, [isLoading, user, router, callbackUrl]);
 
     useEffect(() => {
-        if (searchParams.get('error') === 'google_auth_failed') {
+        const err = searchParams.get('error');
+        if (err === 'google_auth_failed') {
             toast.error('No se pudo iniciar sesión con Google. Intenta de nuevo.');
+        } else if (err === 'google_no_account') {
+            toast.error('No hay ninguna cuenta registrada con ese Google. Regístrate primero.');
+        }
+        if (err) {
             const url = new URL(window.location.href);
             url.searchParams.delete('error');
             window.history.replaceState({}, '', url.toString());
@@ -169,7 +174,7 @@ function LoginContent() {
 
                         <button
                             type="button"
-                            onClick={() => { window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`; }}
+                            onClick={() => { window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google?mode=login_only`; }}
                             className="w-full h-11 rounded-xl bg-white/[0.05] border border-white/[0.1] text-white/55 text-[13px] font-medium hover:bg-white/[0.09] hover:text-white/80 transition-colors flex items-center justify-center gap-2.5"
                         >
                             <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">

@@ -8,6 +8,7 @@ export interface DriveFile {
     size?: string;
     createdTime: string;
     iconLink?: string;
+    thumbnailLink?: string;
 }
 
 export interface DriveFolder {

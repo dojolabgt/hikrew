@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { workspacesApi } from '@/features/workspaces/api';
 import { FileManager } from '@/components/file-manager/FileManager';
+import { DashboardShell } from '@/components/layout/DashboardShell';
 import { Button } from '@/components/ui/button';
 import type { DriveFile } from '@/features/projects/driveApi';
 
@@ -46,6 +47,7 @@ export default function FilesPage() {
 
     if (!isDriveConnected) {
         return (
+            <DashboardShell>
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
                 <div className="w-14 h-14 rounded-2xl bg-zinc-100 dark:bg-white/[0.05] flex items-center justify-center mb-4">
                     <HardDrive className="w-7 h-7 text-zinc-300 dark:text-white/20" />
@@ -61,11 +63,13 @@ export default function FilesPage() {
                     Ir a Integraciones
                 </Button>
             </div>
+            </DashboardShell>
         );
     }
 
     if (!hasRootFolder) {
         return (
+            <DashboardShell>
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
                 <div className="w-14 h-14 rounded-2xl bg-zinc-100 dark:bg-white/[0.05] flex items-center justify-center mb-4">
                     <FolderOpen className="w-7 h-7 text-zinc-300 dark:text-white/20" />
@@ -81,11 +85,12 @@ export default function FilesPage() {
                     Configurar carpeta
                 </Button>
             </div>
+            </DashboardShell>
         );
     }
 
     return (
-        <div className="p-6 max-w-5xl mx-auto">
+        <DashboardShell>
             {/* Header */}
             <div className="mb-5">
                 <h1 className="text-[22px] font-semibold text-zinc-900 dark:text-white">Archivos</h1>
@@ -129,6 +134,6 @@ export default function FilesPage() {
                     setFiles((prev) => prev.filter((f) => f.id !== fileId));
                 }}
             />
-        </div>
+        </DashboardShell>
     );
 }

@@ -154,34 +154,36 @@ export default function NetworkPage() {
             </div>
 
             {/* Active connections grid */}
-            {isLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {Array.from({ length: 3 }).map((_, i) => <ConnectionSkeleton key={i} />)}
-                </div>
-            ) : activeConnections.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <div className="w-14 h-14 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
-                        <Network className="w-7 h-7 text-zinc-400" />
+            <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+                {isLoading ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                        {Array.from({ length: 3 }).map((_, i) => <ConnectionSkeleton key={i} />)}
                     </div>
-                    <p className="font-semibold text-zinc-700 dark:text-zinc-300 mb-1">{t('network.emptyTitle')}</p>
-                    <p className="text-sm text-zinc-400 mb-5 max-w-xs">{t('network.emptyDesc')}</p>
-                    <Button variant="outline" className="rounded-full" onClick={() => setIsInviteModalOpen(true)}>
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        {t('network.emptyBtn')}
-                    </Button>
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {activeConnections.map((conn) => (
-                        <ConnectionCard
-                            key={conn.id}
-                            conn={conn}
-                            myWorkspaceId={activeWorkspace?.id}
-                            t={t}
-                        />
-                    ))}
-                </div>
-            )}
+                ) : activeConnections.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center p-20 text-center">
+                        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4 text-primary">
+                            <Network className="w-8 h-8" />
+                        </div>
+                        <h3 className="text-lg font-semibold">{t('network.emptyTitle')}</h3>
+                        <p className="text-muted-foreground max-w-xs mt-1 mb-6">{t('network.emptyDesc')}</p>
+                        <Button variant="outline" className="rounded-full" onClick={() => setIsInviteModalOpen(true)}>
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            {t('network.emptyBtn')}
+                        </Button>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                        {activeConnections.map((conn) => (
+                            <ConnectionCard
+                                key={conn.id}
+                                conn={conn}
+                                myWorkspaceId={activeWorkspace?.id}
+                                t={t}
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
 
             {/* Pending invitations */}
             {pendingConnections.length > 0 && (
