@@ -1,730 +1,861 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { notFound } from 'next/navigation';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
-    Loader2, CheckCircle2, Clock, ArrowRight, AlertCircle,
-    ShieldCheck, Calendar, Star, ChevronDown, Sparkles, CreditCard,
+    Loader2, CheckCircle2, Clock, AlertCircle, Lock,
+    ArrowRight, Star, ChevronDown, CreditCard, Calendar,
+    ClipboardList, FileText, Sparkles, KeyRound, LayoutDashboard,
+    ChevronRight, Upload, FolderOpen, Briefcase,
 } from 'lucide-react';
 import { getImageUrl } from '@/lib/image-utils';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────────────
 
 type BriefFieldType = 'text' | 'textarea' | 'select' | 'radio' | 'checkbox' | 'rating';
-
 type BriefOption = string | { label: string; value: string };
+type BriefResponses = Record<string, string | string[] | number>;
 
 interface BriefField {
-    id: string;
-    type: BriefFieldType;
-    label: string;
-    description?: string;
-    tooltip?: string;
-    required: boolean;
-    options?: BriefOption[];
-    allowOther?: boolean;
+    id: string; type: BriefFieldType; label: string;
+    description?: string; required: boolean;
+    options?: BriefOption[]; allowOther?: boolean;
     dependsOn?: { fieldId: string; value: string };
 }
 
-function optLabel(opt: BriefOption): string {
-    return typeof opt === 'string' ? opt : opt.label;
-}
-function optValue(opt: BriefOption): string {
-    return typeof opt === 'string' ? opt : opt.value;
-}
-
-interface QuotationItem {
-    id: string;
-    name: string;
-    description?: string;
-    quantity: number;
-    price: number;
-    subtotal: number;
-}
-
-interface Quotation {
-    id: string;
-    optionName: string;
-    description?: string;
-    currency?: string;
-    isApproved: boolean;
-    subtotal: number;
-    discount: number;
-    taxTotal: number;
-    total: number;
-    items: QuotationItem[];
-}
-
-interface Milestone {
-    id: string;
-    name: string;
-    amount: number;
-    percentage?: number;
-    dueDate?: string;
-    status: string;
-}
+interface QuotationItem { id: string; name: string; description?: string; quantity: number; price: number; subtotal: number; }
+interface Quotation { id: string; optionName: string; description?: string; currency?: string; isApproved: boolean; subtotal: number; discount: number; taxTotal: number; total: number; items: QuotationItem[]; }
+interface Milestone { id: string; name: string; amount: number; percentage?: number; dueDate?: string; status: string; }
 
 interface DealData {
-    id: string;
-    proposalIntro?: string;
-    proposalTerms?: string;
-    validUntil?: string;
-    status?: string;
+    id: string; proposalIntro?: string; proposalTerms?: string; validUntil?: string; status?: string;
     client: { id?: string; name: string; email?: string };
     workspace: { businessName?: string; logo?: string; brandColor?: string };
     currency?: { symbol?: string; code?: string };
     brief?: { isCompleted: boolean; publicToken?: string; template: { name: string; schema: BriefField[] } };
     quotations?: Quotation[];
     paymentPlan?: { id: string; milestones: Milestone[] };
+    project?: { id: string; name: string; status: string; clientUploadsEnabled: boolean };
 }
 
-type PageState = 'brief' | 'waiting' | 'proposal' | 'approved';
-type BriefResponses = Record<string, string | string[] | number>;
+type NavKey = 'overview' | 'brief' | 'proposal' | 'payment' | 'project';
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────────
 
 const CURRENCY_FALLBACKS: Record<string, string> = {
     GTQ: 'Q', USD: '$', EUR: '€', MXN: '$', GBP: '£', JPY: '¥',
     CAD: '$', AUD: '$', BRL: 'R$', COP: '$', ARS: '$',
     PEN: 'S/', CLP: '$', CRC: '₡', HNL: 'L', NIO: 'C$', DOP: 'RD$',
 };
-
 function getSymbol(deal: DealData, q?: Quotation) {
     if (q?.currency) return CURRENCY_FALLBACKS[q.currency] ?? q.currency;
     return deal.currency?.symbol ?? '$';
 }
+function fmt(n: number, sym: string) { return `${sym}${Number(n).toLocaleString('es-GT', { minimumFractionDigits: 2 })}`; }
+function fmtDate(iso?: string) { if (!iso) return '—'; return new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' }); }
+function optLabel(opt: BriefOption): string { return typeof opt === 'string' ? opt : opt.label; }
+function optValue(opt: BriefOption): string { return typeof opt === 'string' ? opt : opt.value; }
+function cn(...cls: (string | false | undefined | null)[]) { return cls.filter(Boolean).join(' '); }
 
-function fmt(n: number, sym: string) {
-    return `${sym}${Number(n).toLocaleString('es-GT', { minimumFractionDigits: 2 })}`;
-}
+// ─── Stage logic ─────────────────────────────────────────────────────────────────
 
-function fmtDate(iso?: string) {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' });
-}
-
-function resolveState(deal: DealData): PageState {
-    const briefExists = !!deal.brief;
-    const briefDone = deal.brief?.isCompleted ?? true;
-    const hasQ = (deal.quotations?.length ?? 0) > 0;
-    const approved = deal.quotations?.some(q => q.isApproved) ?? false;
-    if (briefExists && !briefDone) return 'brief';
-    if (!hasQ) return 'waiting';
-    if (approved) return 'approved';
+type Stage = 'brief' | 'proposal' | 'approved' | 'progress';
+function resolveStage(deal: DealData): Stage {
+    if (deal.project) return 'progress';
+    if (deal.brief && !deal.brief.isCompleted) return 'brief';
+    if (deal.quotations?.some(q => q.isApproved)) return 'approved';
     return 'proposal';
 }
 
-// ─── Input styles ──────────────────────────────────────────────────────────────
+const STAGE_STEPS: { key: Stage; label: string }[] = [
+    { key: 'brief', label: 'Brief' },
+    { key: 'proposal', label: 'Propuesta' },
+    { key: 'approved', label: 'Aprobado' },
+    { key: 'progress', label: 'En progreso' },
+];
+
+// ─── Brief Form ───────────────────────────────────────────────────────────────────
 
 const inputCls = "w-full rounded-xl border border-white/[0.1] bg-white/[0.05] px-4 py-2.5 text-sm text-white/85 placeholder:text-white/20 focus:outline-none focus:border-white/[0.22] transition-all disabled:opacity-40";
 
-// ─── Brief Form ─────────────────────────────────────────────────────────────────
-
-function BriefForm({ deal, onSubmitted }: {
-    deal: DealData;
-    onSubmitted: () => void;
-}) {
+function BriefForm({ deal, onSubmitted }: { deal: DealData; onSubmitted: () => void }) {
     const schema = deal.brief!.template.schema;
     const [responses, setResponses] = useState<BriefResponses>({});
     const [otherValues, setOtherValues] = useState<Record<string, string>>({});
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
 
-    const isVisible = (field: BriefField) => {
-        if (!field.dependsOn) return true;
-        const val = responses[field.dependsOn.fieldId];
-        if (Array.isArray(val)) return val.includes(field.dependsOn.value);
-        return val === field.dependsOn.value;
-    };
-
-    const setResponse = (id: string, val: string | string[] | number) => {
-        setResponses(r => ({ ...r, [id]: val }));
-        setErrors(e => { const n = { ...e }; delete n[id]; return n; });
-    };
-
-    const toggleCheckbox = (id: string, opt: string) => {
-        const cur = (responses[id] as string[]) || [];
-        setResponse(id, cur.includes(opt) ? cur.filter(v => v !== opt) : [...cur, opt]);
-    };
-
+    const isVisible = (f: BriefField) => !f.dependsOn || (Array.isArray(responses[f.dependsOn.fieldId]) ? (responses[f.dependsOn.fieldId] as string[]).includes(f.dependsOn.value) : responses[f.dependsOn.fieldId] === f.dependsOn.value);
+    const setResp = (id: string, val: string | string[] | number) => { setResponses(r => ({ ...r, [id]: val })); setErrors(e => { const n = { ...e }; delete n[id]; return n; }); };
+    const toggleCb = (id: string, opt: string) => { const cur = (responses[id] as string[]) || []; setResp(id, cur.includes(opt) ? cur.filter(v => v !== opt) : [...cur, opt]); };
     const validate = () => {
         const errs: Record<string, string> = {};
         schema.filter(isVisible).forEach(f => {
             if (!f.required) return;
-            const val = responses[f.id];
-            if (val === undefined || val === '' || (Array.isArray(val) && val.length === 0)) {
-                errs[f.id] = 'Este campo es requerido';
-            }
+            const v = responses[f.id];
+            if (v === undefined || v === '' || (Array.isArray(v) && !v.length)) errs[f.id] = 'Requerido';
         });
         setErrors(errs);
-        return Object.keys(errs).length === 0;
+        return !Object.keys(errs).length;
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const submit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validate()) return;
-        setIsSubmitting(true);
-        setSubmitError(null);
+        setSubmitting(true); setSubmitError(null);
         try {
-            const briefToken = deal.brief!.publicToken;
-            const res = await fetch(`${API_URL}/public/briefs/${briefToken}/submit`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            const res = await fetch(`${API_URL}/public/briefs/${deal.brief!.publicToken}/submit`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(responses),
             });
             if (!res.ok) throw new Error();
             onSubmitted();
-        } catch {
-            setSubmitError('No se pudo enviar el brief. Inténtalo de nuevo.');
-        } finally {
-            setIsSubmitting(false);
-        }
+        } catch { setSubmitError('No se pudo enviar. Inténtalo de nuevo.'); }
+        finally { setSubmitting(false); }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto">
-            <div className="mb-8">
-                <p className="text-[10px] font-bold tracking-[0.2em] text-white/30 uppercase mb-3">
-                    {deal.brief!.template.name}
-                </p>
-                <h2 className="text-2xl font-bold text-white/90 tracking-tight">Cuéntanos sobre tu proyecto</h2>
-                <p className="text-sm text-white/40 mt-1">Completa este cuestionario para que podamos preparar tu propuesta.</p>
-            </div>
-
-            {schema.filter(isVisible).map((field) => (
+        <form onSubmit={submit} className="space-y-5">
+            {schema.filter(isVisible).map(field => (
                 <div key={field.id} className="space-y-2">
-                    <label className="block text-sm font-medium text-white/80">
-                        {field.label}
-                        {field.required && <span className="text-red-400 ml-1">*</span>}
+                    <label className="block text-[13px] font-medium text-white/75">
+                        {field.label}{field.required && <span className="text-red-400 ml-1">*</span>}
                     </label>
-                    {field.description && (
-                        <p className="text-xs text-white/35">{field.description}</p>
-                    )}
+                    {field.description && <p className="text-[11px] text-white/35">{field.description}</p>}
 
-                    {field.type === 'text' && (
-                        <input
-                            className={inputCls}
-                            value={(responses[field.id] as string) || ''}
-                            onChange={e => setResponse(field.id, e.target.value)}
-                            placeholder="Tu respuesta..."
-                        />
-                    )}
-
-                    {field.type === 'textarea' && (
-                        <textarea
-                            className={inputCls + ' h-28 resize-none'}
-                            value={(responses[field.id] as string) || ''}
-                            onChange={e => setResponse(field.id, e.target.value)}
-                            placeholder="Tu respuesta..."
-                        />
-                    )}
-
+                    {field.type === 'text' && <input className={inputCls} value={(responses[field.id] as string) || ''} onChange={e => setResp(field.id, e.target.value)} placeholder="Tu respuesta..." />}
+                    {field.type === 'textarea' && <textarea className={inputCls + ' h-24 resize-none'} value={(responses[field.id] as string) || ''} onChange={e => setResp(field.id, e.target.value)} placeholder="Tu respuesta..." />}
                     {field.type === 'select' && (
                         <div className="relative">
-                            <select
-                                className={inputCls + ' appearance-none pr-10 cursor-pointer'}
-                                value={(responses[field.id] as string) || ''}
-                                onChange={e => setResponse(field.id, e.target.value)}
-                            >
+                            <select className={inputCls + ' appearance-none pr-10 cursor-pointer'} value={(responses[field.id] as string) || ''} onChange={e => setResp(field.id, e.target.value)}>
                                 <option value="" className="bg-zinc-900">Selecciona una opción</option>
-                                {field.options?.map(opt => (
-                                    <option key={optValue(opt)} value={optValue(opt)} className="bg-zinc-900">{optLabel(opt)}</option>
-                                ))}
+                                {field.options?.map(o => <option key={optValue(o)} value={optValue(o)} className="bg-zinc-900">{optLabel(o)}</option>)}
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
                         </div>
                     )}
-
                     {field.type === 'radio' && (
                         <div className="space-y-2">
-                            {field.options?.map(opt => (
-                                <label key={optValue(opt)} className="flex items-center gap-3 cursor-pointer group">
-                                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${responses[field.id] === optValue(opt) ? 'border-white bg-white' : 'border-white/20 group-hover:border-white/40'}`}>
-                                        {responses[field.id] === optValue(opt) && <div className="w-1.5 h-1.5 rounded-full bg-zinc-900" />}
+                            {field.options?.map(o => (
+                                <label key={optValue(o)} className="flex items-center gap-3 cursor-pointer group">
+                                    <div className={cn('w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors', responses[field.id] === optValue(o) ? 'border-white bg-white' : 'border-white/20 group-hover:border-white/40')}>
+                                        {responses[field.id] === optValue(o) && <div className="w-1.5 h-1.5 rounded-full bg-zinc-900" />}
                                     </div>
-                                    <input type="radio" className="sr-only" checked={responses[field.id] === optValue(opt)} onChange={() => setResponse(field.id, optValue(opt))} />
-                                    <span className="text-sm text-white/70">{optLabel(opt)}</span>
+                                    <input type="radio" className="sr-only" checked={responses[field.id] === optValue(o)} onChange={() => setResp(field.id, optValue(o))} />
+                                    <span className="text-[13px] text-white/65">{optLabel(o)}</span>
                                 </label>
                             ))}
                             {field.allowOther && (
-                                <label className="flex items-center gap-3 cursor-pointer group">
-                                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${responses[field.id] === '__other__' ? 'border-white bg-white' : 'border-white/20 group-hover:border-white/40'}`}>
-                                        {responses[field.id] === '__other__' && <div className="w-1.5 h-1.5 rounded-full bg-zinc-900" />}
-                                    </div>
-                                    <input type="radio" className="sr-only" checked={responses[field.id] === '__other__'} onChange={() => setResponse(field.id, '__other__')} />
-                                    <span className="text-sm text-white/40 italic">Otro</span>
-                                </label>
-                            )}
-                            {responses[field.id] === '__other__' && (
-                                <input
-                                    className={inputCls + ' mt-2'}
-                                    value={otherValues[field.id] || ''}
-                                    onChange={e => {
-                                        setOtherValues(v => ({ ...v, [field.id]: e.target.value }));
-                                        setResponse(field.id, e.target.value || '__other__');
-                                    }}
-                                    placeholder="Especifica..."
-                                />
+                                <>
+                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                        <div className={cn('w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors', responses[field.id] === '__other__' ? 'border-white bg-white' : 'border-white/20 group-hover:border-white/40')}>
+                                            {responses[field.id] === '__other__' && <div className="w-1.5 h-1.5 rounded-full bg-zinc-900" />}
+                                        </div>
+                                        <input type="radio" className="sr-only" checked={responses[field.id] === '__other__'} onChange={() => setResp(field.id, '__other__')} />
+                                        <span className="text-[13px] text-white/35 italic">Otro</span>
+                                    </label>
+                                    {responses[field.id] === '__other__' && <input className={inputCls} value={otherValues[field.id] || ''} onChange={e => { setOtherValues(v => ({ ...v, [field.id]: e.target.value })); setResp(field.id, e.target.value || '__other__'); }} placeholder="Especifica..." />}
+                                </>
                             )}
                         </div>
                     )}
-
                     {field.type === 'checkbox' && (
                         <div className="space-y-2">
-                            {field.options?.map(opt => {
-                                const val = optValue(opt);
-                                const checked = ((responses[field.id] as string[]) || []).includes(val);
+                            {field.options?.map(o => {
+                                const v = optValue(o); const checked = ((responses[field.id] as string[]) || []).includes(v);
                                 return (
-                                    <label key={val} className="flex items-center gap-3 cursor-pointer group">
-                                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${checked ? 'border-white bg-white' : 'border-white/20 group-hover:border-white/40'}`}>
+                                    <label key={v} className="flex items-center gap-3 cursor-pointer group">
+                                        <div className={cn('w-4 h-4 rounded border-2 flex items-center justify-center transition-colors', checked ? 'border-white bg-white' : 'border-white/20 group-hover:border-white/40')}>
                                             {checked && <svg className="w-2.5 h-2.5 text-zinc-900" fill="none" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
                                         </div>
-                                        <input type="checkbox" className="sr-only" checked={checked} onChange={() => toggleCheckbox(field.id, val)} />
-                                        <span className="text-sm text-white/70">{optLabel(opt)}</span>
+                                        <input type="checkbox" className="sr-only" checked={checked} onChange={() => toggleCb(field.id, v)} />
+                                        <span className="text-[13px] text-white/65">{optLabel(o)}</span>
                                     </label>
                                 );
                             })}
                         </div>
                     )}
-
                     {field.type === 'rating' && (
                         <div className="flex gap-2">
                             {[1, 2, 3, 4, 5].map(n => (
-                                <button key={n} type="button" onClick={() => setResponse(field.id, n)} className="focus:outline-none">
-                                    <Star className={`w-7 h-7 transition-colors ${Number(responses[field.id]) >= n ? 'text-amber-400 fill-amber-400' : 'text-white/20'}`} />
+                                <button key={n} type="button" onClick={() => setResp(field.id, n)}>
+                                    <Star className={cn('w-7 h-7 transition-colors', Number(responses[field.id]) >= n ? 'text-amber-400 fill-amber-400' : 'text-white/20')} />
                                 </button>
                             ))}
                         </div>
                     )}
-
-                    {errors[field.id] && (
-                        <p className="text-xs text-red-400 flex items-center gap-1">
-                            <AlertCircle className="w-3.5 h-3.5" /> {errors[field.id]}
-                        </p>
-                    )}
+                    {errors[field.id] && <p className="text-[11px] text-red-400 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" />{errors[field.id]}</p>}
                 </div>
             ))}
-
-            {submitError && (
-                <div className="flex items-start gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
-                    <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
-                    <p className="text-sm text-red-400">{submitError}</p>
-                </div>
-            )}
-
-            <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full h-11 rounded-full bg-white hover:bg-gray-100 text-zinc-900 font-semibold text-[13px] flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 mt-4"
-            >
-                {isSubmitting
-                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Enviando...</>
-                    : <>Enviar cuestionario <ArrowRight className="w-3.5 h-3.5" /></>
-                }
+            {submitError && <div className="flex items-start gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20"><AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" /><p className="text-[13px] text-red-400">{submitError}</p></div>}
+            <button type="submit" disabled={submitting} className="w-full h-11 rounded-full bg-white hover:bg-white/90 text-zinc-900 font-semibold text-[13px] flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50">
+                {submitting ? <><Loader2 className="w-4 h-4 animate-spin" />Enviando...</> : <>Enviar cuestionario <ArrowRight className="w-3.5 h-3.5" /></>}
             </button>
         </form>
     );
 }
 
-// ─── Page ──────────────────────────────────────────────────────────────────────
+// ─── Views ────────────────────────────────────────────────────────────────────────
 
-export default function PublicDealPage({ params }: { params: Promise<{ token: string }> }) {
-    const { token } = React.use(params);
+function OverviewView({ deal, brandColor, onNav }: { deal: DealData; brandColor: string; onNav: (k: NavKey) => void }) {
+    const stage = resolveStage(deal);
+    const stageIdx = STAGE_STEPS.findIndex(s => s.key === stage);
+    const approvedQ = deal.quotations?.find(q => q.isApproved);
+    const sym = getSymbol(deal, approvedQ);
 
-    const [deal, setDeal] = useState<DealData | null>(null);
-    const [pageState, setPageState] = useState<PageState>('waiting');
-    const [isLoading, setIsLoading] = useState(true);
-    const [activeTabId, setActiveTabId] = useState<string | null>(null);
-    const [confirmApproveId, setConfirmApproveId] = useState<string | null>(null);
-    const [isApproving, setIsApproving] = useState(false);
-    const [briefSubmitted, setBriefSubmitted] = useState(false);
-
-    const loadDeal = async () => {
-        try {
-            const res = await fetch(`${API_URL}/public/deals/${token}`);
-            if (!res.ok) {
-                if (res.status === 404) return notFound();
-                throw new Error();
-            }
-            const json = await res.json();
-            const data: DealData = json.data ?? json;
-            setDeal(data);
-            const state = resolveState(data);
-            setPageState(briefSubmitted ? 'waiting' : state);
-            if (data.quotations?.length) setActiveTabId(data.quotations[0].id);
-        } catch {
-            // handled by notFound
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => { loadDeal(); }, [token]);
-
-    const handleBriefSubmitted = () => {
-        setBriefSubmitted(true);
-        setPageState('waiting');
-    };
-
-    const handleApprove = async (quotationId: string) => {
-        if (!deal || isApproving) return;
-        setIsApproving(true);
-        try {
-            const res = await fetch(`${API_URL}/public/deals/${token}/approve-quotation/${quotationId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-            });
-            if (!res.ok) throw new Error();
-            setDeal(prev => prev ? {
-                ...prev,
-                quotations: prev.quotations?.map(q => ({ ...q, isApproved: q.id === quotationId })),
-            } : prev);
-            setPageState('approved');
-            setConfirmApproveId(null);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        } catch {
-            // silent — user can retry
-        } finally {
-            setIsApproving(false);
-        }
-    };
-
-    // ── Loading ──────────────────────────────────────────────────────────────
-
-    if (isLoading) {
-        return (
-            <div className="min-h-screen bg-[#0d0d0d] flex flex-col items-center justify-center gap-3">
-                <Loader2 className="w-6 h-6 text-white/20 animate-spin" />
-                <p className="text-[13px] text-white/25 animate-pulse">Cargando...</p>
+    return (
+        <div className="space-y-4">
+            {/* Progress stepper */}
+            <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/25 mb-4">Progreso</p>
+                <div className="flex items-center">
+                    {STAGE_STEPS.map((s, i) => {
+                        const done = i < stageIdx; const active = i === stageIdx;
+                        return (
+                            <React.Fragment key={s.key}>
+                                <div className="flex flex-col items-center gap-1.5 shrink-0">
+                                    <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold', !done && !active && 'bg-white/[0.05] text-white/20')}
+                                        style={done || active ? { backgroundColor: done ? brandColor + 'bb' : brandColor, color: '#fff' } : {}}>
+                                        {done ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
+                                    </div>
+                                    <span className={cn('text-[10px] font-semibold whitespace-nowrap', active ? 'text-white' : done ? 'text-white/45' : 'text-white/20')}>{s.label}</span>
+                                </div>
+                                {i < STAGE_STEPS.length - 1 && <div className={cn('flex-1 h-px mx-2 mb-5', i < stageIdx ? 'bg-white/30' : 'bg-white/[0.07]')} />}
+                            </React.Fragment>
+                        );
+                    })}
+                </div>
             </div>
-        );
-    }
 
-    if (!deal) return notFound();
-
-    const { workspace, client, quotations = [], paymentPlan, proposalIntro, proposalTerms, validUntil } = deal;
-    const approvedQ = quotations.find(q => q.isApproved);
-    const activeQ = quotations.find(q => q.id === activeTabId) ?? quotations[0];
-    const sym = getSymbol(deal, activeQ);
-    const brandColor = workspace.brandColor || '#ffffff';
-
-    // ── Shared header ────────────────────────────────────────────────────────
-
-    const Header = () => (
-        <div className="flex items-center justify-between mb-12">
-            <div className="flex items-center gap-3">
-                {workspace.logo ? (
-                    <img src={getImageUrl(workspace.logo)} alt={workspace.businessName} className="h-9 w-auto max-w-[120px] object-contain" />
-                ) : (
-                    <div className="w-9 h-9 rounded-xl bg-white/[0.08] border border-white/[0.1] flex items-center justify-center font-bold text-white text-sm shrink-0">
-                        {(workspace.businessName || 'W').charAt(0)}
-                    </div>
+            {/* Summary cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Brief card */}
+                {deal.brief && (
+                    <button onClick={() => onNav('brief')} className="text-left rounded-2xl border border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.05] transition-colors p-4 group">
+                        <div className="flex items-start justify-between mb-3">
+                            <div className="w-8 h-8 rounded-xl bg-white/[0.07] flex items-center justify-center">
+                                <ClipboardList className="w-4 h-4 text-white/50" />
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-white/40 transition-colors mt-1" />
+                        </div>
+                        <p className="text-[12px] font-bold text-white/85 mb-0.5">{deal.brief.template.name}</p>
+                        <p className="text-[11px] text-white/35">{deal.brief.isCompleted ? 'Completado' : 'Pendiente de completar'}</p>
+                        {deal.brief.isCompleted
+                            ? <span className="mt-2 inline-block text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">Listo</span>
+                            : <span className="mt-2 inline-block text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md">Pendiente</span>
+                        }
+                    </button>
                 )}
-                <span className="font-semibold text-white/80 text-sm">{workspace.businessName}</span>
+
+                {/* Proposal card */}
+                <button onClick={() => onNav('proposal')} className="text-left rounded-2xl border border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.05] transition-colors p-4 group">
+                    <div className="flex items-start justify-between mb-3">
+                        <div className="w-8 h-8 rounded-xl bg-white/[0.07] flex items-center justify-center">
+                            <FileText className="w-4 h-4 text-white/50" />
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-white/40 transition-colors mt-1" />
+                    </div>
+                    <p className="text-[12px] font-bold text-white/85 mb-0.5">Propuesta</p>
+                    {approvedQ
+                        ? <><p className="text-[11px] text-white/35">{approvedQ.optionName}</p><p className="text-[15px] font-black text-white mt-1">{fmt(approvedQ.total, sym)}</p><span className="mt-1 inline-block text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">Aprobada</span></>
+                        : (deal.quotations?.length ?? 0) > 0
+                            ? <><p className="text-[11px] text-white/35">{deal.quotations!.length} opción(es) disponibles</p><span className="mt-2 inline-block text-[10px] font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md">Por aprobar</span></>
+                            : <><p className="text-[11px] text-white/35">En preparación</p><span className="mt-2 inline-block text-[10px] font-bold uppercase tracking-wider text-white/25 bg-white/[0.05] px-2 py-0.5 rounded-md">Pendiente</span></>
+                    }
+                </button>
+
+                {/* Payment card */}
+                <button onClick={() => onNav('payment')} className="text-left rounded-2xl border border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.05] transition-colors p-4 group">
+                    <div className="flex items-start justify-between mb-3">
+                        <div className="w-8 h-8 rounded-xl bg-white/[0.07] flex items-center justify-center">
+                            <CreditCard className="w-4 h-4 text-white/50" />
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-white/40 transition-colors mt-1" />
+                    </div>
+                    <p className="text-[12px] font-bold text-white/85 mb-0.5">Plan de pagos</p>
+                    {(deal.paymentPlan?.milestones?.length ?? 0) > 0
+                        ? <p className="text-[11px] text-white/35">{deal.paymentPlan!.milestones.length} hito(s)</p>
+                        : <p className="text-[11px] text-white/35">Sin configurar aún</p>
+                    }
+                </button>
+
+                {/* Project card */}
+                {deal.project && (
+                    <button onClick={() => onNav('project')} className="text-left rounded-2xl border border-blue-500/20 bg-blue-500/[0.04] hover:bg-blue-500/[0.07] transition-colors p-4 group sm:col-span-2">
+                        <div className="flex items-start justify-between mb-3">
+                            <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                                <Briefcase className="w-4 h-4 text-blue-400" />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                                <ChevronRight className="w-4 h-4 text-blue-400/40 group-hover:text-blue-400/70 transition-colors" />
+                            </div>
+                        </div>
+                        <p className="text-[12px] font-bold text-white/85 mb-0.5">{deal.project.name}</p>
+                        <p className="text-[11px] text-blue-400/60">
+                            {deal.project.clientUploadsEnabled ? 'Puedes subir archivos al proyecto' : 'Proyecto en progreso'}
+                        </p>
+                        <span className="mt-2 inline-block text-[10px] font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md">En progreso</span>
+                    </button>
+                )}
             </div>
-            {validUntil && (
-                <span className="text-[11px] text-white/30 flex items-center gap-1.5">
-                    <Clock className="w-3 h-3" /> Válida hasta {fmtDate(validUntil)}
-                </span>
+
+            {deal.proposalTerms && (
+                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/20 mb-2 flex items-center gap-1.5"><Sparkles className="w-3 h-3" />Términos y Condiciones</p>
+                    <p className="text-[12px] text-white/30 leading-relaxed whitespace-pre-line font-light">{deal.proposalTerms}</p>
+                </div>
             )}
         </div>
     );
+}
 
-    // ── Brief state ──────────────────────────────────────────────────────────
+function ProposalView({ deal, token, onApproved }: { deal: DealData; token: string; onApproved: (id: string) => void }) {
+    const quotations = deal.quotations ?? [];
+    const [activeId, setActiveId] = useState(quotations[0]?.id ?? null);
+    const [confirming, setConfirming] = useState(false);
+    const [approving, setApproving] = useState(false);
+    const isApproved = quotations.some(q => q.isApproved);
+    const approvedQ = quotations.find(q => q.isApproved);
+    const activeQ = quotations.find(q => q.id === activeId) ?? quotations[0];
+    const displayQ = isApproved ? approvedQ! : activeQ;
+    const sym = getSymbol(deal, displayQ);
 
-    if (pageState === 'brief' && deal.brief && !deal.brief.isCompleted) {
-        return (
-            <div className="min-h-screen bg-[#0d0d0d] text-white font-sans selection:bg-white selection:text-zinc-900">
-                <div className="fixed pointer-events-none inset-0" style={{ background: 'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(255,255,255,0.04) 0%, transparent 70%)' }} />
-                <main className="relative max-w-2xl mx-auto px-5 sm:px-6 py-14">
-                    <Header />
-                    <BriefForm deal={deal} onSubmitted={handleBriefSubmitted} />
-                </main>
-            </div>
-        );
-    }
-
-    // ── Waiting state ────────────────────────────────────────────────────────
-
-    if (pageState === 'waiting') {
-        return (
-            <div className="min-h-screen bg-[#0d0d0d] text-white font-sans flex flex-col items-center justify-center p-6">
-                <div className="fixed pointer-events-none inset-0" style={{ background: 'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(255,255,255,0.03) 0%, transparent 70%)' }} />
-                <div className="relative max-w-sm text-center space-y-4">
-                    <div className="w-16 h-16 rounded-2xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center mx-auto">
-                        <Clock className="w-7 h-7 text-white/30" strokeWidth={1.5} />
-                    </div>
-                    <h2 className="text-2xl font-bold text-white tracking-tight">Propuesta en preparación</h2>
-                    <p className="text-sm text-white/40 leading-relaxed">
-                        {briefSubmitted
-                            ? 'Gracias por completar el cuestionario. Estamos preparando tu propuesta.'
-                            : 'Estamos preparando tu propuesta personalizada. Te notificaremos cuando esté lista.'}
-                    </p>
-                    {workspace.businessName && (
-                        <p className="text-xs text-white/25">{workspace.businessName}</p>
-                    )}
-                </div>
-            </div>
-        );
-    }
-
-    // ── Approved state ───────────────────────────────────────────────────────
-
-    if (pageState === 'approved' && approvedQ) {
-        return (
-            <div className="min-h-screen bg-[#0d0d0d] text-white font-sans flex items-center justify-center p-6">
-                <div className="fixed pointer-events-none inset-0" style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 0%, rgba(52,211,153,0.06) 0%, transparent 70%)' }} />
-                <div className="relative max-w-md w-full rounded-3xl border border-white/[0.08] bg-white/[0.04] p-10 text-center">
-                    <div className="w-20 h-20 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-7">
-                        <CheckCircle2 className="w-9 h-9 text-emerald-400" />
-                    </div>
-                    <h1 className="text-3xl font-black text-white mb-3 tracking-tight">¡Propuesta Aceptada!</h1>
-                    <p className="text-white/40 text-[13px] leading-relaxed mb-7 font-light">
-                        Has elegido <strong className="text-white/70 font-semibold">{approvedQ.optionName}</strong>.
-                        {workspace.businessName && ` El equipo de ${workspace.businessName} comenzará pronto.`}
-                    </p>
-                    <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-6 mb-7">
-                        <p className="text-[10px] font-bold text-white/25 uppercase tracking-[0.2em] mb-2">Inversión Acordada</p>
-                        <p className="text-4xl font-black text-white tracking-tight">{fmt(approvedQ.total, getSymbol(deal, approvedQ))}</p>
-                    </div>
-
-                    {/* Payment plan in approved state */}
-                    {paymentPlan?.milestones && paymentPlan.milestones.length > 0 && (
-                        <div className="text-left">
-                            <p className="text-[10px] font-bold text-white/25 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                                <CreditCard className="w-3.5 h-3.5" /> Plan de Pagos
-                            </p>
-                            <div className="rounded-2xl border border-white/[0.07] overflow-hidden">
-                                {paymentPlan.milestones.map((m, idx) => (
-                                    <div key={m.id} className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.05] last:border-0">
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-white/20 text-xs font-bold w-4">{idx + 1}.</span>
-                                            <div>
-                                                <p className="text-[13px] font-medium text-white/75">{m.name}</p>
-                                                {m.dueDate && <p className="text-[11px] text-white/30 mt-0.5">{fmtDate(m.dueDate)}</p>}
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-[13px] font-bold text-white/80">{fmt(m.amount, getSymbol(deal, approvedQ))}</p>
-                                            {m.percentage && <p className="text-[10px] text-white/25">{m.percentage}%</p>}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
-    }
-
-    // ── Proposal state ───────────────────────────────────────────────────────
-
-    const renderQuotation = (q: Quotation) => {
-        const s = getSymbol(deal, q);
-        return (
-            <div>
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-                    <div>
-                        <h2 className="text-xl font-bold text-white/90 mb-1 tracking-tight">{q.optionName}</h2>
-                        {q.description && <p className="text-white/40 text-[13px] leading-relaxed font-light">{q.description}</p>}
-                    </div>
-                    <div className="shrink-0 md:text-right">
-                        <p className="text-[10px] font-bold text-white/25 uppercase tracking-[0.2em] mb-1">Inversión total</p>
-                        <p className="text-4xl font-black text-white tracking-tight">{fmt(q.total, s)}</p>
-                    </div>
-                </div>
-
-                {q.items.length > 0 && (
-                    <div className="mb-10">
-                        <p className="text-[10px] font-bold text-white/25 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                            <Sparkles className="w-3 h-3" /> Desglose
-                        </p>
-                        <div className="rounded-2xl border border-white/[0.07] overflow-hidden">
-                            {q.items.map((item, idx) => (
-                                <div key={item.id ?? idx} className="flex flex-col md:flex-row md:items-center justify-between px-6 py-4 border-b border-white/[0.05] last:border-0 gap-3 hover:bg-white/[0.02] transition-colors">
-                                    <div>
-                                        <p className="font-semibold text-white/80 text-[13px]">{item.name}</p>
-                                        {item.description && <p className="text-white/30 text-[11px] mt-0.5">{item.description}</p>}
-                                    </div>
-                                    <div className="flex items-center gap-6">
-                                        <span className="text-[13px] text-white/35">{item.quantity} × {fmt(item.price, s)}</span>
-                                        <span className="font-bold text-white/85 text-[13px]">{fmt(item.subtotal, s)}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="mt-4 flex flex-col items-end gap-2">
-                            {q.discount > 0 && (
-                                <div className="flex justify-between w-56 text-[13px]">
-                                    <span className="text-white/35">Descuento</span>
-                                    <span className="text-white/60 font-semibold">−{fmt(q.discount, s)}</span>
-                                </div>
-                            )}
-                            <div className="flex justify-between w-56 text-base font-bold pt-3 border-t border-white/[0.07] mt-1">
-                                <span className="text-white/35">Total</span>
-                                <span className="text-white">{fmt(q.total, s)}</span>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {paymentPlan?.milestones && paymentPlan.milestones.length > 0 && (
-                    <div className="mb-10">
-                        <p className="text-[10px] font-bold text-white/25 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                            <CreditCard className="w-3 h-3" /> Plan de Pagos
-                        </p>
-                        <div className="rounded-2xl border border-white/[0.07] overflow-hidden">
-                            {paymentPlan.milestones.map((m, idx) => (
-                                <div key={m.id} className="flex items-center justify-between px-6 py-4 border-b border-white/[0.05] last:border-0">
-                                    <div className="flex items-start gap-4">
-                                        <span className="text-white/20 text-[11px] font-bold pt-0.5 w-4 shrink-0">{idx + 1}.</span>
-                                        <div>
-                                            <p className="font-semibold text-[13px] text-white/80">{m.name}</p>
-                                            {m.dueDate && (
-                                                <p className="text-[11px] text-white/30 mt-0.5 flex items-center gap-1">
-                                                    <Calendar className="w-3 h-3" /> {fmtDate(m.dueDate)}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-sm font-bold text-white/80">{fmt(m.amount, s)}</p>
-                                        {m.percentage && <p className="text-[10px] text-white/25">{m.percentage}%</p>}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                <div className="pt-6 border-t border-white/[0.06]">
-                    <button
-                        onClick={() => setConfirmApproveId(q.id)}
-                        style={{ backgroundColor: brandColor !== '#ffffff' ? brandColor : undefined }}
-                        className="w-full md:w-auto px-10 h-11 bg-white hover:opacity-90 text-zinc-900 rounded-full font-semibold text-[13px] flex items-center justify-center gap-2 transition-all active:scale-95"
-                    >
-                        {quotations.length === 1 ? 'Aceptar Propuesta' : `Aceptar: ${q.optionName}`}
-                        <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                </div>
-            </div>
-        );
+    const handleApprove = async () => {
+        if (!activeQ || approving) return;
+        setApproving(true);
+        try {
+            const res = await fetch(`${API_URL}/public/deals/${token}/approve-quotation/${activeQ.id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+            if (!res.ok) throw new Error();
+            onApproved(activeQ.id); setConfirming(false);
+        } catch { /* silent */ } finally { setApproving(false); }
     };
 
+    if (quotations.length === 0) return (
+        <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] flex flex-col items-center justify-center py-16 text-center px-6">
+            <Clock className="w-9 h-9 text-white/15 mb-3" strokeWidth={1.5} />
+            <p className="text-[14px] font-semibold text-white/40 mb-1">Propuesta en preparación</p>
+            <p className="text-[12px] text-white/25">Te notificaremos cuando esté lista.</p>
+        </div>
+    );
+
     return (
-        <div className="min-h-screen bg-[#0d0d0d] text-white selection:bg-white selection:text-zinc-900 font-sans">
-            <div className="fixed pointer-events-none" style={{ top: '-10%', left: '50%', transform: 'translateX(-50%)', width: '900px', height: '600px', background: 'radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.045) 0%, transparent 65%)', borderRadius: '50%' }} />
+        <div className="space-y-4">
+            {/* Tab selector */}
+            {!isApproved && quotations.length > 1 && (
+                <div className="flex gap-1.5 p-1.5 bg-white/[0.04] rounded-2xl border border-white/[0.06] w-fit">
+                    {quotations.map(q => (
+                        <button key={q.id} onClick={() => setActiveId(q.id)}
+                            className={cn('px-4 py-1.5 rounded-xl text-[12px] font-semibold transition-all', activeId === q.id ? 'bg-white/[0.1] text-white border border-white/[0.12]' : 'text-white/30 hover:text-white/55')}>
+                            {q.optionName}
+                        </button>
+                    ))}
+                </div>
+            )}
 
-            <main className="relative max-w-3xl mx-auto px-4 sm:px-6 py-14 md:py-20">
-                <Header />
-
-                {/* Hero */}
-                <div className="mb-12">
-                    <p className="text-[10px] font-bold tracking-[0.2em] text-white/30 uppercase mb-3">Propuesta Comercial</p>
-                    <div className="flex flex-wrap gap-2">
-                        {client?.name && (
-                            <span className="inline-flex items-center text-[12px] text-white/45 bg-white/[0.06] border border-white/[0.08] px-3.5 py-1.5 rounded-full">
-                                Para <strong className="text-white/65 ml-1">{client.name}</strong>
-                            </span>
-                        )}
+            <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] overflow-hidden">
+                {/* Header */}
+                <div className="px-6 py-5 border-b border-white/[0.06] flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                    <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/25 mb-1">{isApproved ? 'Propuesta aprobada' : 'Opción seleccionada'}</p>
+                        <h2 className="text-[17px] font-black text-white/90 tracking-tight">{displayQ?.optionName}</h2>
+                        {displayQ?.description && <p className="text-[12px] text-white/35 mt-1 leading-relaxed">{displayQ.description}</p>}
+                    </div>
+                    <div className="shrink-0 sm:text-right">
+                        <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest mb-0.5">Total</p>
+                        <p className="text-3xl font-black text-white tracking-tight">{fmt(displayQ?.total ?? 0, sym)}</p>
                     </div>
                 </div>
 
-                {/* Card */}
-                <div className="rounded-3xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
-                    <div className="p-7 md:p-10">
-                        {proposalIntro && (
-                            <div className="mb-10 pb-10 border-b border-white/[0.06]">
-                                <p className="text-white/50 leading-relaxed whitespace-pre-wrap text-[14px] font-light">{proposalIntro}</p>
-                            </div>
-                        )}
-
-                        {quotations.length === 0 ? (
-                            <div className="text-center py-20">
-                                <Clock className="w-10 h-10 text-white/20 mx-auto mb-4" strokeWidth={1.5} />
-                                <p className="text-white/30">Propuesta en preparación</p>
-                            </div>
-                        ) : quotations.length === 1 ? (
-                            renderQuotation(quotations[0])
-                        ) : (
-                            <div>
-                                <div className="flex flex-wrap gap-1.5 mb-8 p-1.5 bg-white/[0.04] rounded-2xl border border-white/[0.07] w-fit">
-                                    {quotations.map(q => (
-                                        <button
-                                            key={q.id}
-                                            onClick={() => setActiveTabId(q.id)}
-                                            className={`px-4 py-1.5 rounded-xl text-[12px] font-semibold transition-all ${activeTabId === q.id ? 'bg-white/[0.1] text-white border border-white/[0.12]' : 'text-white/30 hover:text-white/55'}`}
-                                        >
-                                            {q.optionName}
-                                        </button>
-                                    ))}
+                {/* Items */}
+                {(displayQ?.items?.length ?? 0) > 0 && (
+                    <div>
+                        <div className="px-6 py-3 border-b border-white/[0.04]">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-white/20">Desglose</p>
+                        </div>
+                        {displayQ!.items.map((item, idx) => (
+                            <div key={item.id ?? idx} className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-3.5 border-b border-white/[0.04] last:border-0 gap-2 hover:bg-white/[0.02] transition-colors">
+                                <div>
+                                    <p className="text-[13px] font-semibold text-white/80">{item.name}</p>
+                                    {item.description && <p className="text-[11px] text-white/30 mt-0.5">{item.description}</p>}
                                 </div>
-                                {activeQ && renderQuotation(activeQ)}
+                                <div className="flex items-center gap-5 sm:justify-end shrink-0">
+                                    <span className="text-[12px] text-white/30">{item.quantity} × {fmt(item.price, sym)}</span>
+                                    <span className="text-[13px] font-bold text-white/80 min-w-[80px] text-right">{fmt(item.subtotal, sym)}</span>
+                                </div>
                             </div>
-                        )}
-
-                        {proposalTerms && (
-                            <div className="mt-10 pt-10 border-t border-white/[0.06]">
-                                <p className="text-[10px] font-bold text-white/25 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                                    <ShieldCheck className="w-3.5 h-3.5" /> Términos y Condiciones
-                                </p>
-                                <p className="text-white/30 text-[13px] leading-relaxed whitespace-pre-wrap font-light">{proposalTerms}</p>
+                        ))}
+                        {(displayQ?.discount ?? 0) > 0 && (
+                            <div className="flex justify-end gap-12 px-6 py-3 border-t border-white/[0.05] text-[13px]">
+                                <span className="text-white/30">Descuento</span>
+                                <span className="text-white/55 font-semibold">−{fmt(displayQ!.discount, sym)}</span>
                             </div>
                         )}
                     </div>
-                </div>
+                )}
 
-                <div className="mt-8 flex justify-center">
-                    <p className="text-[10px] font-bold text-white/15 uppercase tracking-widest flex items-center gap-2">
-                        Powered by
-                        <img src="/HiKrewLogo.png" alt="Hi Krew" className="h-3.5 object-contain opacity-25" style={{ filter: 'brightness(0) invert(1)' }} />
-                    </p>
-                </div>
-            </main>
-
-            {/* Confirm modal */}
-            {confirmApproveId && (() => {
-                const q = quotations.find(x => x.id === confirmApproveId);
-                if (!q) return null;
-                return (
-                    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-                        <div className="w-full max-w-sm rounded-3xl border border-white/[0.1] bg-[#161616] p-8">
-                            <div className="w-14 h-14 rounded-2xl bg-white/[0.07] border border-white/[0.09] flex items-center justify-center mx-auto mb-6">
-                                <Sparkles className="w-6 h-6 text-white/50" strokeWidth={1.5} />
+                {/* CTA / approved */}
+                <div className="px-6 py-5 border-t border-white/[0.06]">
+                    {isApproved ? (
+                        <div className="flex items-start gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-4 py-3.5">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                            <div>
+                                <p className="text-[13px] font-semibold text-emerald-300">Propuesta aprobada</p>
+                                <p className="text-[11px] text-emerald-400/50 mt-0.5">{deal.workspace.businessName ?? 'El equipo'} ya fue notificado.</p>
                             </div>
-                            <h2 className="text-2xl font-black text-center text-white mb-1 tracking-tight">Confirmar selección</h2>
-                            <p className="text-white/35 text-center text-[13px] mb-2 font-light">
-                                Opción <strong className="text-white/60 font-semibold">{q.optionName}</strong>
-                            </p>
-                            <p className="text-center text-4xl font-black text-white mt-5 mb-2 tracking-tight">
-                                {fmt(q.total, getSymbol(deal, q))}
-                            </p>
-                            <p className="text-center text-[12px] text-white/25 mb-8 leading-relaxed font-light">
-                                Al confirmar, notificaremos al equipo para iniciar el proyecto.
-                            </p>
-                            <div className="flex flex-col gap-2">
-                                <button
-                                    onClick={() => handleApprove(confirmApproveId)}
-                                    disabled={isApproving}
-                                    className="w-full h-11 rounded-full bg-white hover:bg-gray-100 text-zinc-900 font-bold transition-colors disabled:opacity-40 flex items-center justify-center gap-2 text-[13px]"
-                                >
-                                    {isApproving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirmar y Aceptar'}
+                        </div>
+                    ) : confirming ? (
+                        <div className="space-y-3">
+                            <p className="text-[13px] font-semibold text-white/85">¿Confirmar aprobación?</p>
+                            <p className="text-[12px] text-white/35 leading-snug">Al aprobar, {deal.workspace.businessName ?? 'el equipo'} recibirá una notificación para proceder.</p>
+                            <div className="flex gap-2">
+                                <button onClick={handleApprove} disabled={approving}
+                                    className="flex-1 h-10 rounded-xl bg-white hover:bg-white/90 text-zinc-900 text-[13px] font-bold transition-opacity disabled:opacity-60 flex items-center justify-center gap-2">
+                                    {approving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                                    {approving ? 'Aprobando...' : 'Sí, aprobar'}
                                 </button>
-                                <button
-                                    onClick={() => setConfirmApproveId(null)}
-                                    className="w-full h-10 rounded-full text-white/30 font-semibold hover:bg-white/[0.05] hover:text-white/55 transition-colors text-[13px]"
-                                >
+                                <button onClick={() => setConfirming(false)} disabled={approving}
+                                    className="px-4 h-10 rounded-xl border border-white/[0.1] text-[13px] font-medium text-white/50 hover:bg-white/[0.05] transition-colors">
                                     Cancelar
                                 </button>
                             </div>
                         </div>
+                    ) : (
+                        <button onClick={() => setConfirming(true)}
+                            className="w-full sm:w-auto px-8 h-11 rounded-2xl bg-white hover:bg-white/90 text-zinc-900 text-[13px] font-bold flex items-center justify-center gap-2 transition-all active:scale-95">
+                            <CheckCircle2 className="w-4 h-4" />
+                            {quotations.length > 1 ? `Aprobar "${activeQ?.optionName}"` : 'Aprobar esta propuesta'}
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function PaymentView({ deal }: { deal: DealData }) {
+    const isApproved = deal.quotations?.some(q => q.isApproved) ?? false;
+    const plan = deal.paymentPlan;
+    const approvedQ = deal.quotations?.find(q => q.isApproved);
+    const sym = getSymbol(deal, approvedQ);
+
+    if (!isApproved) return (
+        <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] flex flex-col items-center justify-center py-16 text-center px-6">
+            <Lock className="w-8 h-8 text-white/15 mb-3" />
+            <p className="text-[14px] font-semibold text-white/35 mb-1">Disponible tras aprobar</p>
+            <p className="text-[12px] text-white/20">Aprueba la propuesta para ver el plan de pagos.</p>
+        </div>
+    );
+
+    if (!plan?.milestones?.length) return (
+        <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] flex flex-col items-center justify-center py-16 text-center px-6">
+            <CreditCard className="w-8 h-8 text-white/15 mb-3" />
+            <p className="text-[14px] font-semibold text-white/35">Sin plan de pagos configurado</p>
+        </div>
+    );
+
+    const totalPaid = plan.milestones.filter(m => m.status === 'PAID').reduce((s, m) => s + m.amount, 0);
+    const totalAmount = plan.milestones.reduce((s, m) => s + m.amount, 0);
+    const paidPct = totalAmount > 0 ? Math.round((totalPaid / totalAmount) * 100) : 0;
+
+    return (
+        <div className="space-y-4">
+            {/* Summary */}
+            <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/25 mb-1">Total acordado</p>
+                    <p className="text-2xl font-black text-white tracking-tight">{fmt(totalAmount, sym)}</p>
+                </div>
+                <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1.5">
+                        <p className="text-[11px] text-white/35">Pagado</p>
+                        <p className="text-[11px] font-bold text-white/60">{paidPct}%</p>
                     </div>
-                );
-            })()}
+                    <div className="h-1.5 rounded-full bg-white/[0.07] overflow-hidden">
+                        <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${paidPct}%` }} />
+                    </div>
+                </div>
+            </div>
+
+            {/* Milestones */}
+            <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] overflow-hidden">
+                {plan.milestones.map((m, i) => {
+                    const statusMap: Record<string, { label: string; cls: string }> = {
+                        PENDING:   { label: 'Pendiente', cls: 'text-white/30 bg-white/[0.05]' },
+                        PAID:      { label: 'Pagado',    cls: 'text-emerald-400 bg-emerald-500/10' },
+                        OVERDUE:   { label: 'Vencido',   cls: 'text-red-400 bg-red-500/10' },
+                        CANCELLED: { label: 'Cancelado', cls: 'text-white/20 bg-white/[0.03]' },
+                    };
+                    const s = statusMap[m.status] ?? statusMap['PENDING'];
+                    return (
+                        <div key={m.id} className="flex items-start justify-between px-5 py-4 border-b border-white/[0.05] last:border-0 gap-4">
+                            <div className="flex items-start gap-3">
+                                <span className="text-white/20 text-[11px] font-bold pt-0.5 w-4 shrink-0">{i + 1}.</span>
+                                <div>
+                                    <p className="text-[13px] font-semibold text-white/80">{m.name}</p>
+                                    {m.dueDate && <p className="text-[11px] text-white/30 mt-0.5 flex items-center gap-1"><Calendar className="w-3 h-3" />{fmtDate(m.dueDate)}</p>}
+                                </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                                <p className="text-[13px] font-bold text-white/80">{fmt(m.amount, sym)}</p>
+                                <span className={cn('text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md', s.cls)}>{s.label}</span>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
+// ─── Project View ─────────────────────────────────────────────────────────────────
+
+function ProjectView({ deal, token }: { deal: DealData; token: string }) {
+    const project = deal.project!;
+    const [dragOver, setDragOver] = useState(false);
+    const [uploads, setUploads] = useState<{ name: string; status: 'uploading' | 'done' | 'error' }[]>([]);
+    const inputRef = React.useRef<HTMLInputElement>(null);
+
+    const uploadFile = async (file: File) => {
+        const name = file.name;
+        setUploads(u => [...u, { name, status: 'uploading' }]);
+        try {
+            const fd = new FormData();
+            fd.append('file', file);
+            const res = await fetch(`${API_URL}/public/deals/${token}/upload`, { method: 'POST', body: fd });
+            if (!res.ok) throw new Error();
+            setUploads(u => u.map(x => x.name === name && x.status === 'uploading' ? { ...x, status: 'done' } : x));
+        } catch {
+            setUploads(u => u.map(x => x.name === name && x.status === 'uploading' ? { ...x, status: 'error' } : x));
+        }
+    };
+
+    const handleFiles = (files: FileList) => { Array.from(files).forEach(uploadFile); };
+
+    const statusLabel = project.status === 'COMPLETED' ? 'Completado' : 'En progreso';
+    const statusCls = project.status === 'COMPLETED' ? 'text-emerald-400 bg-emerald-500/10' : 'text-blue-400 bg-blue-500/10';
+
+    return (
+        <div className="space-y-4">
+            {/* Project info */}
+            <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/25 mb-2">Proyecto</p>
+                <h2 className="text-[17px] font-black text-white/90 tracking-tight mb-3">{project.name}</h2>
+                <span className={cn('inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg', statusCls)}>
+                    {project.status !== 'COMPLETED' && <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />}
+                    {statusLabel}
+                </span>
+            </div>
+
+            {/* Upload zone or placeholder */}
+            {project.clientUploadsEnabled ? (
+                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] overflow-hidden">
+                    <div className="px-5 py-4 border-b border-white/[0.06]">
+                        <p className="text-[13px] font-bold text-white/80">Subir archivos</p>
+                        <p className="text-[11px] text-white/30 mt-0.5">Comparte archivos con tu proveedor de servicios</p>
+                    </div>
+                    <div className="p-5 space-y-4">
+                        {/* Drop zone */}
+                        <div
+                            onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                            onDragLeave={() => setDragOver(false)}
+                            onDrop={e => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files); }}
+                            onClick={() => inputRef.current?.click()}
+                            className={cn(
+                                'border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all text-center select-none',
+                                dragOver ? 'border-white/40 bg-white/[0.07]' : 'border-white/[0.1] hover:border-white/[0.22] hover:bg-white/[0.02]',
+                            )}
+                        >
+                            <input ref={inputRef} type="file" multiple className="sr-only" onChange={e => e.target.files && handleFiles(e.target.files)} />
+                            <div className={cn('w-12 h-12 rounded-2xl border flex items-center justify-center mb-3 transition-all',
+                                dragOver ? 'bg-white/[0.12] border-white/20' : 'bg-white/[0.05] border-white/[0.08]')}>
+                                <Upload className={cn('w-5 h-5 transition-colors', dragOver ? 'text-white/60' : 'text-white/30')} />
+                            </div>
+                            <p className="text-[13px] font-semibold text-white/60 mb-1">
+                                {dragOver ? 'Suelta para subir' : 'Arrastra archivos o haz clic'}
+                            </p>
+                            <p className="text-[11px] text-white/25">Cualquier formato · Sin límite de archivos</p>
+                        </div>
+
+                        {/* Upload list */}
+                        {uploads.length > 0 && (
+                            <div className="space-y-2">
+                                {uploads.map((u, i) => (
+                                    <div key={i} className="flex items-center gap-3 py-2.5 px-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                        <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center shrink-0',
+                                            u.status === 'done' ? 'bg-emerald-500/15' : u.status === 'error' ? 'bg-red-500/15' : 'bg-white/[0.06]')}>
+                                            {u.status === 'uploading'
+                                                ? <Loader2 className="w-3.5 h-3.5 text-white/30 animate-spin" />
+                                                : u.status === 'done'
+                                                    ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                                    : <AlertCircle className="w-3.5 h-3.5 text-red-400" />}
+                                        </div>
+                                        <span className="text-[12px] text-white/65 truncate flex-1">{u.name}</span>
+                                        <span className={cn('text-[10px] font-bold uppercase tracking-wide shrink-0',
+                                            u.status === 'done' ? 'text-emerald-400' : u.status === 'error' ? 'text-red-400' : 'text-white/25')}>
+                                            {u.status === 'uploading' ? 'Subiendo…' : u.status === 'done' ? 'Listo' : 'Error'}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            ) : (
+                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] flex flex-col items-center justify-center py-14 text-center px-6">
+                    <FolderOpen className="w-9 h-9 text-white/15 mb-3" strokeWidth={1.5} />
+                    <p className="text-[14px] font-semibold text-white/35 mb-1">Proyecto en curso</p>
+                    <p className="text-[12px] text-white/20">Tu proveedor te contactará con actualizaciones.</p>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── Sidebar ──────────────────────────────────────────────────────────────────────
+
+function Sidebar({ deal, activeNav, onNav, brandColor }: { deal: DealData; activeNav: NavKey; onNav: (k: NavKey) => void; brandColor: string }) {
+    const stage = resolveStage(deal);
+    const stageIdx = STAGE_STEPS.findIndex(s => s.key === stage);
+    const isApproved = deal.quotations?.some(q => q.isApproved) ?? false;
+
+    const navItems: { key: NavKey; label: string; icon: React.ReactNode; locked?: boolean; badge?: string; highlight?: boolean }[] = [
+        { key: 'overview', label: 'Resumen', icon: <LayoutDashboard className="w-4 h-4" /> },
+        ...(deal.brief ? [{ key: 'brief' as NavKey, label: deal.brief.template.name, icon: <ClipboardList className="w-4 h-4" />, badge: deal.brief.isCompleted ? '✓' : '!' }] : []),
+        { key: 'proposal', label: 'Propuesta', icon: <FileText className="w-4 h-4" /> },
+        { key: 'payment', label: 'Plan de pagos', icon: <CreditCard className="w-4 h-4" />, locked: !isApproved },
+        ...(deal.project ? [{ key: 'project' as NavKey, label: deal.project.name, icon: <Briefcase className="w-4 h-4" />, highlight: true }] : []),
+    ];
+
+    return (
+        <aside className="w-full lg:w-60 shrink-0 flex flex-col gap-4">
+            {/* Workspace card */}
+            <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4">
+                <div className="flex items-center gap-2.5 mb-3">
+                    {deal.workspace.logo ? (
+                        <img src={getImageUrl(deal.workspace.logo)} alt="" className="h-7 w-auto max-w-[90px] object-contain" />
+                    ) : (
+                        <div className="w-7 h-7 rounded-lg bg-white/[0.08] border border-white/[0.1] flex items-center justify-center font-bold text-white text-[11px] shrink-0">
+                            {(deal.workspace.businessName || 'W').charAt(0)}
+                        </div>
+                    )}
+                    <span className="text-[12px] font-semibold text-white/60 truncate">{deal.workspace.businessName}</span>
+                </div>
+                <div className="border-t border-white/[0.06] pt-3 space-y-1">
+                    <p className="text-[10px] text-white/25 uppercase tracking-widest font-bold">Cliente</p>
+                    <p className="text-[13px] font-semibold text-white/80 truncate">{deal.client.name}</p>
+                    {deal.client.email && <p className="text-[11px] text-white/30 truncate">{deal.client.email}</p>}
+                </div>
+            </div>
+
+            {/* Mini stepper */}
+            <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/25 mb-3">Etapa actual</p>
+                <div className="space-y-2">
+                    {STAGE_STEPS.map((s, i) => {
+                        const done = i < stageIdx; const active = i === stageIdx;
+                        return (
+                            <div key={s.key} className="flex items-center gap-2.5">
+                                <div className={cn('w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold', !done && !active && 'bg-white/[0.05] text-white/15')}
+                                    style={done || active ? { backgroundColor: done ? brandColor + 'aa' : brandColor, color: '#fff' } : {}}>
+                                    {done ? <CheckCircle2 className="w-3 h-3" /> : i + 1}
+                                </div>
+                                <span className={cn('text-[12px] font-medium', active ? 'text-white' : done ? 'text-white/40' : 'text-white/15')}>{s.label}</span>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Nav */}
+            <nav className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-2 space-y-0.5">
+                {navItems.map(item => (
+                    <button key={item.key}
+                        onClick={() => !item.locked && onNav(item.key)}
+                        disabled={item.locked}
+                        className={cn(
+                            'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors text-left',
+                            activeNav === item.key
+                                ? item.highlight ? 'bg-blue-500/10 text-blue-300' : 'bg-white/[0.08] text-white'
+                                : item.locked ? 'text-white/15 cursor-not-allowed'
+                                : item.highlight ? 'text-blue-400/60 hover:text-blue-300 hover:bg-blue-500/[0.06]'
+                                : 'text-white/45 hover:text-white/70 hover:bg-white/[0.04]',
+                        )}
+                    >
+                        <span className={cn(
+                            activeNav === item.key ? (item.highlight ? 'text-blue-400' : 'text-white/70') : item.locked ? 'text-white/15' : item.highlight ? 'text-blue-400/50' : 'text-white/30'
+                        )}>{item.icon}</span>
+                        <span className="flex-1 truncate">{item.label}</span>
+                        {item.locked && <Lock className="w-3 h-3 shrink-0 text-white/15" />}
+                        {item.badge && !item.locked && (
+                            <span className={cn('text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shrink-0',
+                                item.badge === '✓' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
+                            )}>{item.badge}</span>
+                        )}
+                        {item.highlight && !item.locked && (
+                            <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse shrink-0" />
+                        )}
+                    </button>
+                ))}
+            </nav>
+        </aside>
+    );
+}
+
+// ─── Password Gate ─────────────────────────────────────────────────────────────
+
+function PasswordGate({ onUnlock }: { onUnlock: (pw: string) => Promise<boolean> }) {
+    const [input, setInput] = useState('');
+    const [error, setError] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const submit = async () => {
+        if (!input) return;
+        setError(false); setLoading(true);
+        const ok = await onUnlock(input);
+        if (!ok) setError(true);
+        setLoading(false);
+    };
+    return (
+        <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center p-6">
+            <div className="w-full max-w-sm rounded-3xl border border-white/[0.08] bg-white/[0.03] p-8 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center mx-auto mb-5">
+                    <KeyRound className="w-6 h-6 text-white/35" />
+                </div>
+                <h1 className="text-xl font-black text-white mb-1 tracking-tight">Propuesta protegida</h1>
+                <p className="text-[13px] text-white/35 mb-6 font-light">Ingresa la contraseña para acceder</p>
+                <div className="space-y-3">
+                    <input type="password" autoFocus value={input}
+                        onChange={e => { setInput(e.target.value); setError(false); }}
+                        onKeyDown={e => e.key === 'Enter' && submit()}
+                        placeholder="Contraseña"
+                        className={cn('w-full rounded-xl border px-4 py-3 text-sm bg-white/[0.05] text-white placeholder:text-white/20 focus:outline-none transition',
+                            error ? 'border-red-500/50' : 'border-white/[0.1] focus:border-white/[0.22]')} />
+                    {error && <p className="text-[12px] text-red-400 text-left">Contraseña incorrecta</p>}
+                    <button onClick={submit} disabled={!input || loading}
+                        className="w-full py-3 rounded-xl bg-white hover:bg-white/90 text-zinc-900 text-[13px] font-bold disabled:opacity-40 transition">
+                        {loading ? 'Verificando...' : 'Acceder'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── Page ──────────────────────────────────────────────────────────────────────────
+
+export default function PublicDealPage({ params }: { params: Promise<{ token: string }> }) {
+    const { token } = React.use(params);
+    const [deal, setDeal] = useState<DealData | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [notFound, setNotFound] = useState(false);
+    const [requiresPassword, setRequiresPassword] = useState(false);
+    const [activeNav, setActiveNav] = useState<NavKey>('overview');
+
+    const loadDeal = useCallback(async (password?: string): Promise<boolean> => {
+        const url = password ? `${API_URL}/public/deals/${token}?password=${encodeURIComponent(password)}` : `${API_URL}/public/deals/${token}`;
+        try {
+            const res = await fetch(url);
+            if (res.status === 401) { setRequiresPassword(true); return false; }
+            if (!res.ok) { setNotFound(true); return false; }
+            const json = await res.json();
+            setDeal(json.data ?? json);
+            setRequiresPassword(false);
+            return true;
+        } catch { setNotFound(true); return false; }
+        finally { setIsLoading(false); }
+    }, [token]);
+
+    useEffect(() => { loadDeal(); }, [loadDeal]);
+
+    const updateApproved = (quotationId: string) => {
+        setDeal(prev => prev ? { ...prev, quotations: prev.quotations?.map(q => ({ ...q, isApproved: q.id === quotationId })) } : prev);
+        setActiveNav('payment');
+    };
+    const updateBriefDone = () => {
+        setDeal(prev => prev ? { ...prev, brief: prev.brief ? { ...prev.brief, isCompleted: true } : prev.brief } : prev);
+        setActiveNav('proposal');
+    };
+
+    if (isLoading) return (
+        <div className="min-h-screen bg-[#0d0d0d] flex flex-col items-center justify-center gap-3">
+            <Loader2 className="w-6 h-6 text-white/20 animate-spin" />
+            <p className="text-[13px] text-white/25 animate-pulse">Cargando...</p>
+        </div>
+    );
+    if (requiresPassword) return <PasswordGate onUnlock={loadDeal} />;
+    if (notFound || !deal) return (
+        <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center p-6">
+            <div className="text-center max-w-sm">
+                <div className="w-14 h-14 rounded-2xl bg-white/[0.05] border border-white/[0.07] flex items-center justify-center mx-auto mb-5"><FileText className="w-7 h-7 text-white/20" /></div>
+                <h1 className="text-xl font-bold text-white mb-2">Propuesta no encontrada</h1>
+                <p className="text-[13px] text-white/35 leading-relaxed">El enlace puede haber expirado o ser incorrecto.</p>
+            </div>
+        </div>
+    );
+
+    const brandColor = deal.workspace.brandColor && deal.workspace.brandColor !== '#ffffff' ? deal.workspace.brandColor : '#a1a1aa';
+
+    return (
+        <div className="min-h-screen bg-[#0d0d0d] text-white font-sans selection:bg-white selection:text-zinc-900">
+            <div className="fixed pointer-events-none inset-0" style={{ background: 'radial-gradient(ellipse 80% 30% at 50% 0%, rgba(255,255,255,0.035) 0%, transparent 60%)' }} />
+
+            {/* Top bar */}
+            <header className="relative border-b border-white/[0.06] bg-[#0d0d0d]/80 backdrop-blur-xl sticky top-0 z-20 h-13">
+                <div className="max-w-6xl mx-auto px-5 h-13 flex items-center gap-3">
+                    <span className="text-[13px] font-semibold text-white/50 truncate">{deal.client.name}</span>
+                    <span className="text-white/15 text-xs">/</span>
+                    <span className="text-[13px] font-semibold text-white/80 truncate">
+                        {activeNav === 'overview' ? 'Resumen'
+                            : activeNav === 'brief' ? deal.brief?.template.name
+                            : activeNav === 'proposal' ? 'Propuesta'
+                            : activeNav === 'project' ? deal.project?.name
+                            : 'Plan de pagos'}
+                    </span>
+                </div>
+            </header>
+
+            {/* Dashboard layout */}
+            <div className="relative max-w-6xl mx-auto px-4 sm:px-5 py-6 flex flex-col lg:flex-row gap-5 items-start">
+                <Sidebar deal={deal} activeNav={activeNav} onNav={setActiveNav} brandColor={brandColor} />
+
+                {/* Main content */}
+                <main className="flex-1 min-w-0">
+                    {activeNav === 'overview' && <OverviewView deal={deal} brandColor={brandColor} onNav={setActiveNav} />}
+                    {activeNav === 'brief' && deal.brief && (
+                        deal.brief.isCompleted ? (
+                            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] flex flex-col items-center justify-center py-16 text-center px-6">
+                                <CheckCircle2 className="w-10 h-10 text-emerald-400 mb-3" />
+                                <p className="text-[15px] font-bold text-emerald-300 mb-1">Brief completado</p>
+                                <p className="text-[12px] text-emerald-400/50">Ya enviaste tu cuestionario. ¡Gracias!</p>
+                            </div>
+                        ) : (
+                            <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] overflow-hidden">
+                                <div className="px-5 py-4 border-b border-white/[0.06]">
+                                    <h2 className="text-[15px] font-bold text-white/85">{deal.brief.template.name}</h2>
+                                    <p className="text-[12px] text-white/35 mt-0.5">Completa este cuestionario para que podamos preparar tu propuesta.</p>
+                                </div>
+                                <div className="p-5">
+                                    <BriefForm deal={deal} onSubmitted={updateBriefDone} />
+                                </div>
+                            </div>
+                        )
+                    )}
+                    {activeNav === 'proposal' && <ProposalView deal={deal} token={token} onApproved={updateApproved} />}
+                    {activeNav === 'payment' && <PaymentView deal={deal} />}
+                    {activeNav === 'project' && deal.project && <ProjectView deal={deal} token={token} />}
+                </main>
+            </div>
+
+            <footer className="relative border-t border-white/[0.05] mt-4">
+                <div className="max-w-6xl mx-auto px-5 py-4 flex items-center gap-2">
+                    <p className="text-[10px] font-bold text-white/15 uppercase tracking-widest flex items-center gap-2">
+                        Powered by
+                        <img src="/HiKrewLogo.png" alt="Hi Krew" className="h-3.5 object-contain opacity-20" style={{ filter: 'brightness(0) invert(1)' }} />
+                    </p>
+                </div>
+            </footer>
         </div>
     );
 }

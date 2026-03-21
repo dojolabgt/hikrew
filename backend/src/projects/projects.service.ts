@@ -17,7 +17,12 @@ import { Deal } from '../deals/entities/deal.entity';
 import { PaymentPlan } from '../deals/entities/payment-plan.entity';
 import { PaymentMilestone } from '../deals/entities/payment-milestone.entity';
 import { MilestoneSplit } from '../deals/entities/milestone-split.entity';
+import { Brief } from '../deals/entities/brief.entity';
+import { Quotation } from '../deals/entities/quotation.entity';
+import { QuotationItem } from '../deals/entities/quotation-item.entity';
+import { Client } from '../clients/client.entity';
 import { BriefTemplate } from '../deals/entities/brief-template.entity';
+import { PdfService } from '../core/pdf/pdf.service';
 import { CreateMilestoneSplitDto } from '../deals/dto/milestone-split.dto';
 import {
   CreateMilestoneDto,
@@ -53,6 +58,15 @@ export class ProjectsService {
     private readonly milestoneSplitsRepository: Repository<MilestoneSplit>,
     @InjectRepository(BriefTemplate)
     private readonly briefTemplatesRepository: Repository<BriefTemplate>,
+    @InjectRepository(Brief)
+    private readonly briefsRepository: Repository<Brief>,
+    @InjectRepository(Quotation)
+    private readonly quotationsRepository: Repository<Quotation>,
+    @InjectRepository(QuotationItem)
+    private readonly quotationItemsRepository: Repository<QuotationItem>,
+    @InjectRepository(Client)
+    private readonly clientsRepository: Repository<Client>,
+    private readonly pdfService: PdfService,
   ) {}
 
   async create(workspaceId: string, dto: CreateProjectDto): Promise<Project> {
@@ -89,6 +103,8 @@ export class ProjectsService {
     if (dto.status !== undefined) project.status = dto.status as ProjectStatus;
     if (dto.currency !== undefined) project.currency = dto.currency ?? null;
     if (dto.budget !== undefined) project.budget = dto.budget ?? null;
+    if ((dto as Record<string, unknown>).clientUploadsEnabled !== undefined)
+      project.clientUploadsEnabled = (dto as Record<string, unknown>).clientUploadsEnabled as boolean;
     return this.projectsRepository.save(project);
   }
 
@@ -504,5 +520,117 @@ export class ProjectsService {
       throw new NotFoundException('Milestone Split not found');
     }
     await this.milestoneSplitsRepository.remove(split);
+  }
+
+  // ─── PDF re-enqueue ────────────────────────────────────────────────────────
+
+  async enqueueDealPdfs(workspaceId: string, projectId: string): Promise<{ queued: boolean; pendingBriefs: number }> {
+    const project = await this.projectsRepository.findOne({
+      where: { id: projectId, workspaceId },
+    });
+    if (!project) throw new NotFoundException('Proyecto no encontrado');
+    if (!project.dealId) throw new BadRequestException('Este proyecto no tiene un deal asociado');
+
+    // Workspace drive tokens
+    const workspace = await this.workspacesRepository
+      .createQueryBuilder('w')
+      .addSelect('w.googleDriveAccessToken')
+      .addSelect('w.googleDriveRefreshToken')
+      .where('w.id = :id', { id: workspaceId })
+      .getOne();
+
+    if (!workspace?.googleDriveAccessToken || !workspace?.googleDriveRefreshToken) {
+      throw new BadRequestException('Google Drive no está conectado en este workspace');
+    }
+
+    // ─── Determine what still needs to be generated ──────────────────────────
+    const gen = project.generatedDocuments ?? { quotationGenerated: false, generatedBriefIds: [] };
+
+    // Quotation: only include if not yet generated
+    const includeQuotation = !gen.quotationGenerated;
+
+    // Project briefs not yet generated
+    const allProjectBriefs = await this.projectBriefsRepository.find({
+      where: { projectId },
+      order: { sortOrder: 'ASC' },
+    });
+    const pendingProjectBriefs = allProjectBriefs.filter(
+      (b) => !gen.generatedBriefIds.includes(b.id),
+    );
+
+    if (!includeQuotation && pendingProjectBriefs.length === 0) {
+      return { queued: false, pendingBriefs: 0 };
+    }
+
+    // ─── Load data only for what's needed ────────────────────────────────────
+    const deal = await this.dealsRepository.findOne({
+      where: { id: project.dealId, workspaceId },
+      relations: ['quotations'],
+    });
+    if (!deal) throw new NotFoundException('Deal no encontrado');
+
+    let quotationPayload: any = null;
+    if (includeQuotation) {
+      const approvedQuotation = deal.quotations?.find((q) => q.isApproved) ?? null;
+      const quotationWithItems = approvedQuotation
+        ? await this.quotationsRepository.findOne({
+            where: { id: approvedQuotation.id },
+            relations: ['items'],
+          })
+        : null;
+
+      if (quotationWithItems) {
+        quotationPayload = {
+          optionName: quotationWithItems.optionName ?? undefined,
+          total: quotationWithItems.total ?? 0,
+          currency: deal.currency?.code ?? 'USD',
+          currencySymbol: deal.currency?.symbol ?? '$',
+          terms: deal.proposalTerms ?? undefined,
+          items: (quotationWithItems.items ?? []).map((item) => ({
+            name: item.name,
+            description: item.description ?? undefined,
+            quantity: item.quantity ?? 1,
+            unitPrice: Number(item.price) ?? 0,
+            total: (Number(item.price) * (item.quantity ?? 1)) - Number(item.discount ?? 0),
+          })),
+        };
+      }
+    }
+
+    const clientId = deal.clientId;
+    const client = clientId
+      ? await this.clientsRepository.findOne({ where: { id: clientId } })
+      : null;
+
+    await this.pdfService.enqueueDealWon({
+      type: 'deal_won',
+      projectId: project.id,
+      projectName: project.name,
+      dealName: deal.name,
+      clientName: client?.name,
+      driveFolderId: project.driveFolderId ?? null,
+      driveRootFolderId: workspace.googleDriveRootFolderId ?? null,
+      accessToken: workspace.googleDriveAccessToken,
+      refreshToken: workspace.googleDriveRefreshToken,
+      quotation: quotationPayload,
+      briefs: pendingProjectBriefs.map((b) => ({
+        name: b.name,
+        schema: (b.templateSnapshot as any[]) ?? [],
+        responses: (b.responses as Record<string, unknown>) ?? {},
+      })),
+    });
+
+    // ─── Update tracking ─────────────────────────────────────────────────────
+    await this.projectsRepository.update(projectId, {
+      generatedDocuments: {
+        quotationGenerated: true,
+        generatedBriefIds: [
+          ...gen.generatedBriefIds,
+          ...pendingProjectBriefs.map((b) => b.id),
+        ],
+      },
+    });
+
+    return { queued: true, pendingBriefs: pendingProjectBriefs.length };
   }
 }

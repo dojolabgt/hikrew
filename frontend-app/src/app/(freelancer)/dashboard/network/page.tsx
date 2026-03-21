@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { QRCodeSVG } from 'qrcode.react';
-import { Loader2, UserPlus, Check, Copy, Network, Clock, Mail, Link2 } from 'lucide-react';
+import { Loader2, UserPlus, Check, Copy, Network, Clock, Mail, Link2, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
 import {
     Dialog,
@@ -18,19 +18,85 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { DataTable, ColumnDef } from '@/components/common/DataTable';
 import { WorkspaceConnection } from '@/features/network/types';
+import { cn } from '@/lib/utils';
+import { getImageUrl } from '@/lib/utils';
+
+// ─── Connection Card ──────────────────────────────────────────────────────────
+
+function ConnectionCard({
+    conn,
+    myWorkspaceId,
+    t,
+}: {
+    conn: WorkspaceConnection;
+    myWorkspaceId?: string;
+    t: (k: string) => string;
+}) {
+    const partner = conn.inviterWorkspace?.id === myWorkspaceId
+        ? conn.inviteeWorkspace
+        : conn.inviterWorkspace;
+
+    const initials = partner?.businessName?.substring(0, 2).toUpperCase() || 'NA';
+    const since = new Date(conn.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+
+    return (
+        <div className="flex flex-col bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md transition-all duration-200">
+            <div className="flex items-center gap-3 mb-3">
+                <Avatar className="h-11 w-11 rounded-xl shrink-0 shadow-sm ring-1 ring-zinc-100 dark:ring-zinc-800">
+                    <AvatarImage src={getImageUrl(partner?.logo)} className="object-cover" />
+                    <AvatarFallback className="rounded-xl bg-primary/10 text-primary text-sm font-bold">
+                        {initials}
+                    </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                    <p className="font-semibold text-sm text-zinc-900 dark:text-white truncate leading-tight">
+                        {partner?.businessName || t('network.unknown')}
+                    </p>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">{t('network.networkMember')}</p>
+                </div>
+            </div>
+
+            <div className="mt-auto pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                    {t('network.statusConnected')}
+                </span>
+                <span className="flex items-center gap-1 text-[11px] text-zinc-400">
+                    <CalendarDays className="w-3 h-3" />
+                    {since}
+                </span>
+            </div>
+        </div>
+    );
+}
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
+function ConnectionSkeleton() {
+    return (
+        <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 animate-pulse">
+            <div className="flex items-center gap-3 mb-4">
+                <div className="w-11 h-11 rounded-xl bg-zinc-100 dark:bg-zinc-800 shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                    <div className="h-3.5 bg-zinc-100 dark:bg-zinc-800 rounded w-2/3" />
+                    <div className="h-2.5 bg-zinc-100 dark:bg-zinc-800 rounded w-1/3" />
+                </div>
+            </div>
+            <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800 flex justify-between">
+                <div className="h-2.5 bg-zinc-100 dark:bg-zinc-800 rounded w-1/4" />
+                <div className="h-2.5 bg-zinc-100 dark:bg-zinc-800 rounded w-1/4" />
+            </div>
+        </div>
+    );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function NetworkPage() {
     const { activeWorkspace } = useAuth();
     const { t } = useWorkspaceSettings();
-    const {
-        networkData,
-        isLoading,
-        fetchConnections,
-        generateLink,
-        sendInvite,
-    } = useNetwork();
+    const { networkData, isLoading, fetchConnections, generateLink, sendInvite } = useNetwork();
 
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [inviteTab, setInviteTab] = useState<'email' | 'link'>('email');
@@ -38,15 +104,11 @@ export default function NetworkPage() {
     const [generatedLinkToken, setGeneratedLinkToken] = useState<string | null>(null);
     const [isCopied, setIsCopied] = useState(false);
 
-    useEffect(() => {
-        fetchConnections();
-    }, [fetchConnections]);
+    useEffect(() => { fetchConnections(); }, [fetchConnections]);
 
     const handleGenerateLink = async () => {
         const token = await generateLink();
-        if (token) {
-            setGeneratedLinkToken(token);
-        }
+        if (token) setGeneratedLinkToken(token);
     };
 
     const handleCopyLink = () => {
@@ -68,113 +130,80 @@ export default function NetworkPage() {
     const handleSendEmailInvite = async (e: React.FormEvent) => {
         e.preventDefault();
         const ok = await sendInvite(inviteEmail);
-        if (ok) {
-            setInviteEmail('');
-            handleCloseModal();
-        }
+        if (ok) { setInviteEmail(''); handleCloseModal(); }
     };
 
-    const columns: ColumnDef<WorkspaceConnection>[] = [
-        {
-            key: 'conexion',
-            header: t('network.colConnection'),
-            render: (conn) => {
-                const partner = conn.inviterWorkspace?.id === activeWorkspace?.id
-                    ? conn.inviteeWorkspace
-                    : conn.inviterWorkspace;
-
-                return (
-                    <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9 border-2 border-background shadow-sm shrink-0">
-                            <AvatarImage src={partner?.logo || undefined} alt={partner?.businessName} className="object-cover" />
-                            <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
-                                {partner?.businessName?.substring(0, 2).toUpperCase() || 'NA'}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <div className="font-semibold group-hover:text-primary transition-colors">
-                                {partner?.businessName || t('network.unknown')}
-                            </div>
-                            <div className="flex items-center gap-1 mt-0.5">
-                                <span className="text-xs text-muted-foreground">
-                                    {t('network.networkMember')}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                );
-            },
-        },
-        {
-            key: 'status',
-            header: t('network.colStatus'),
-            render: () => (
-                <span className="px-2.5 py-0.5 rounded-md text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400">
-                    {t('network.statusConnected')}
-                </span>
-            ),
-        },
-        {
-            key: 'createdAt',
-            header: t('network.colDate'),
-            render: (conn) => (
-                <span className="text-sm text-muted-foreground">
-                    {new Date(conn.createdAt).toLocaleDateString('es-GT')}
-                </span>
-            ),
-        },
-    ];
+    const activeConnections = networkData.active;
+    const pendingConnections = networkData.pendingSent;
 
     return (
         <DashboardShell>
-            <div className="flex items-center justify-between mb-8">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">{t('network.title')}</h1>
-                    <p className="text-muted-foreground">{t('network.titleDesc')}</p>
+                    <p className="text-muted-foreground text-sm mt-0.5">{t('network.titleDesc')}</p>
                 </div>
                 <Button
                     onClick={() => setIsInviteModalOpen(true)}
-                    className="relative z-10 rounded-full px-6 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                    className="rounded-full px-6 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95"
                 >
                     <UserPlus className="mr-2 h-4 w-4" />
                     {t('network.connectBtn')}
                 </Button>
             </div>
 
-            <DataTable
-                data={networkData.active}
-                columns={columns}
-                isLoading={isLoading}
-                emptyIcon={<Network className="w-8 h-8" />}
-                emptyTitle={t('network.emptyTitle')}
-                emptyDescription={t('network.emptyDesc')}
-                emptyAction={
+            {/* Active connections grid */}
+            {isLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {Array.from({ length: 3 }).map((_, i) => <ConnectionSkeleton key={i} />)}
+                </div>
+            ) : activeConnections.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <div className="w-14 h-14 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
+                        <Network className="w-7 h-7 text-zinc-400" />
+                    </div>
+                    <p className="font-semibold text-zinc-700 dark:text-zinc-300 mb-1">{t('network.emptyTitle')}</p>
+                    <p className="text-sm text-zinc-400 mb-5 max-w-xs">{t('network.emptyDesc')}</p>
                     <Button variant="outline" className="rounded-full" onClick={() => setIsInviteModalOpen(true)}>
                         <UserPlus className="mr-2 h-4 w-4" />
                         {t('network.emptyBtn')}
                     </Button>
-                }
-            />
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {activeConnections.map((conn) => (
+                        <ConnectionCard
+                            key={conn.id}
+                            conn={conn}
+                            myWorkspaceId={activeWorkspace?.id}
+                            t={t}
+                        />
+                    ))}
+                </div>
+            )}
 
-            {networkData.pendingSent.length > 0 && (
+            {/* Pending invitations */}
+            {pendingConnections.length > 0 && (
                 <div className="mt-10">
-                    <div className="flex items-center gap-2 mb-4">
-                        <Clock className="w-4 h-4 text-muted-foreground" />
-                        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                            {t('network.pendingSection')} ({networkData.pendingSent.length})
-                        </h2>
+                    <div className="flex items-center gap-2 mb-3">
+                        <Clock className="w-3.5 h-3.5 text-zinc-400" />
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+                            {t('network.pendingSection')} · {pendingConnections.length}
+                        </span>
                     </div>
-                    <div className="rounded-xl border border-border divide-y divide-border">
-                        {networkData.pendingSent.map((conn) => (
-                            <div key={conn.id} className="flex items-center justify-between px-4 py-3">
-                                <div>
-                                    <p className="text-sm font-medium">{conn.inviteEmail}</p>
-                                    <p className="text-xs text-muted-foreground mt-0.5">
-                                        {new Date(conn.createdAt).toLocaleDateString('es-GT')}
-                                    </p>
-                                </div>
-                                <span className="px-2.5 py-0.5 rounded-md text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400">
-                                    {t('network.statusPending')}
+                    <div className="flex flex-wrap gap-2">
+                        {pendingConnections.map((conn) => (
+                            <div
+                                key={conn.id}
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-900/10"
+                            >
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                                <span className="text-[12px] font-medium text-amber-700 dark:text-amber-400">
+                                    {conn.inviteEmail}
+                                </span>
+                                <span className="text-[11px] text-amber-500/70">
+                                    {new Date(conn.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
                                 </span>
                             </div>
                         ))}
@@ -182,6 +211,7 @@ export default function NetworkPage() {
                 </div>
             )}
 
+            {/* Invite dialog */}
             <Dialog open={isInviteModalOpen} onOpenChange={handleCloseModal}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
@@ -189,18 +219,27 @@ export default function NetworkPage() {
                         <DialogDescription>{t('network.inviteModalDesc')}</DialogDescription>
                     </DialogHeader>
 
-                    {/* Tabs */}
                     <div className="flex gap-1 p-1 bg-muted rounded-lg mt-2">
                         <button
                             onClick={() => setInviteTab('email')}
-                            className={`flex-1 flex items-center justify-center gap-2 text-sm font-medium py-1.5 rounded-md transition-colors ${inviteTab === 'email' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                            className={cn(
+                                'flex-1 flex items-center justify-center gap-2 text-sm font-medium py-1.5 rounded-md transition-colors',
+                                inviteTab === 'email'
+                                    ? 'bg-background shadow-sm text-foreground'
+                                    : 'text-muted-foreground hover:text-foreground',
+                            )}
                         >
                             <Mail className="w-3.5 h-3.5" />
                             Por correo
                         </button>
                         <button
                             onClick={() => setInviteTab('link')}
-                            className={`flex-1 flex items-center justify-center gap-2 text-sm font-medium py-1.5 rounded-md transition-colors ${inviteTab === 'link' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                            className={cn(
+                                'flex-1 flex items-center justify-center gap-2 text-sm font-medium py-1.5 rounded-md transition-colors',
+                                inviteTab === 'link'
+                                    ? 'bg-background shadow-sm text-foreground'
+                                    : 'text-muted-foreground hover:text-foreground',
+                            )}
                         >
                             <Link2 className="w-3.5 h-3.5" />
                             Por enlace
@@ -233,7 +272,7 @@ export default function NetworkPage() {
                                         <p className="text-sm text-center text-muted-foreground w-4/5">
                                             {t('network.inviteExplain')}
                                         </p>
-                                        <Button onClick={handleGenerateLink} disabled={isLoading} className="mt-2 text-md">
+                                        <Button onClick={handleGenerateLink} disabled={isLoading} className="mt-2">
                                             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                             {t('network.generateBtn')}
                                         </Button>
@@ -250,7 +289,7 @@ export default function NetworkPage() {
                                                 bgColor="#ffffff"
                                             />
                                         </div>
-                                        <div className="flex gap-2 w-full mt-4">
+                                        <div className="flex gap-2 w-full">
                                             <Input
                                                 readOnly
                                                 value={`${window.location.origin}/invite/connection?token=${generatedLinkToken}`}
@@ -276,4 +315,3 @@ export default function NetworkPage() {
         </DashboardShell>
     );
 }
-

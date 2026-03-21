@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Liberation Sans', Arial, sans-serif; font-size: 13px; color: #1a1a1a; background: #fff; padding: 48px; }
+  header { margin-bottom: 40px; }
+  header h1 { font-size: 26px; font-weight: 700; color: #111; }
+  header p { color: #555; margin-top: 4px; font-size: 13px; }
+  .meta { display: flex; gap: 32px; margin-bottom: 32px; }
+  .meta-item label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #888; display: block; margin-bottom: 2px; }
+  .meta-item span { font-size: 13px; color: #222; font-weight: 500; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  thead th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #888; padding: 8px 12px; border-bottom: 2px solid #e5e7eb; }
+  tbody td { padding: 12px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  .col-desc { width: 55%; }
+  .col-qty, .col-price, .col-total { width: 15%; text-align: right; }
+  .total-row { display: flex; justify-content: flex-end; margin-top: 8px; }
+  .total-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px 24px; min-width: 200px; }
+  .total-box .label { font-size: 11px; text-transform: uppercase; color: #888; }
+  .total-box .amount { font-size: 22px; font-weight: 700; color: #111; margin-top: 4px; }
+  .terms { margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+  .terms h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin-bottom: 8px; }
+  .terms p { font-size: 12px; color: #555; line-height: 1.6; white-space: pre-wrap; }
+  footer { margin-top: 48px; font-size: 11px; color: #bbb; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>{{ deal_name }}</h1>
+  <p>Cotización{% if option_name %} — {{ option_name }}{% endif %}</p>
+</header>
+
+<div class="meta">
+  {% if client_name %}
+  <div class="meta-item">
+    <label>Cliente</label>
+    <span>{{ client_name }}</span>
+  </div>
+  {% endif %}
+  {% if project_name %}
+  <div class="meta-item">
+    <label>Proyecto</label>
+    <span>{{ project_name }}</span>
+  </div>
+  {% endif %}
+  <div class="meta-item">
+    <label>Moneda</label>
+    <span>{{ currency }}</span>
+  </div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th class="col-desc">Descripción</th>
+      <th class="col-qty">Cant.</th>
+      <th class="col-price">Precio</th>
+      <th class="col-total">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td class="col-desc">
+        <strong>{{ item.name }}</strong>
+        {% if item.description %}<br><span style="color:#666;font-size:12px;">{{ item.description }}</span>{% endif %}
+      </td>
+      <td class="col-qty" style="text-align:right;">{{ item.quantity | default(1) }}</td>
+      <td class="col-price" style="text-align:right;">{{ currency_symbol }}{{ "%.2f" | format(item.unitPrice | default(item.total) | float) }}</td>
+      <td class="col-total" style="text-align:right;">{{ currency_symbol }}{{ "%.2f" | format(item.total | float) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="total-row">
+  <div class="total-box">
+    <div class="label">Total</div>
+    <div class="amount">{{ currency_symbol }}{{ "%.2f" | format(total | float) }}</div>
+  </div>
+</div>
+
+{% if terms %}
+<div class="terms">
+  <h3>Términos y condiciones</h3>
+  <p>{{ terms }}</p>
+</div>
+{% endif %}
+
+<footer>Generado por Blend</footer>
+</body>
+</html>

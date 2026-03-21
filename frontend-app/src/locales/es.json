@@ -84,6 +84,7 @@
         "skipStep": "Omitir este paso",
         "continueBtn": "Continuar",
         "markAsWonBtn": "Marcar como Ganado",
+        "wonNoPlanWarning": "Aún no hay plan de pagos definido. Puedes marcar como ganado, pero considera agregar hitos primero.",
         "wonTitle": "¡Deal Aceptado!",
         "wonDesc": "El trato ha sido marcado como ganado. El brief, la cotización y el plan de pagos quedan guardados como registro histórico.",
         "roadmapTitle": "Roadmap del Trato",
@@ -152,6 +153,8 @@
         "colName": "Cliente",
         "colContact": "Contacto",
         "colNotes": "Notas",
+        "portalActive": "Portal activo",
+        "noPortal": "Sin portal",
         "invitePortal": "Invitar al portal",
         "alreadyLinked": "Este cliente ya tiene cuenta en el portal",
         "inviteSuccess": "Invitación enviada a {email}",
@@ -224,16 +227,18 @@
     },
     "sidebar": {
         "mainSection": "GENERAL",
-        "businessSection": "NEGOCIO",
-        "billingSection": "COBROS",
+        "peopleSection": "CONTACTOS",
+        "workSection": "TRABAJO",
+        "toolsSection": "HERRAMIENTAS",
         "settingsSection": "CONFIGURACIÓN",
         "dashboard": "Dashboard",
         "clients": "Directorio",
-        "network": "Mi Red",
-        "services": "Servicios",
+        "network": "Conexiones",
+        "services": "Catálogo",
         "deals": "Deals",
         "projects": "Proyectos",
         "templates": "Plantillas",
+        "files": "Archivos",
         "payments": "Pagos",
         "settings": "Configuración"
     },
@@ -325,7 +330,10 @@
         "statsPending": "pendientes",
         "statsComplete": "completos",
         "statsNoPlan": "Sin plan",
-        "statsNoBriefs": "Sin briefs"
+        "statsNoBriefs": "Sin briefs",
+        "clientContact": "Contacto",
+        "noClientContact": "Sin información de contacto",
+        "moreBriefs": "más"
     },
     "editProject": {
         "title": "Editar Proyecto",
@@ -689,7 +697,14 @@
         "driveConnectSuccess": "Google Drive conectado correctamente",
         "driveDisconnectSuccess": "Google Drive desconectado",
         "driveConnectError": "No se pudo conectar Google Drive. Intenta de nuevo.",
-        "driveDisconnectError": "No se pudo desconectar. Intenta de nuevo."
+        "driveDisconnectError": "No se pudo desconectar. Intenta de nuevo.",
+        "driveFolderSection": "Carpeta del workspace",
+        "driveFolderDesc": "Todas las carpetas de proyectos se crearán dentro de esta carpeta en tu Drive, manteniendo todo organizado.",
+        "driveFolderPlaceholder": "ej. Mi Negocio – Blend",
+        "driveFolderCreate": "Crear",
+        "driveFolderRename": "Renombrar",
+        "driveFolderCreated": "Carpeta creada en Drive",
+        "driveFolderError": "No se pudo crear la carpeta. Intenta de nuevo."
     },
     "assets": {
         "title": "Assets del Proyecto",
@@ -1001,7 +1016,8 @@
         "existingMismatch": "El total del plan ({plan}) difiere de la cotización ({quotation})",
         "mismatchCovers": "El plan cubre {plan} pero la cotización es de {quotation}.",
         "missingToDistribute": "Falta {amount} por distribuir.",
-        "excessAmount": "Hay {amount} de más."
+        "excessAmount": "Hay {amount} de más.",
+        "linkedToApproved": "Conectado a cotización aprobada:"
     },
     "servicePicker": {
         "title": "Agregar desde Catálogo",

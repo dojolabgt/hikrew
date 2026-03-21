@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CheckCircle2, Lock, Eye, Play, StickyNote, Link2, Copy } from 'lucide-react';
+import { CheckCircle2, Lock, Eye, Play, StickyNote, Send, Copy, RefreshCw, KeyRound, X } from 'lucide-react';
 import { DealStep } from './DealBuilder';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -73,6 +73,9 @@ export function DealRoadmapSidebar({ deal, activeStep, onStepChange, onStatusCha
     const [notes, setNotes] = useState(deal?.notes || '');
     const [isSavingNotes, setIsSavingNotes] = useState(false);
     const [statusOpen, setStatusOpen] = useState(false);
+    const [shareOpen, setShareOpen] = useState(false);
+    const [sharePassword, setSharePassword] = useState((deal as Record<string, unknown>)?.clientAccessPassword as string || '');
+    const [isSavingShare, setIsSavingShare] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
 
     const STATUS_OPTIONS: { value: DealStatus; label: string; color: string; bg: string }[] = [
@@ -295,39 +298,109 @@ export function DealRoadmapSidebar({ deal, activeStep, onStepChange, onStatusCha
                 </div>
             )}
 
-            {/* ── Share link ────────────────────────────────────────────── */}
+            {/* ── Send to client ─────────────────────────────────────────── */}
             {deal?.publicToken && !isWon && (
                 <div className={cn(
                     'mt-6 pt-5 border-t',
                     isLost ? 'border-rose-200 dark:border-rose-800/50' : 'border-zinc-200 dark:border-zinc-800',
                 )}>
-                    <label className="flex items-center gap-1.5 text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">
-                        <Link2 className="w-3.5 h-3.5" /> Compartir con cliente
-                    </label>
-                    {(() => {
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-2 text-xs"
+                        onClick={() => setShareOpen(true)}
+                    >
+                        <Send className="w-3.5 h-3.5" />
+                        Enviar a cliente
+                    </Button>
+
+                    {/* Share dialog (inline) */}
+                    {shareOpen && (() => {
                         const baseUrl = process.env.NEXT_PUBLIC_FRONTEND_PUBLIC_URL
                             || (typeof window !== 'undefined'
                                 ? `${window.location.protocol}//${window.location.hostname.replace('app.', 'client.')}${window.location.port === '3000' ? ':3001' : ''}`
                                 : '');
-                        const shareUrl = `${baseUrl}/d/${deal.publicToken}`;
+                        const shareUrl = sharePassword
+                            ? `${baseUrl}/d/${deal.publicToken}?password=${encodeURIComponent(sharePassword)}`
+                            : `${baseUrl}/d/${deal.publicToken}`;
+
+                        const generatePassword = () => {
+                            const chars = 'abcdefghijkmnpqrstuvwxyz23456789';
+                            setSharePassword(Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join(''));
+                        };
+
+                        const saveAndCopy = async () => {
+                            if (!updateDeal) return;
+                            setIsSavingShare(true);
+                            await updateDeal((deal.slug || deal.id) as string, { clientAccessPassword: sharePassword || null });
+                            setIsSavingShare(false);
+                            navigator.clipboard.writeText(shareUrl);
+                            setIsCopied(true);
+                            setTimeout(() => { setIsCopied(false); setShareOpen(false); }, 2000);
+                        };
+
                         return (
-                            <div className="flex items-center gap-2">
-                                <div className="flex-1 min-w-0 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-[11px] text-zinc-500 truncate select-all">
+                            <div className="mt-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 p-3 space-y-3">
+                                {/* Header */}
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                                        Compartir propuesta
+                                    </span>
+                                    <button onClick={() => setShareOpen(false)} className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+
+                                {/* Password row */}
+                                <div className="space-y-1.5">
+                                    <label className="flex items-center gap-1 text-[10px] text-zinc-500 dark:text-zinc-400">
+                                        <KeyRound className="w-3 h-3" /> Contraseña de acceso (opcional)
+                                    </label>
+                                    <div className="flex items-center gap-1.5">
+                                        <input
+                                            type="text"
+                                            value={sharePassword}
+                                            onChange={(e) => setSharePassword(e.target.value)}
+                                            placeholder="Sin contraseña"
+                                            className="flex-1 min-w-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 dark:text-zinc-300"
+                                        />
+                                        <button
+                                            onClick={generatePassword}
+                                            title="Generar contraseña"
+                                            className="shrink-0 p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500"
+                                        >
+                                            <RefreshCw className="w-3.5 h-3.5" />
+                                        </button>
+                                        {sharePassword && (
+                                            <button
+                                                onClick={() => setSharePassword('')}
+                                                title="Quitar contraseña"
+                                                className="shrink-0 p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400"
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Link preview */}
+                                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2.5 py-1.5 text-[10px] text-zinc-400 truncate select-all font-mono">
                                     {shareUrl}
                                 </div>
+
+                                {/* CTA */}
                                 <Button
-                                    variant="ghost"
                                     size="sm"
-                                    className="shrink-0 h-7 px-2"
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(shareUrl);
-                                        setIsCopied(true);
-                                        setTimeout(() => setIsCopied(false), 2000);
-                                    }}
+                                    className="w-full gap-2 text-xs"
+                                    disabled={isSavingShare}
+                                    onClick={saveAndCopy}
                                 >
                                     {isCopied
-                                        ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                                        : <Copy className="w-3.5 h-3.5" />}
+                                        ? <><CheckCircle2 className="w-3.5 h-3.5" /> Copiado</>
+                                        : isSavingShare
+                                            ? 'Guardando...'
+                                            : <><Copy className="w-3.5 h-3.5" /> Copiar link</>
+                                    }
                                 </Button>
                             </div>
                         );

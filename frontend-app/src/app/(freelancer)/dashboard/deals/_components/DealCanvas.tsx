@@ -3,7 +3,7 @@
 import React from 'react';
 import { DealStep } from './DealBuilder';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, ShieldAlert } from 'lucide-react';
+import { ChevronRight, ShieldAlert, AlertTriangle } from 'lucide-react';
 import { BriefStep } from './steps/BriefStep';
 import { QuotationStep } from './steps/QuotationStep';
 import { PaymentPlanStep } from './steps/PaymentPlanStep';
@@ -79,12 +79,20 @@ export function DealCanvas({ deal, activeStep, onNextStep, onUpdateBrief, onWon,
             <div className="flex items-center justify-end p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 mt-auto">
 
                 {activeStep === 'payment_plan' ? (
-                    <Button
-                        onClick={onWon}
-                        className="bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all active:scale-95"
-                    >
-                        {t('deals.markAsWonBtn')} <ChevronRight className="w-4 h-4 ml-2" />
-                    </Button>
+                    <div className="flex flex-col items-end gap-2 w-full">
+                        {!deal?.paymentPlan && (
+                            <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-lg border border-amber-200 dark:border-amber-800 w-full">
+                                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                                <span>{t('deals.wonNoPlanWarning')}</span>
+                            </div>
+                        )}
+                        <Button
+                            onClick={onWon}
+                            className="bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all active:scale-95"
+                        >
+                            {t('deals.markAsWonBtn')} <ChevronRight className="w-4 h-4 ml-2" />
+                        </Button>
+                    </div>
                 ) : (
                     <div className="flex items-center gap-3">
                         {activeStep === 'brief' && !deal?.brief?.isCompleted && (

@@ -7,7 +7,8 @@ import { useProjects } from '@/hooks/use-projects';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Users, CreditCard, FolderOpen, CheckSquare, Folder } from 'lucide-react';
-import { EditProjectDialog } from './_components/EditProjectDialog';
+
+import { ProjectHeader } from './_components/ProjectHeader';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
@@ -218,95 +219,15 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
                     <ArrowLeft className="w-4 h-4 mr-2" /> {t('projects.backBtn')}
                 </Button>
 
-                {/* Hero header */}
-                <div
-                    className={cn(
-                        'rounded-2xl border p-6 mb-6 transition-colors',
-                        isCompleted
-                            ? 'bg-zinc-50 dark:bg-zinc-900/20 border-zinc-200 dark:border-zinc-800'
-                            : 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50',
-                    )}
-                >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                            <div
-                                className={cn(
-                                    'w-12 h-12 rounded-xl flex items-center justify-center shrink-0',
-                                    isCompleted
-                                        ? 'bg-zinc-200 dark:bg-zinc-800 text-zinc-500'
-                                        : 'bg-emerald-200 dark:bg-emerald-800/60 text-emerald-700 dark:text-emerald-400',
-                                )}
-                            >
-                                <Folder className="w-6 h-6" />
-                            </div>
-
-                            <div>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <h1 className="text-xl font-bold text-zinc-900 dark:text-white leading-tight">
-                                        {project.name}
-                                    </h1>
-                                    {isOwner && (
-                                        <EditProjectDialog project={project} onSaved={loadProject} />
-                                    )}
-                                    <span
-                                        className={cn(
-                                            'px-2 py-0.5 rounded-md text-xs font-semibold',
-                                            isCompleted
-                                                ? 'bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
-                                                : 'bg-emerald-200 dark:bg-emerald-800/60 text-emerald-800 dark:text-emerald-300',
-                                        )}
-                                    >
-                                        {isCompleted
-                                            ? t('projects.statusCompleted')
-                                            : t('projects.statusActive')}
-                                    </span>
-                                    {isStandalone && (
-                                        <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">
-                                            {t('projects.standaloneTag')}
-                                        </span>
-                                    )}
-                                    {!isOwner && (
-                                        <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
-                                            {t('projects.collaboratorBadge')}
-                                        </span>
-                                    )}
-                                </div>
-                                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
-                                    {clientName !== t('projects.defaultClientName') ? (
-                                        <>
-                                            {t('projects.clientLabel')}{' '}
-                                            <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                                                {clientName}
-                                            </span>
-                                        </>
-                                    ) : (
-                                        <span className="italic opacity-70">{t('projects.noClientAssigned')}</span>
-                                    )}
-                                </p>
-                            </div>
-                        </div>
-
-                        {valueDisplay && (
-                            <div className="text-right shrink-0">
-                                <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">
-                                    {t('projects.valueLabel')}
-                                </p>
-                                <p className="text-2xl font-bold text-zinc-900 dark:text-white">
-                                    {valueDisplay}
-                                </p>
-                                <p className="text-xs text-zinc-400">
-                                    {project.deal?.currency?.code ?? project.currency ?? ''}
-                                </p>
-                            </div>
-                        )}
-                    </div>
-
-                    {project.description && (
-                        <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed border-t border-zinc-200/70 dark:border-zinc-700/40 pt-4">
-                            {project.description}
-                        </p>
-                    )}
-                </div>
+                <ProjectHeader
+                    project={project}
+                    isOwner={isOwner}
+                    isStandalone={isStandalone}
+                    clientName={clientName}
+                    valueDisplay={valueDisplay}
+                    onRefresh={loadProject}
+                    t={t}
+                />
 
                 {/* Navigation Tabs */}
                 <div className="flex space-x-0.5 mb-6 border-b border-zinc-200 dark:border-zinc-800 overflow-x-auto">

@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -18,6 +19,9 @@ import { Service } from '../services/service.entity';
 import { Workspace } from '../workspaces/workspace.entity';
 import { MilestoneSplit } from './entities/milestone-split.entity';
 import { ProjectsService } from '../projects/projects.service';
+import { Project } from '../projects/entities/project.entity';
+import { PdfService } from '../core/pdf/pdf.service';
+import { GoogleDriveService } from '../google-drive/google-drive.service';
 import { CreateDealDto } from './dto/create-deal.dto';
 import { CreateBriefTemplateDto } from './dto/create-brief-template.dto';
 import { UpdateDealDto } from './dto/update-deal.dto';
@@ -75,7 +79,11 @@ export class DealsService {
     private readonly servicesRepository: Repository<Service>,
     @InjectRepository(MilestoneSplit)
     private readonly milestoneSplitsRepository: Repository<MilestoneSplit>,
+    @InjectRepository(Project)
+    private readonly projectsRepository: Repository<Project>,
     private readonly projectsService: ProjectsService,
+    private readonly pdfService: PdfService,
+    private readonly driveService: GoogleDriveService,
   ) {}
 
   // ─── DEALS ───────────────────────────────────────────────────────────────
@@ -255,6 +263,8 @@ export class DealsService {
       deal.validUntil = updateDealDto.validUntil
         ? new Date(updateDealDto.validUntil)
         : (null as unknown as Date);
+    if ('clientAccessPassword' in updateDealDto)
+      deal.clientAccessPassword = updateDealDto.clientAccessPassword ?? null;
 
     if (updateDealDto.briefTemplateId !== undefined) {
       // Upsert the Brief linked to this deal
@@ -364,7 +374,7 @@ export class DealsService {
 
   // ─── PUBLIC DEALS & QUOTATIONS ───────────────────────────────────────────
 
-  async getPublicDeal(publicToken: string): Promise<Deal> {
+  async getPublicDeal(publicToken: string, password?: string): Promise<Omit<Deal, 'clientAccessPassword'>> {
     const deal = await this.dealsRepository.findOne({
       where: { publicToken },
       relations: [
@@ -372,18 +382,31 @@ export class DealsService {
         'client',
         'brief',
         'brief.template',
-        // Fetch quotations so customer sees their options
         'quotations',
         'quotations.items',
         'paymentPlan',
         'paymentPlan.milestones',
         'paymentPlan.milestones.splits',
         'paymentPlan.milestones.splits.collaboratorWorkspace',
+        'project',
       ],
     });
 
     if (!deal) throw new NotFoundException('Propuesta no encontrada');
-    return deal;
+
+    if (deal.clientAccessPassword) {
+      if (!password) {
+        throw new UnauthorizedException({ requiresPassword: true });
+      }
+      if (password !== deal.clientAccessPassword) {
+        throw new UnauthorizedException({ requiresPassword: true, invalid: true });
+      }
+    }
+
+    // Strip the password before returning
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { clientAccessPassword: _pwd, ...publicDeal } = deal as Deal & { clientAccessPassword: string };
+    return publicDeal as Omit<Deal, 'clientAccessPassword'>;
   }
 
   async approvePublicQuotation(
@@ -423,9 +446,110 @@ export class DealsService {
     await this.dealsRepository.save(deal);
 
     // 3) Create project
-    await this.projectsService.createFromDeal(deal.workspaceId, deal);
+    const project = await this.projectsService.createFromDeal(deal.workspaceId, deal);
+
+    // 4) Enqueue PDF generation job (fire-and-forget)
+    this._enqueuePdfJob(deal, quotation, project).catch(() => {/* non-critical */});
 
     return { success: true, dealId: deal.id, status: deal.status };
+  }
+
+  // ─── PUBLIC FILE UPLOAD ──────────────────────────────────────────────────
+
+  async uploadPublicFile(
+    publicToken: string,
+    file: Express.Multer.File,
+  ): Promise<unknown> {
+    const deal = await this.dealsRepository.findOne({
+      where: { publicToken },
+      relations: ['project'],
+    });
+    if (!deal) throw new NotFoundException('Propuesta no encontrada');
+    if (!deal.project) throw new BadRequestException('El proyecto aún no ha sido iniciado.');
+    if (!deal.project.clientUploadsEnabled) {
+      throw new BadRequestException('La carga de archivos no está habilitada para este proyecto.');
+    }
+    return this.driveService.uploadFile(deal.workspaceId, deal.project.id, file);
+  }
+
+  // ─── PDF JOB ─────────────────────────────────────────────────────────────
+
+  private async _enqueuePdfJob(
+    deal: Deal,
+    approvedQuotation: Quotation,
+    project: Project,
+  ): Promise<void> {
+    // Load workspace with drive tokens (select: false fields require explicit addSelect)
+    const workspace = await this.workspacesRepository
+      .createQueryBuilder('w')
+      .addSelect('w.googleDriveAccessToken')
+      .addSelect('w.googleDriveRefreshToken')
+      .where('w.id = :id', { id: deal.workspaceId })
+      .getOne();
+
+    if (!workspace) return;
+
+    // Only enqueue if Drive is connected
+    if (!workspace.googleDriveAccessToken || !workspace.googleDriveRefreshToken) {
+      return;
+    }
+
+    // Load approved quotation with items
+    const quotationWithItems = await this.quotationsRepository.findOne({
+      where: { id: approvedQuotation.id },
+      relations: ['items'],
+    });
+
+    // Load briefs for the deal (with template for name + schema)
+    const briefs = await this.briefsRepository.find({
+      where: { deal: { id: deal.id } },
+      relations: ['template'],
+    });
+
+    // Load client name
+    const client = deal.clientId
+      ? await this.clientsRepository.findOne({ where: { id: deal.clientId } })
+      : null;
+
+    await this.pdfService.enqueueDealWon({
+      type: 'deal_won',
+      projectId: project.id,
+      projectName: project.name,
+      dealName: deal.name,
+      clientName: client?.name,
+      driveFolderId: project.driveFolderId ?? null,
+      driveRootFolderId: workspace.googleDriveRootFolderId ?? null,
+      accessToken: workspace.googleDriveAccessToken,
+      refreshToken: workspace.googleDriveRefreshToken,
+      quotation: quotationWithItems
+        ? {
+            optionName: quotationWithItems.optionName ?? undefined,
+            total: quotationWithItems.total ?? 0,
+            currency: deal.currency?.code ?? 'USD',
+            currencySymbol: deal.currency?.symbol ?? '$',
+            terms: deal.proposalTerms ?? undefined,
+            items: (quotationWithItems.items ?? []).map((item) => ({
+              name: item.name,
+              description: item.description ?? undefined,
+              quantity: item.quantity ?? 1,
+              unitPrice: Number(item.price) ?? 0,
+              total: (Number(item.price) * (item.quantity ?? 1)) - Number(item.discount ?? 0),
+            })),
+          }
+        : null,
+      briefs: briefs
+        .filter((b) => b.template)
+        .map((b) => ({
+          name: b.template.name,
+          schema: (b.template.schema as any[]) ?? [],
+          responses: (b.responses as Record<string, unknown>) ?? {},
+        })),
+    });
+
+    // Mark quotation as generated so the manual button knows it's done
+    await this.projectsRepository.update(project.id, {
+      generatedDocuments: { quotationGenerated: true, generatedBriefIds: [] },
+    });
   }
 
   // ─── QUOTATIONS ──────────────────────────────────────────────────────────

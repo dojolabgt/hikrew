@@ -1,18 +1,20 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     FileText, Mail, MessageCircle, User, Share2,
     CreditCard, ExternalLink, CheckCircle2, Circle, LayoutTemplate,
+    AlertCircle, Upload,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
-import { ProjectData, getProjectClientName, getProjectValue } from '../layout';
+import { ProjectData } from '../layout';
 import { cn } from '@/lib/utils';
+import { projectsApi } from '@/features/projects/api';
 
 function StatCard({
     icon: Icon,
@@ -55,9 +57,26 @@ function StatCard({
 export function ProjectOverviewTab({ project }: { project: ProjectData }) {
     const { activeWorkspace } = useAuth();
     const { t } = useWorkspaceSettings();
+    const [clientUploads, setClientUploads] = useState(
+        (project as unknown as { clientUploadsEnabled?: boolean }).clientUploadsEnabled ?? false,
+    );
+    const [savingUploads, setSavingUploads] = useState(false);
+
+    const toggleClientUploads = async () => {
+        if (!activeWorkspace) return;
+        setSavingUploads(true);
+        const next = !clientUploads;
+        try {
+            await projectsApi.update(activeWorkspace.id, project.id, { clientUploadsEnabled: next } as Parameters<typeof projectsApi.update>[2]);
+            setClientUploads(next);
+        } finally {
+            setSavingUploads(false);
+        }
+    };
 
     const deal = project.deal;
-    const clientName = getProjectClientName(project, '—');
+    const clientEmail = deal?.client?.email ?? project.client?.email;
+    const clientWhatsapp = deal?.client?.whatsapp;
 
     // Currency resolution
     const getCurrencySymbol = () => {
@@ -78,10 +97,9 @@ export function ProjectOverviewTab({ project }: { project: ProjectData }) {
 
     const sym = getCurrencySymbol();
     const currCode = deal?.currency?.code ?? project.currency ?? '';
-    const valueStr = getProjectValue(project, sym);
     const quotation = deal?.quotations?.find((q) => q.isApproved) ?? deal?.quotations?.[0];
 
-    // Stats computation
+    // Stats
     const milestones = project.directPaymentPlan?.milestones ?? project.deal?.paymentPlan?.milestones ?? [];
     const paidCount = milestones.filter((m) => m.status === 'PAID').length;
     const pendingCount = milestones.filter((m) => m.status === 'PENDING' || m.status === 'OVERDUE').length;
@@ -98,21 +116,13 @@ export function ProjectOverviewTab({ project }: { project: ProjectData }) {
         return `${base}/d/${deal.publicToken}`;
     })();
 
+    const hasClientContact = clientEmail || clientWhatsapp || portalUrl;
+
     return (
         <div className="space-y-5">
 
-            {/* ── At a glance stats row ─────────────────────────── */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {/* Client */}
-                <StatCard
-                    icon={User}
-                    label={t('overview.clientTitle')}
-                    value={clientName !== '—' ? clientName : t('overview.noClientAssigned')}
-                    sub={deal?.client?.email ?? project.client?.email}
-                    accent={clientName !== '—' ? undefined : undefined}
-                />
-
-                {/* Payments */}
+            {/* ── Stats row: payments + briefs only ─────────────── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <StatCard
                     icon={CreditCard}
                     label={t('projects.tabPayments')}
@@ -124,8 +134,6 @@ export function ProjectOverviewTab({ project }: { project: ProjectData }) {
                     sub={pendingCount > 0 ? `${pendingCount} ${t('overview.statsPending')}` : undefined}
                     accent={pendingCount > 0 ? 'amber' : milestones.length > 0 ? 'emerald' : undefined}
                 />
-
-                {/* Briefs */}
                 <StatCard
                     icon={LayoutTemplate}
                     label={t('assets.briefsTitle')}
@@ -138,11 +146,9 @@ export function ProjectOverviewTab({ project }: { project: ProjectData }) {
                         ? `${projectBriefs.length - completedBriefs} ${t('overview.statsPending')}`
                         : undefined}
                     accent={
-                        projectBriefs.length === 0
-                            ? undefined
-                            : completedBriefs < projectBriefs.length
-                            ? 'violet'
-                            : 'emerald'
+                        projectBriefs.length === 0 ? undefined
+                        : completedBriefs < projectBriefs.length ? 'violet'
+                        : 'emerald'
                     }
                 />
             </div>
@@ -150,33 +156,8 @@ export function ProjectOverviewTab({ project }: { project: ProjectData }) {
             {/* ── Main content grid ─────────────────────────────── */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-                {/* ── Left: Context / Description ──────────────── */}
+                {/* ── Left: Quotation / briefs checklist ────────── */}
                 <div className="lg:col-span-2 space-y-5">
-
-                    {/* Description / Context */}
-                    <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm">
-                        <CardHeader className="pb-3 border-b border-zinc-100 dark:border-zinc-800/50">
-                            <CardTitle className="text-base font-semibold flex items-center gap-2">
-                                <FileText className="w-4 h-4 text-primary" />
-                                {t('overview.contextTitle')}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-5">
-                            {project.description ? (
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">
-                                    {project.description}
-                                </p>
-                            ) : deal?.proposalIntro ? (
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">
-                                    {deal.proposalIntro}
-                                </p>
-                            ) : (
-                                <p className="text-sm text-zinc-400 italic">
-                                    {t('overview.noDescription')}
-                                </p>
-                            )}
-                        </CardContent>
-                    </Card>
 
                     {/* Quotation summary (deal-based only) */}
                     {quotation && (
@@ -220,7 +201,7 @@ export function ProjectOverviewTab({ project }: { project: ProjectData }) {
                                             (item: { name: string; quantity: string | number; price: string | number }, idx: number) => (
                                                 <div
                                                     key={idx}
-                                                    className="flex justify-between items-center text-sm py-1.5 border-b border-zinc-100 dark:border-zinc-800/50 last:border-0"
+                                                    className="flex justify-between items-center py-1.5 border-b border-zinc-100 dark:border-zinc-800/50 last:border-0"
                                                 >
                                                     <span className="text-zinc-700 dark:text-zinc-300 text-[13px]">
                                                         {item.name}
@@ -247,82 +228,7 @@ export function ProjectOverviewTab({ project }: { project: ProjectData }) {
                         </Card>
                     )}
 
-                    {/* Standalone budget (no deal) */}
-                    {!deal && project.budget && (
-                        <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm">
-                            <CardContent className="pt-5">
-                                <div className="flex items-center justify-between">
-                                    <p className="text-sm text-zinc-500 font-medium">{t('overview.budgetLabel')}</p>
-                                    <div className="text-right">
-                                        <p className="text-2xl font-bold text-zinc-900 dark:text-white">{valueStr}</p>
-                                        {currCode && <p className="text-xs text-zinc-400">{currCode}</p>}
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
-                </div>
-
-                {/* ── Right: Client info ───────────────────────── */}
-                <div className="space-y-5">
-                    <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm">
-                        <CardHeader className="pb-3 border-b border-zinc-100 dark:border-zinc-800/50">
-                            <CardTitle className="text-base font-semibold flex items-center gap-2">
-                                <User className="w-4 h-4 text-primary" />
-                                {t('overview.clientTitle')}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-4 space-y-3">
-                            {clientName !== '—' ? (
-                                <>
-                                    <p className="font-semibold text-zinc-900 dark:text-zinc-100">{clientName}</p>
-                                    {(deal?.client?.email ?? project.client?.email) && (
-                                        <a
-                                            href={`mailto:${deal?.client?.email ?? project.client?.email}`}
-                                            className="flex items-center gap-2 text-sm text-zinc-500 hover:text-primary transition-colors"
-                                        >
-                                            <Mail className="w-4 h-4 shrink-0" />
-                                            {deal?.client?.email ?? project.client?.email}
-                                        </a>
-                                    )}
-                                    {deal?.client?.whatsapp && (
-                                        <a
-                                            href={`https://wa.me/${deal.client.whatsapp}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center gap-2 text-sm text-zinc-500 hover:text-primary transition-colors"
-                                        >
-                                            <MessageCircle className="w-4 h-4 shrink-0" />
-                                            {deal.client.whatsapp}
-                                        </a>
-                                    )}
-                                    {portalUrl && (
-                                        <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800">
-                                            <p className="text-xs text-zinc-500 mb-2 font-medium uppercase tracking-wide">
-                                                {t('overview.portalLink')}
-                                            </p>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="w-full text-xs gap-1.5"
-                                                onClick={() => window.open(portalUrl, '_blank')}
-                                            >
-                                                <ExternalLink className="w-3 h-3" />
-                                                {t('overview.openPortal')}
-                                            </Button>
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <div className="py-4 text-center">
-                                    <User className="w-8 h-8 text-zinc-300 dark:text-zinc-600 mx-auto mb-2" />
-                                    <p className="text-sm text-zinc-400 italic">{t('overview.noClientAssigned')}</p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Briefs quick status */}
+                    {/* Briefs checklist */}
                     {projectBriefs.length > 0 && (
                         <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm">
                             <CardHeader className="pb-3 border-b border-zinc-100 dark:border-zinc-800/50">
@@ -333,28 +239,114 @@ export function ProjectOverviewTab({ project }: { project: ProjectData }) {
                             </CardHeader>
                             <CardContent className="pt-3">
                                 <div className="space-y-2">
-                                    {projectBriefs.slice(0, 4).map((b) => (
-                                        <div key={b.id} className="flex items-center gap-2 text-sm">
+                                    {projectBriefs.slice(0, 5).map((b) => (
+                                        <div key={b.id} className="flex items-center gap-2">
                                             {b.isCompleted
                                                 ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                                                : <Circle className="w-3.5 h-3.5 text-zinc-300 shrink-0" />
+                                                : <Circle className="w-3.5 h-3.5 text-zinc-300 dark:text-zinc-600 shrink-0" />
                                             }
-                                            <span className={cn('truncate text-[13px]', b.isCompleted ? 'text-zinc-500 dark:text-zinc-400' : 'text-zinc-800 dark:text-zinc-200')}>
+                                            <span className={cn('truncate text-[13px]', b.isCompleted ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-700 dark:text-zinc-200')}>
                                                 {b.name}
                                             </span>
                                         </div>
                                     ))}
-                                    {projectBriefs.length > 4 && (
+                                    {projectBriefs.length > 5 && (
                                         <Link
                                             href={`/dashboard/projects/${project.id}/assets`}
-                                            className="text-[11px] text-zinc-400 hover:text-primary transition-colors"
+                                            className="text-[11px] text-zinc-400 hover:text-primary transition-colors pl-5"
                                         >
-                                            +{projectBriefs.length - 4} more
+                                            +{projectBriefs.length - 5} {t('overview.moreBriefs')}
                                         </Link>
                                     )}
                                 </div>
                             </CardContent>
                         </Card>
+                    )}
+                </div>
+
+                {/* ── Right: Client contact only ───────────────── */}
+                <div className="space-y-5">
+                    {hasClientContact ? (
+                        <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm">
+                            <CardHeader className="pb-3 border-b border-zinc-100 dark:border-zinc-800/50">
+                                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                                    <User className="w-4 h-4 text-primary" />
+                                    {t('overview.clientContact')}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-4 space-y-2.5">
+                                {clientEmail && (
+                                    <a
+                                        href={`mailto:${clientEmail}`}
+                                        className="flex items-center gap-2 text-sm text-zinc-500 hover:text-primary transition-colors"
+                                    >
+                                        <Mail className="w-3.5 h-3.5 shrink-0 text-zinc-400" />
+                                        <span className="truncate">{clientEmail}</span>
+                                    </a>
+                                )}
+                                {clientWhatsapp && (
+                                    <a
+                                        href={`https://wa.me/${clientWhatsapp}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 text-sm text-zinc-500 hover:text-primary transition-colors"
+                                    >
+                                        <MessageCircle className="w-3.5 h-3.5 shrink-0 text-zinc-400" />
+                                        <span>{clientWhatsapp}</span>
+                                    </a>
+                                )}
+                                {portalUrl && (
+                                    <div className={cn((clientEmail || clientWhatsapp) && 'pt-2 border-t border-zinc-100 dark:border-zinc-800')}>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full text-xs gap-1.5"
+                                            onClick={() => window.open(portalUrl, '_blank')}
+                                        >
+                                            <ExternalLink className="w-3 h-3" />
+                                            {t('overview.openPortal')}
+                                        </Button>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <div className="flex items-center gap-2 text-[12px] text-zinc-400 p-1">
+                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                            {t('overview.noClientContact')}
+                        </div>
+                    )}
+
+                    {/* Client uploads toggle */}
+                    {portalUrl && (
+                        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 flex items-center justify-between gap-4">
+                            <div className="flex items-start gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 mt-0.5">
+                                    <Upload className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
+                                </div>
+                                <div>
+                                    <p className="text-[13px] font-semibold text-zinc-800 dark:text-zinc-200">Carga de archivos del cliente</p>
+                                    <p className="text-[11px] text-zinc-400 mt-0.5">
+                                        {clientUploads
+                                            ? 'El cliente puede subir archivos desde su portal'
+                                            : 'Activa para permitir que el cliente suba archivos al proyecto'}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={toggleClientUploads}
+                                disabled={savingUploads}
+                                className={cn(
+                                    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none disabled:opacity-50',
+                                    clientUploads ? 'bg-emerald-500' : 'bg-zinc-200 dark:bg-zinc-700',
+                                )}
+                            >
+                                <span className={cn(
+                                    'pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform',
+                                    clientUploads ? 'translate-x-5' : 'translate-x-0',
+                                )} />
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>

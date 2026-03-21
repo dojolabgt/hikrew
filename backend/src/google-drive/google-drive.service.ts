@@ -74,13 +74,23 @@ export class GoogleDriveService {
     });
   }
 
-  async getStatus(workspaceId: string): Promise<{ connected: boolean; email?: string }> {
+  async getStatus(workspaceId: string): Promise<{
+    connected: boolean;
+    email?: string;
+    rootFolderId?: string;
+    rootFolderName?: string;
+  }> {
     const ws = await this.workspaceRepo.findOne({
       where: { id: workspaceId },
-      select: ['id', 'googleDriveEmail', 'googleDriveAccessToken'],
+      select: ['id', 'googleDriveEmail', 'googleDriveAccessToken', 'googleDriveRootFolderId', 'googleDriveRootFolderName'],
     });
     if (!ws || !ws.googleDriveAccessToken) return { connected: false };
-    return { connected: true, email: ws.googleDriveEmail ?? undefined };
+    return {
+      connected: true,
+      email: ws.googleDriveEmail ?? undefined,
+      rootFolderId: ws.googleDriveRootFolderId ?? undefined,
+      rootFolderName: ws.googleDriveRootFolderName ?? undefined,
+    };
   }
 
   async disconnect(workspaceId: string): Promise<void> {
@@ -88,7 +98,37 @@ export class GoogleDriveService {
       googleDriveAccessToken: null,
       googleDriveRefreshToken: null,
       googleDriveEmail: null,
+      googleDriveRootFolderId: null,
+      googleDriveRootFolderName: null,
     });
+  }
+
+  // ─── Workspace root folder ─────────────────────────────────────────────────
+
+  async setupWorkspaceFolder(
+    workspaceId: string,
+    folderName: string,
+  ): Promise<{ folderId: string; folderName: string }> {
+    const trimmed = folderName.trim();
+    if (!trimmed) throw new BadRequestException('El nombre de la carpeta no puede estar vacío');
+
+    const drive = await this.getDriveClient(workspaceId);
+
+    const folder = await drive.files.create({
+      requestBody: {
+        name: trimmed,
+        mimeType: 'application/vnd.google-apps.folder',
+      },
+      fields: 'id',
+    });
+
+    const folderId = folder.data.id!;
+    await this.workspaceRepo.update(workspaceId, {
+      googleDriveRootFolderId: folderId,
+      googleDriveRootFolderName: trimmed,
+    });
+
+    return { folderId, folderName: trimmed };
   }
 
   // ─── Drive client helper ───────────────────────────────────────────────────
@@ -125,9 +165,13 @@ export class GoogleDriveService {
     workspaceId: string,
     projectId: string,
   ): Promise<{ folderId: string; folderUrl: string }> {
-    const project = await this.projectRepo.findOne({
-      where: { id: projectId, workspaceId },
-    });
+    const [project, workspace] = await Promise.all([
+      this.projectRepo.findOne({ where: { id: projectId, workspaceId } }),
+      this.workspaceRepo.findOne({
+        where: { id: workspaceId },
+        select: ['id', 'googleDriveRootFolderId'],
+      }),
+    ]);
     if (!project) throw new NotFoundException('Proyecto no encontrado');
 
     if (project.driveFolderId) {
@@ -139,10 +183,16 @@ export class GoogleDriveService {
 
     const drive = await this.getDriveClient(workspaceId);
 
+    // Create inside workspace root folder if configured, otherwise at Drive root
+    const parents = workspace?.googleDriveRootFolderId
+      ? [workspace.googleDriveRootFolderId]
+      : undefined;
+
     const folder = await drive.files.create({
       requestBody: {
         name: project.name,
         mimeType: 'application/vnd.google-apps.folder',
+        ...(parents && { parents }),
       },
       fields: 'id, webViewLink',
     });
@@ -208,6 +258,60 @@ export class GoogleDriveService {
     });
     if (!project) throw new NotFoundException('Proyecto no encontrado');
 
+    const drive = await this.getDriveClient(workspaceId);
+    await drive.files.delete({ fileId });
+  }
+
+  // ─── Workspace-level files (root folder) ──────────────────────────────────
+
+  async getWorkspaceFiles(workspaceId: string, folderId?: string) {
+    const ws = await this.workspaceRepo.findOne({
+      where: { id: workspaceId },
+      select: ['id', 'googleDriveRootFolderId'],
+    });
+
+    const parentId = folderId ?? ws?.googleDriveRootFolderId;
+    if (!parentId) return [];
+
+    const drive = await this.getDriveClient(workspaceId);
+    // Folders listed first, then files — both included
+    const res = await drive.files.list({
+      q: `'${parentId}' in parents and trashed = false`,
+      fields: 'files(id, name, mimeType, webViewLink, size, createdTime, iconLink)',
+      orderBy: 'folder,name',
+    });
+
+    return res.data.files ?? [];
+  }
+
+  async uploadWorkspaceFile(workspaceId: string, file: Express.Multer.File) {
+    const ws = await this.workspaceRepo.findOne({
+      where: { id: workspaceId },
+      select: ['id', 'googleDriveRootFolderId'],
+    });
+    if (!ws?.googleDriveRootFolderId) {
+      throw new BadRequestException(
+        'Configura una carpeta raíz del workspace en Integraciones antes de subir archivos globales.',
+      );
+    }
+
+    const drive = await this.getDriveClient(workspaceId);
+    const { Readable } = await import('stream');
+    const stream = Readable.from(file.buffer);
+
+    const res = await drive.files.create({
+      requestBody: {
+        name: file.originalname,
+        parents: [ws.googleDriveRootFolderId],
+      },
+      media: { mimeType: file.mimetype, body: stream },
+      fields: 'id, name, mimeType, webViewLink, size, createdTime, iconLink',
+    });
+
+    return res.data;
+  }
+
+  async deleteWorkspaceFile(workspaceId: string, fileId: string): Promise<void> {
     const drive = await this.getDriveClient(workspaceId);
     await drive.files.delete({ fileId });
   }

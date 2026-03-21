@@ -4,11 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
-    FileText, FolderPlus, Upload, Trash2, ExternalLink,
-    Loader2, HardDrive, FolderOpen, File, FileImage, FileVideo,
-    FileArchive, Settings, Plus, ChevronDown, ChevronUp,
-    LayoutTemplate, CheckCircle2, Circle, ArrowLeft, ArrowRight,
-    Copy, Check,
+    FileText, HardDrive, Settings, Plus, ChevronDown, ChevronUp,
+    LayoutTemplate, CheckCircle2, Circle, ArrowLeft, ArrowRight, Loader2, Trash2,
 } from 'lucide-react';
 import { useProject } from '../layout';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -16,6 +13,7 @@ import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
 import { useBriefTemplates, BriefTemplate } from '@/hooks/use-brief-templates';
 import { projectDriveApi, DriveFile } from '@/features/projects/driveApi';
 import { projectsApi } from '@/features/projects/api';
+import { FileManager } from '@/components/file-manager/FileManager';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -28,28 +26,6 @@ import {
 import { cn } from '@/lib/utils';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function FileIcon({ mimeType, className }: { mimeType: string; className?: string }) {
-    if (mimeType.startsWith('image/')) return <FileImage className={className} />;
-    if (mimeType.startsWith('video/')) return <FileVideo className={className} />;
-    if (mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('compressed'))
-        return <FileArchive className={className} />;
-    if (mimeType.includes('pdf') || mimeType.includes('document') || mimeType.includes('sheet'))
-        return <FileText className={className} />;
-    return <File className={className} />;
-}
-
-function formatBytes(bytes?: string) {
-    const n = parseInt(bytes ?? '0', 10);
-    if (!n) return '—';
-    if (n < 1024) return `${n} B`;
-    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-    return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-}
 
 // ─── Add Brief Dialog (template picker flow) ──────────────────────────────────
 
@@ -475,237 +451,147 @@ function BriefsSection() {
 
 // ─── Drive Section ────────────────────────────────────────────────────────────
 
-function CopyLinkButton({ url }: { url: string }) {
-    const { t } = useWorkspaceSettings();
-    const [copied, setCopied] = useState(false);
-
-    const handleCopy = async (e: React.MouseEvent) => {
-        e.stopPropagation();
-        try {
-            await navigator.clipboard.writeText(url);
-            setCopied(true);
-            toast.success(t('assets.driveLinkCopied'));
-            setTimeout(() => setCopied(false), 2000);
-        } catch {
-            toast.error('Could not copy link');
-        }
-    };
-
-    return (
-        <button
-            onClick={handleCopy}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-400 dark:text-white/35 hover:text-zinc-700 dark:hover:text-white/70 hover:bg-zinc-100 dark:hover:bg-white/[0.07] transition-colors"
-            title={t('assets.driveCopyLink')}
-        >
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-        </button>
-    );
-}
-
 function DriveSection() {
     const { project, refreshProject } = useProject();
     const { activeWorkspace } = useAuth();
     const { t } = useWorkspaceSettings();
     const router = useRouter();
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const isDriveConnected = !!(activeWorkspace?.googleDriveEmail);
     const hasDriveFolder = !!project.driveFolderId;
+    const hasDeal = !!project.dealId;
 
     const [files, setFiles] = useState<DriveFile[]>([]);
-    const [loadingFiles, setLoadingFiles] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [creatingFolder, setCreatingFolder] = useState(false);
-    const [uploadingFile, setUploadingFile] = useState(false);
-    const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
+    const [enqueuingPdfs, setEnqueuingPdfs] = useState(false);
+
+    // ─── PDF generation state ─────────────────────────────────────────────────
+    const gen = (project as any).generatedDocuments as
+        | { quotationGenerated: boolean; generatedBriefIds: string[] }
+        | null
+        | undefined;
+
+    const projectBriefs: { id: string }[] = (project as any).briefs ?? [];
+    const pendingBriefCount = projectBriefs.filter(
+        (b) => !gen?.generatedBriefIds?.includes(b.id),
+    ).length;
+    const quotationPending = !gen?.quotationGenerated;
+    const hasPending = quotationPending || pendingBriefCount > 0;
+
+    const pdfButtonLabel = enqueuingPdfs
+        ? 'Generando...'
+        : !gen
+            ? 'Generar documentos'
+            : pendingBriefCount > 0
+                ? `Generar brief${pendingBriefCount > 1 ? 's' : ''} nuevo${pendingBriefCount > 1 ? 's' : ''} (${pendingBriefCount})`
+                : 'Documentos al día';
+
+    const handleEnqueuePdfs = async () => {
+        if (!activeWorkspace) return;
+        setEnqueuingPdfs(true);
+        try {
+            const res = await projectsApi.enqueuePdfs(activeWorkspace.id, project.id);
+            if (res.queued) {
+                toast.success('Generando documentos... aparecerán en Drive en unos segundos');
+                await refreshProject();
+            } else {
+                toast.info('No hay documentos nuevos para generar');
+            }
+        } catch (e: any) {
+            toast.error(e?.response?.data?.message ?? 'Error al generar documentos');
+        } finally {
+            setEnqueuingPdfs(false);
+        }
+    };
 
     useEffect(() => {
         if (!isDriveConnected || !hasDriveFolder) return;
-        setLoadingFiles(true);
+        setIsLoading(true);
         projectDriveApi.getFiles(project.id)
             .then(setFiles)
             .catch(() => toast.error(t('assets.driveLoadError')))
-            .finally(() => setLoadingFiles(false));
+            .finally(() => setIsLoading(false));
     }, [project.id, isDriveConnected, hasDriveFolder, t]);
 
-    const handleCreateFolder = async () => {
-        setCreatingFolder(true);
-        try {
-            await projectDriveApi.createFolder(project.id);
-            toast.success(t('assets.driveFolderCreated'));
-            await refreshProject();
-        } catch {
-            toast.error(t('assets.driveFolderError'));
-        } finally {
-            setCreatingFolder(false);
-        }
-    };
-
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        setUploadingFile(true);
-        try {
-            const uploaded = await projectDriveApi.uploadFile(project.id, file);
-            setFiles((prev) => [uploaded, ...prev]);
-            toast.success(t('assets.driveUploadSuccess'));
-        } catch {
-            toast.error(t('assets.driveUploadError'));
-        } finally {
-            setUploadingFile(false);
-            if (fileInputRef.current) fileInputRef.current.value = '';
-        }
-    };
-
-    const handleDelete = async (fileId: string) => {
-        if (!confirm(t('assets.driveDeleteConfirm'))) return;
-        setDeletingFileId(fileId);
-        try {
-            await projectDriveApi.deleteFile(project.id, fileId);
-            setFiles((prev) => prev.filter((f) => f.id !== fileId));
-            toast.success(t('assets.driveDeleteSuccess'));
-        } catch {
-            toast.error(t('assets.driveDeleteError'));
-        } finally {
-            setDeletingFileId(null);
-        }
-    };
+    const header = (
+        <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+                <h3 className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">
+                    {t('assets.driveSection')}
+                </h3>
+                <p className="text-[12px] text-zinc-500">{t('assets.driveSectionDesc')}</p>
+            </div>
+            {hasDeal && isDriveConnected && hasDriveFolder && (
+                <Button
+                    size="sm"
+                    variant={hasPending ? 'outline' : 'ghost'}
+                    onClick={handleEnqueuePdfs}
+                    disabled={enqueuingPdfs || !hasPending}
+                    className={cn('gap-1.5 text-xs shrink-0', !hasPending && 'text-emerald-600 dark:text-emerald-400')}
+                >
+                    {enqueuingPdfs
+                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        : !hasPending
+                            ? <CheckCircle2 className="w-3.5 h-3.5" />
+                            : <FileText className="w-3.5 h-3.5" />
+                    }
+                    {pdfButtonLabel}
+                </Button>
+            )}
+        </div>
+    );
 
     if (!isDriveConnected) {
         return (
-            <div className="rounded-xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 p-6 text-center flex flex-col items-center justify-center h-full min-h-[160px]">
-                <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-white/[0.05] flex items-center justify-center mb-3">
-                    <HardDrive className="w-5 h-5 text-zinc-400 dark:text-white/30" />
+            <div>
+                {header}
+                <div className="rounded-xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 p-8 flex flex-col items-center justify-center text-center min-h-[160px]">
+                    <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-white/[0.05] flex items-center justify-center mb-3">
+                        <HardDrive className="w-5 h-5 text-zinc-400 dark:text-white/30" />
+                    </div>
+                    <p className="text-[14px] font-semibold text-zinc-700 dark:text-white mb-1">{t('assets.driveNotConnectedTitle')}</p>
+                    <p className="text-[12px] text-zinc-400 max-w-[200px] leading-relaxed mb-4">{t('assets.driveNotConnectedDesc')}</p>
+                    <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/settings/integrations')} className="gap-2 text-xs">
+                        <Settings className="w-3.5 h-3.5" />
+                        {t('assets.driveNotConnectedBtn')}
+                    </Button>
                 </div>
-                <h3 className="font-semibold text-[14px] text-zinc-900 dark:text-white mb-1">
-                    {t('assets.driveNotConnectedTitle')}
-                </h3>
-                <p className="text-[12px] text-zinc-500 dark:text-white/45 max-w-[220px] mx-auto mb-4 leading-relaxed">
-                    {t('assets.driveNotConnectedDesc')}
-                </p>
-                <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/settings/integrations')} className="gap-2 text-xs">
-                    <Settings className="w-3.5 h-3.5" />
-                    {t('assets.driveNotConnectedBtn')}
-                </Button>
-            </div>
-        );
-    }
-
-    if (!hasDriveFolder) {
-        return (
-            <div className="rounded-xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 p-6 text-center flex flex-col items-center justify-center h-full min-h-[160px]">
-                <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-white/[0.05] flex items-center justify-center mb-3">
-                    <FolderPlus className="w-5 h-5 text-zinc-400 dark:text-white/30" />
-                </div>
-                <h3 className="font-semibold text-[14px] text-zinc-900 dark:text-white mb-1">
-                    {t('assets.driveNoFolderTitle')}
-                </h3>
-                <p className="text-[12px] text-zinc-500 dark:text-white/45 max-w-[220px] mx-auto mb-4 leading-relaxed">
-                    {t('assets.driveNoFolderDesc')}
-                </p>
-                <Button size="sm" onClick={handleCreateFolder} disabled={creatingFolder} className="gap-2 text-xs">
-                    {creatingFolder ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FolderPlus className="w-3.5 h-3.5" />}
-                    {creatingFolder ? t('assets.driveCreatingFolder') : t('assets.driveCreateFolderBtn')}
-                </Button>
             </div>
         );
     }
 
     return (
-        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden flex flex-col">
-            {/* Header */}
-            <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-3 bg-zinc-50/50 dark:bg-zinc-900/30">
-                <div className="flex items-center gap-2">
-                    <FolderOpen className="w-4 h-4 text-zinc-500 dark:text-white/50" />
-                    <div>
-                        <p className="text-[13px] font-semibold text-zinc-900 dark:text-white leading-tight">
-                            {t('assets.driveSection')}
-                        </p>
-                        <p className="text-[11px] text-zinc-400 dark:text-white/35">
-                            {files.length} {files.length === 1 ? t('assets.filesSingular') : t('assets.filesPlural')}
-                        </p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                    {project.driveFolderUrl && (
-                        <a
-                            href={project.driveFolderUrl as string}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-[11px] font-medium text-zinc-600 dark:text-white/60 hover:bg-zinc-50 dark:hover:bg-white/[0.05] transition-colors"
-                        >
-                            <ExternalLink className="w-3 h-3" />
-                            {t('assets.driveViewFolder')}
-                        </a>
-                    )}
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploadingFile}
-                        className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[11px] font-semibold hover:bg-zinc-800 dark:hover:bg-white/90 transition-colors disabled:opacity-50"
-                    >
-                        {uploadingFile ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-                        {uploadingFile ? t('assets.driveUploading') : t('assets.driveUploadBtn')}
-                    </button>
-                    <input ref={fileInputRef} type="file" className="hidden" onChange={handleUpload} />
-                </div>
-            </div>
-
-            {/* File list */}
-            {loadingFiles ? (
-                <div className="flex items-center justify-center gap-2 py-8 text-[12px] text-zinc-400 dark:text-white/35">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    {t('assets.driveLoading')}
-                </div>
-            ) : files.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-center px-4">
-                    <div className="w-9 h-9 rounded-xl bg-zinc-50 dark:bg-white/[0.04] flex items-center justify-center mb-2">
-                        <Upload className="w-4 h-4 text-zinc-300 dark:text-white/25" />
-                    </div>
-                    <p className="text-[13px] font-medium text-zinc-700 dark:text-white/60 mb-1">{t('assets.driveEmptyTitle')}</p>
-                    <p className="text-[11px] text-zinc-400 dark:text-white/35">{t('assets.driveEmptyDesc')}</p>
-                </div>
-            ) : (
-                <div className="divide-y divide-zinc-100 dark:divide-zinc-800 overflow-y-auto">
-                    {files.map((file) => (
-                        <div
-                            key={file.id}
-                            className="group flex items-center gap-3 px-4 py-2.5 hover:bg-zinc-50/60 dark:hover:bg-white/[0.02] transition-colors"
-                        >
-                            <div className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-white/[0.06] flex items-center justify-center shrink-0">
-                                <FileIcon mimeType={file.mimeType} className="w-3.5 h-3.5 text-zinc-500 dark:text-white/50" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-[13px] font-medium text-zinc-900 dark:text-white truncate">{file.name}</p>
-                                <p className="text-[11px] text-zinc-400 dark:text-white/35">
-                                    {formatBytes(file.size)} · {formatDate(file.createdTime)}
-                                </p>
-                            </div>
-                            <div className={cn('flex items-center gap-0.5 transition-opacity', 'opacity-0 group-hover:opacity-100')}>
-                                <CopyLinkButton url={file.webViewLink} />
-                                <a
-                                    href={file.webViewLink}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-400 dark:text-white/35 hover:text-zinc-700 dark:hover:text-white/70 hover:bg-zinc-100 dark:hover:bg-white/[0.07] transition-colors"
-                                    title={t('assets.driveOpenInDrive')}
-                                >
-                                    <ExternalLink className="w-3.5 h-3.5" />
-                                </a>
-                                <button
-                                    onClick={() => handleDelete(file.id)}
-                                    disabled={deletingFileId === file.id}
-                                    className="w-7 h-7 flex items-center justify-center rounded-lg text-red-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-40"
-                                    title={t('assets.driveDeleteFile')}
-                                >
-                                    {deletingFileId === file.id
-                                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                        : <Trash2 className="w-3.5 h-3.5" />
-                                    }
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+        <div>
+            {header}
+        <FileManager
+            files={files}
+            isLoading={isLoading}
+            needsFolder={!hasDriveFolder}
+            creatingFolder={creatingFolder}
+            onCreateFolder={async () => {
+                setCreatingFolder(true);
+                try {
+                    await projectDriveApi.createFolder(project.id);
+                    await refreshProject();
+                } catch {
+                    toast.error(t('assets.driveFolderError'));
+                } finally {
+                    setCreatingFolder(false);
+                }
+            }}
+            onUpload={async (file) => {
+                const uploaded = await projectDriveApi.uploadFile(project.id, file);
+                setFiles((prev) => [uploaded, ...prev]);
+                return uploaded;
+            }}
+            onDelete={async (fileId) => {
+                await projectDriveApi.deleteFile(project.id, fileId);
+                setFiles((prev) => prev.filter((f) => f.id !== fileId));
+            }}
+            folderUrl={project.driveFolderUrl ?? undefined}
+            defaultView="canvas"
+        />
         </div>
     );
 }
@@ -722,18 +608,9 @@ export default function ProjectAssetsPage() {
                 <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">{t('assets.titleDesc')}</p>
             </div>
 
-            {/* 2-col layout: Briefs | Drive */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                 <BriefsSection />
-                <div>
-                    <div className="mb-4">
-                        <h3 className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">
-                            {t('assets.driveSection')}
-                        </h3>
-                        <p className="text-[12px] text-zinc-500">{t('assets.driveSectionDesc')}</p>
-                    </div>
-                    <DriveSection />
-                </div>
+                <DriveSection />
             </div>
         </div>
     );

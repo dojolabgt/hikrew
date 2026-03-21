@@ -86,12 +86,12 @@ export type BriefResponses = Record<string, string | string[] | number>;
 // ─── API ──────────────────────────────────────────────────────────────────────
 
 export const publicDealsApi = {
-    getDeal: (token: string): Promise<PublicDealData> =>
-        api.get(`/deals/public/${token}`).then(res => res.data),
+    getDeal: (token: string, password?: string): Promise<PublicDealData> =>
+        api.get(`/public/deals/${token}${password ? `?password=${encodeURIComponent(password)}` : ''}`).then(res => res.data),
 
     submitBrief: (token: string, responses: BriefResponses): Promise<void> =>
-        api.post(`/deals/public/${token}/brief`, { responses }).then(res => res.data),
+        api.post(`/public/briefs/${token}/submit`, { responses }).then(res => res.data),
 
     approveQuotation: (token: string, quotationId: string): Promise<void> =>
-        api.post(`/deals/public/${token}/quotations/${quotationId}/approve`).then(res => res.data),
+        api.post(`/public/deals/${token}/approve-quotation/${quotationId}`).then(res => res.data),
 };

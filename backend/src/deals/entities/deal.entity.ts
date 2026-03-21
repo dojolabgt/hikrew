@@ -74,6 +74,10 @@ export class Deal {
   @Column({ type: 'text', nullable: true })
   notes: string;
 
+  /** Password to gate access to the public deal link (optional) */
+  @Column({ type: 'text', nullable: true, name: 'client_access_password' })
+  clientAccessPassword: string | null;
+
   /** Carta de Introducción o texto de bienvenida para la Propuesta/Cotización */
   @Column({ type: 'text', nullable: true })
   proposalIntro: string;

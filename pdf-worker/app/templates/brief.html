@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Liberation Sans', Arial, sans-serif; font-size: 13px; color: #1a1a1a; background: #fff; padding: 48px; }
+  header { margin-bottom: 40px; }
+  header h1 { font-size: 24px; font-weight: 700; color: #111; }
+  header p { color: #555; margin-top: 4px; font-size: 13px; }
+  .field { margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #f3f4f6; }
+  .field:last-child { border-bottom: none; }
+  .field-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #888; margin-bottom: 6px; }
+  .field-value { font-size: 13px; color: #222; line-height: 1.6; white-space: pre-wrap; }
+  .field-value.empty { color: #bbb; font-style: italic; }
+  footer { margin-top: 48px; font-size: 11px; color: #bbb; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>{{ brief_name }}</h1>
+  <p>
+    {% if project_name %}{{ project_name }}{% endif %}
+    {% if client_name %} · {{ client_name }}{% endif %}
+  </p>
+</header>
+
+{% for field in fields %}
+<div class="field">
+  <div class="field-label">{{ field.label }}</div>
+  {% if field.value %}
+    <div class="field-value">{{ field.value }}</div>
+  {% else %}
+    <div class="field-value empty">Sin respuesta</div>
+  {% endif %}
+</div>
+{% endfor %}
+
+{% if not fields %}
+<p style="color:#aaa;font-style:italic;">Este brief no tiene campos configurados.</p>
+{% endif %}
+
+<footer>Generado por Blend</footer>
+</body>
+</html>

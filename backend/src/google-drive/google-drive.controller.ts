@@ -5,6 +5,7 @@ import {
   Delete,
   Param,
   Query,
+  Body,
   Req,
   Res,
   UseGuards,
@@ -44,6 +45,46 @@ export class WorkspaceDriveController {
   getAuthUrl(@Req() req: AuthRequest) {
     const url = this.driveService.getAuthUrl(req.workspaceId);
     return { url };
+  }
+
+  /** POST /workspaces/current/google-drive/setup-folder */
+  @Post('setup-folder')
+  setupFolder(
+    @Req() req: AuthRequest,
+    @Body('folderName') folderName: string,
+  ) {
+    if (!folderName?.trim()) throw new BadRequestException('folderName is required');
+    return this.driveService.setupWorkspaceFolder(req.workspaceId, folderName);
+  }
+
+  /** GET /workspaces/current/google-drive/files?folderId=xxx */
+  @Get('files')
+  getWorkspaceFiles(
+    @Req() req: AuthRequest,
+    @Query('folderId') folderId?: string,
+  ) {
+    return this.driveService.getWorkspaceFiles(req.workspaceId, folderId);
+  }
+
+  /** POST /workspaces/current/google-drive/upload */
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadWorkspaceFile(
+    @Req() req: AuthRequest,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('No se recibió ningún archivo');
+    return this.driveService.uploadWorkspaceFile(req.workspaceId, file);
+  }
+
+  /** DELETE /workspaces/current/google-drive/files/:fileId */
+  @Delete('files/:fileId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deleteWorkspaceFile(
+    @Req() req: AuthRequest,
+    @Param('fileId') fileId: string,
+  ): Promise<void> {
+    return this.driveService.deleteWorkspaceFile(req.workspaceId, fileId);
   }
 
   /** DELETE /workspaces/current/google-drive */

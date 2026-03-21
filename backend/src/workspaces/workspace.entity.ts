@@ -123,6 +123,12 @@ export class Workspace {
   @Column({ type: 'varchar', nullable: true, name: 'google_drive_email' })
   googleDriveEmail: string | null;
 
+  @Column({ type: 'varchar', nullable: true, name: 'google_drive_root_folder_id' })
+  googleDriveRootFolderId: string | null;
+
+  @Column({ type: 'varchar', nullable: true, name: 'google_drive_root_folder_name' })
+  googleDriveRootFolderName: string | null;
+
   @OneToMany(() => WorkspaceMember, (member) => member.workspace)
   members: WorkspaceMember[];
 

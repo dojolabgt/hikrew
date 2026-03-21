@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { toast } from 'sonner';
-import { CheckCircle2, AlertCircle, Loader2, ExternalLink, ShieldCheck, Unlink } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, ExternalLink, ShieldCheck, Unlink, FolderOpen, FolderPlus, Pencil } from 'lucide-react';
 import {
     Sheet,
     SheetContent,
@@ -22,10 +22,18 @@ interface GoogleDriveSheetProps {
 
 export function GoogleDriveSheet({ open, onOpenChange, onStatusChange }: GoogleDriveSheetProps) {
     const { t } = useWorkspaceSettings();
-    const [status, setStatus] = useState<{ connected: boolean; email?: string } | null>(null);
+    const [status, setStatus] = useState<{
+        connected: boolean;
+        email?: string;
+        rootFolderId?: string;
+        rootFolderName?: string;
+    } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isConnecting, setIsConnecting] = useState(false);
     const [isDisconnecting, setIsDisconnecting] = useState(false);
+    const [folderName, setFolderName] = useState('');
+    const [isSettingFolder, setIsSettingFolder] = useState(false);
+    const [editingFolder, setEditingFolder] = useState(false);
 
     useEffect(() => {
         if (!open) return;
@@ -44,6 +52,22 @@ export function GoogleDriveSheet({ open, onOpenChange, onStatusChange }: GoogleD
         } catch {
             toast.error(t('integrations.driveConnectError'));
             setIsConnecting(false);
+        }
+    };
+
+    const handleSetupFolder = async () => {
+        if (!folderName.trim()) return;
+        setIsSettingFolder(true);
+        try {
+            const result = await workspacesApi.setupDriveFolder(folderName.trim());
+            setStatus(prev => prev ? { ...prev, rootFolderId: result.folderId, rootFolderName: result.folderName } : prev);
+            setEditingFolder(false);
+            setFolderName('');
+            toast.success(t('integrations.driveFolderCreated'));
+        } catch {
+            toast.error(t('integrations.driveFolderError'));
+        } finally {
+            setIsSettingFolder(false);
         }
     };
 
@@ -119,6 +143,69 @@ export function GoogleDriveSheet({ open, onOpenChange, onStatusChange }: GoogleD
                                 <p className="text-[12px] text-gray-500 dark:text-white/45 leading-snug">
                                     {t('integrations.driveScopeNote')}
                                 </p>
+                            </div>
+
+                            <div className="h-px bg-gray-100 dark:bg-white/[0.06]" />
+
+                            {/* Workspace root folder */}
+                            <div>
+                                <div className="flex items-center gap-2 mb-1.5">
+                                    <FolderOpen className="w-3.5 h-3.5 text-gray-400 dark:text-white/40" />
+                                    <p className="text-[12px] font-semibold text-gray-700 dark:text-white/70 uppercase tracking-wider">
+                                        {t('integrations.driveFolderSection')}
+                                    </p>
+                                </div>
+                                <p className="text-[12px] text-gray-400 dark:text-white/35 leading-snug mb-3">
+                                    {t('integrations.driveFolderDesc')}
+                                </p>
+
+                                {status?.rootFolderId && !editingFolder ? (
+                                    <div className="flex items-center justify-between rounded-xl border border-gray-100 dark:border-white/[0.06] bg-gray-50 dark:bg-white/[0.03] px-3 py-2.5">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <FolderOpen className="w-4 h-4 text-primary shrink-0" />
+                                            <span className="text-[13px] font-medium text-gray-800 dark:text-white/80 truncate">
+                                                {status.rootFolderName}
+                                            </span>
+                                        </div>
+                                        <button
+                                            onClick={() => { setEditingFolder(true); setFolderName(status.rootFolderName ?? ''); }}
+                                            className="ml-2 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-white/60 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors shrink-0"
+                                            title={t('integrations.driveFolderRename')}
+                                        >
+                                            <Pencil className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={folderName}
+                                            onChange={(e) => setFolderName(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleSetupFolder()}
+                                            placeholder={t('integrations.driveFolderPlaceholder')}
+                                            className="flex-1 h-9 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.04] px-3 text-[13px] text-gray-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                        />
+                                        <button
+                                            onClick={handleSetupFolder}
+                                            disabled={isSettingFolder || !folderName.trim()}
+                                            className="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-primary text-white text-[13px] font-semibold hover:bg-primary/90 transition-colors disabled:opacity-40 shrink-0"
+                                        >
+                                            {isSettingFolder
+                                                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                : <FolderPlus className="w-3.5 h-3.5" />
+                                            }
+                                            {t('integrations.driveFolderCreate')}
+                                        </button>
+                                        {editingFolder && (
+                                            <button
+                                                onClick={() => setEditingFolder(false)}
+                                                className="h-9 px-3 rounded-xl border border-gray-200 dark:border-white/[0.08] text-[13px] text-gray-500 hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
+                                            >
+                                                {t('common.cancel')}
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="h-px bg-gray-100 dark:bg-white/[0.06]" />

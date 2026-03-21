@@ -2,8 +2,6 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    networks:
-      - app-network
     expose:
       - "6379"
 
@@ -22,8 +20,21 @@ services:
       - BREVO_API_KEY=${BREVO_API_KEY}
     depends_on:
       - redis
-    networks:
-      - app-network
+
+  pdf-worker:
+    build:
+      context: ./pdf-worker
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - PDF_JOBS_QUEUE=${PDF_JOBS_QUEUE:-pdf_jobs}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
+    depends_on:
+      - redis
 
   frontend:
     build:
@@ -43,8 +54,6 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
-    networks:
-      - app-network
     # Dokploy handles port mapping via reverse proxy
     expose:
       - "3000"
@@ -71,8 +80,6 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
-    networks:
-      - app-network
     # Dokploy handles port mapping via reverse proxy
     expose:
       - "3000"
@@ -108,6 +115,7 @@ services:
       - SEED_FREELANCER_PASSWORD=${SEED_FREELANCER_PASSWORD}
       - REDIS_URL=redis://redis:6379
       - REDIS_QUEUE_NAME=${REDIS_QUEUE_NAME:-email_queue}
+      - PDF_JOBS_QUEUE=${PDF_JOBS_QUEUE:-pdf_jobs}
       - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
@@ -125,8 +133,6 @@ services:
     volumes:
       - uploads:/app/uploads
     restart: unless-stopped
-    networks:
-      - app-network
     # Dokploy handles port mapping via reverse proxy
     expose:
       - "4000"
@@ -140,15 +146,9 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    networks:
-      - app-network
     # Internal port only
     expose:
       - "5432"
-
-networks:
-  app-network:
-    driver: bridge
 
 volumes:
   postgres_data:

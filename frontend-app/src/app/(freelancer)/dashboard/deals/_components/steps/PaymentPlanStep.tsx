@@ -5,7 +5,7 @@ import { usePaymentPlan } from '@/hooks/use-payment-plan';
 import { useWorkspaceSettings } from '@/hooks/use-workspace-settings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, AlertCircle, CheckCircle2, AlertTriangle, BadgeCheck } from 'lucide-react';
+import { Plus, Trash2, AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
@@ -59,7 +59,7 @@ interface FieldErrors {
 }
 
 export function PaymentPlanStep({ dealId, quotations, currency, readonly, deal }: PaymentPlanStepProps) {
-    const { plan: paymentPlan, fetchPaymentPlan, createOrUpdatePlan: createPaymentPlan, addMilestone, updateMilestone: updateMilestoneApi, deleteMilestone } = usePaymentPlan(dealId, deal?.workspace?.id || deal?.workspaceId);
+    const { plan: paymentPlan, fetchPaymentPlan, createOrUpdatePlan: createPaymentPlan, addMilestone, deleteMilestone } = usePaymentPlan(dealId, deal?.workspace?.id || deal?.workspaceId);
     const { t } = useWorkspaceSettings();
 
     const MILESTONE_STATUS_LABELS: Record<string, string> = {
@@ -75,12 +75,8 @@ export function PaymentPlanStep({ dealId, quotations, currency, readonly, deal }
     const [fieldErrors, setFieldErrors] = useState<FieldErrors[]>([{}]);
     const [addExistingErrors, setAddExistingErrors] = useState<FieldErrors>({});
     const [submitError, setSubmitError] = useState<string>('');
-    // Fix 2.7 — milestone delete confirmation
     const [deleteMilestoneId, setDeleteMilestoneId] = useState<string | null>(null);
-    // Fix 2.6 — mark as paid pending action
-    const [markPaidId, setMarkPaidId] = useState<string | null>(null);
-    const [isMarkingPaid, setIsMarkingPaid] = useState(false);
-    
+
 
     useEffect(() => {
         fetchPaymentPlan();
@@ -256,20 +252,6 @@ export function PaymentPlanStep({ dealId, quotations, currency, readonly, deal }
         toast.success(t('payment.milestoneDeleted'));
     };
 
-    // Fix 2.6 — mark milestone as paid / unpaid
-    const handleMarkAsPaid = async () => {
-        if (!markPaidId) return;
-        setIsMarkingPaid(true);
-        const milestone = paymentPlan?.milestones?.find((m: { id: string; status: string }) => m.id === markPaidId);
-        const newStatus = milestone?.status === 'PAID' ? 'PENDING' : 'PAID';
-        await updateMilestoneApi(markPaidId, { status: newStatus });
-        setMarkPaidId(null);
-        setIsMarkingPaid(false);
-        await fetchPaymentPlan();
-        toast.success(newStatus === 'PAID' ? t('payment.milestoneMarkedPaid') : t('payment.milestoneMarkedPending'));
-    };
-
-
     // ── Summary calculations ─────────────────────────────────────────────────
 
     const planDraftTotal = milestones.reduce((s, m) => s + (Number(m.amount) || 0), 0);
@@ -338,29 +320,13 @@ export function PaymentPlanStep({ dealId, quotations, currency, readonly, deal }
                                 </div>
                                 <div className="col-span-1 flex justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                     {!readonly && (
-                                        <>
-                                            {/* Fix 2.6 — Mark as Paid toggle */}
-                                            <button
-                                                onClick={() => setMarkPaidId(milestone.id)}
-                                                className={cn(
-                                                    'p-1.5 rounded-lg transition-colors',
-                                                    milestone.status === 'PAID'
-                                                        ? 'text-emerald-500 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40'
-                                                        : 'text-zinc-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
-                                                )}
-                                                title={milestone.status === 'PAID' ? t('payment.markAsPendingTitle') : t('payment.markAsPaidTitle')}
-                                            >
-                                                <BadgeCheck className="w-3.5 h-3.5" />
-                                            </button>
-                                            {/* Fix 2.7 — Delete with confirmation */}
-                                            <button
-                                                onClick={() => setDeleteMilestoneId(milestone.id)}
-                                                className="p-1.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/30 text-rose-500"
-                                                title={t('payment.deleteHitoTitle')}
-                                            >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
-                                        </>
+                                        <button
+                                            onClick={() => setDeleteMilestoneId(milestone.id)}
+                                            className="p-1.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/30 text-rose-500"
+                                            title={t('payment.deleteHitoTitle')}
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
                                     )}
                                 </div>
                             </div>
@@ -512,29 +478,6 @@ export function PaymentPlanStep({ dealId, quotations, currency, readonly, deal }
                     </AlertDialogContent>
                 </AlertDialog>
 
-                {/* Fix 2.6 — Mark as Paid AlertDialog */}
-                <AlertDialog open={!!markPaidId} onOpenChange={o => !o && setMarkPaidId(null)}>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>
-                                {paymentPlan?.milestones?.find((m: { id: string; status: string }) => m.id === markPaidId)?.status === 'PAID'
-                                    ? t('payment.markPendingTitle')
-                                    : t('payment.markPaidTitle')}
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                                {paymentPlan?.milestones?.find((m: { id: string; status: string }) => m.id === markPaidId)?.status === 'PAID'
-                                    ? t('payment.markPendingDesc')
-                                    : t('payment.markPaidDesc')}
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleMarkAsPaid} disabled={isMarkingPaid}>
-                                {isMarkingPaid ? t('common.saving') : t('common.confirm')}
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
             </>
         );
     }
@@ -546,28 +489,41 @@ export function PaymentPlanStep({ dealId, quotations, currency, readonly, deal }
             <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5">
                 <h3 className="font-semibold text-zinc-900 dark:text-white mb-1">{t('payment.createPlanTitle')}</h3>
 
-                {/* Quotation selector */}
+                {/* Quotation connection */}
                 {quotations.length > 0 && (
                     <div className="mb-5">
-                        <p className="text-xs text-zinc-500 font-medium mb-2">{t('payment.basedOnQuotation')}</p>
-                        <div className="flex gap-2 flex-wrap">
-                            {quotations.map((q) => (
-                                <button
-                                    key={q.id}
-                                    onClick={() => setSelectedQuotationId(q.id)}
-                                    className={cn(
-                                        'px-3 py-1.5 text-xs rounded-lg border transition-all',
-                                        selectedQuotationId === q.id
-                                            ? 'bg-primary text-white border-primary shadow-sm shadow-primary/20'
-                                            : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-primary/50'
-                                    )}
-                                >
-                                    {q.optionName} — {fmt(Number(q.total ?? 0))}
-                                </button>
-                            ))}
-                        </div>
+                        {selectedQuotation?.isApproved ? (
+                            <div className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800 mb-3">
+                                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                <span>
+                                    {t('payment.linkedToApproved')}{' '}
+                                    <strong>{selectedQuotation.optionName}</strong>{' '}
+                                    — {fmt(Number(selectedQuotation.total ?? 0))}
+                                </span>
+                            </div>
+                        ) : (
+                            <>
+                                <p className="text-xs text-zinc-500 font-medium mb-2">{t('payment.basedOnQuotation')}</p>
+                                <div className="flex gap-2 flex-wrap mb-2">
+                                    {quotations.map((q) => (
+                                        <button
+                                            key={q.id}
+                                            onClick={() => setSelectedQuotationId(q.id)}
+                                            className={cn(
+                                                'px-3 py-1.5 text-xs rounded-lg border transition-all',
+                                                selectedQuotationId === q.id
+                                                    ? 'bg-primary text-white border-primary shadow-sm shadow-primary/20'
+                                                    : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-primary/50'
+                                            )}
+                                        >
+                                            {q.optionName} — {fmt(Number(q.total ?? 0))}
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
+                        )}
                         {quotationTotal !== null && (
-                            <p className="text-[11px] text-zinc-400 mt-2">
+                            <p className="text-[11px] text-zinc-400">
                                 {t('payment.autoCalcHintFrom').replace('{amount}', fmt(quotationTotal))}
                             </p>
                         )}

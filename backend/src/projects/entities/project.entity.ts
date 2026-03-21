@@ -96,4 +96,24 @@ export class Project {
 
   @Column({ type: 'varchar', nullable: true, name: 'drive_folder_url' })
   driveFolderUrl: string | null;
+
+  // ─── Client portal settings ────────────────────────────────────────────────
+
+  /** Allow the client to upload files to this project via the public deal page */
+  @Column({ type: 'boolean', default: false, name: 'client_uploads_enabled' })
+  clientUploadsEnabled: boolean;
+
+  // ─── PDF generation tracking ───────────────────────────────────────────────
+
+  /** Tracks which PDFs have been generated so the button knows what's pending. */
+  @Column({
+    type: 'jsonb',
+    nullable: true,
+    name: 'generated_documents',
+    default: null,
+  })
+  generatedDocuments: {
+    quotationGenerated: boolean;
+    generatedBriefIds: string[];
+  } | null;
 }

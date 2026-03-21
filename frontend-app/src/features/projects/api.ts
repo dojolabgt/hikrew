@@ -68,6 +68,12 @@ export const projectsApi = {
             .then((res) => res.data);
     },
 
+    enqueuePdfs: async (workspaceId: string, projectId: string): Promise<{ queued: boolean; pendingBriefs: number }> => {
+        return api
+            .post(`/workspaces/${workspaceId}/projects/${projectId}/enqueue-pdfs`)
+            .then((res) => res.data);
+    },
+
     getPaymentPlan: async (workspaceId: string, projectId: string) => {
         return api
             .get(`/workspaces/${workspaceId}/projects/${projectId}/payment-plan`)

@@ -43,6 +43,12 @@ api.interceptors.response.use(
 
         const isAuthRoute = originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/refresh') || originalRequest.url?.includes('/auth/register') || originalRequest.url?.includes('/auth/me');
 
+        // If the 401 carries a domain-specific payload (e.g. requiresPassword), pass it through without refresh
+        const errData = error.response?.data as Record<string, unknown> | undefined;
+        if (error.response?.status === 401 && errData?.message && typeof errData.message === 'object') {
+            return Promise.reject(error);
+        }
+
         // Handle 401 Unauthorized (Token Expired)
         if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthRoute) {
             originalRequest._retry = true;

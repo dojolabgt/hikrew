@@ -32,4 +32,8 @@ export class UpdateDealDto {
 
   @IsOptional()
   validUntil?: Date;
+
+  /** Optional password for the public deal link; null to remove */
+  @IsOptional()
+  clientAccessPassword?: string | null;
 }

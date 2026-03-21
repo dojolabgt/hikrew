@@ -5,7 +5,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { UserRole } from '@/types';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { NavItemConfig } from '@/components/layout/NavItem';
-import { LayoutDashboard, Users, Briefcase, FileText, CreditCard, LayoutTemplate, Network, FolderKanban } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, FileText, CreditCard, LayoutTemplate, Network, FolderKanban, HardDrive } from 'lucide-react';
 import { TopHeader } from '@/components/layout/Header';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
@@ -23,13 +23,14 @@ export default function FreelancerLayout({ children }: { children: React.ReactNo
 
     const freelancerNavItems: NavItemConfig[] = [
         { href: '/dashboard', label: t('sidebar.dashboard'), icon: LayoutDashboard, section: t('sidebar.mainSection') },
-        { href: '/dashboard/clients', label: t('sidebar.clients'), icon: Users, section: t('sidebar.businessSection') },
-        { href: '/dashboard/network', label: t('sidebar.network'), icon: Network, section: t('sidebar.businessSection') },
-        { href: '/dashboard/services', label: t('sidebar.services'), icon: Briefcase, section: t('sidebar.businessSection') },
-        { href: '/dashboard/deals', label: t('sidebar.deals'), icon: FileText, section: t('sidebar.billingSection') },
-        { href: '/dashboard/projects', label: t('sidebar.projects'), icon: FolderKanban, section: t('sidebar.billingSection') },
-        { href: '/dashboard/templates', label: t('sidebar.templates'), icon: LayoutTemplate, section: t('sidebar.billingSection') },
-        { href: '/dashboard/payments', label: t('sidebar.payments'), icon: CreditCard, section: t('sidebar.billingSection') },
+        { href: '/dashboard/clients', label: t('sidebar.clients'), icon: Users, section: t('sidebar.peopleSection') },
+        { href: '/dashboard/network', label: t('sidebar.network'), icon: Network, section: t('sidebar.peopleSection') },
+        { href: '/dashboard/deals', label: t('sidebar.deals'), icon: FileText, section: t('sidebar.workSection') },
+        { href: '/dashboard/projects', label: t('sidebar.projects'), icon: FolderKanban, section: t('sidebar.workSection') },
+        { href: '/dashboard/payments', label: t('sidebar.payments'), icon: CreditCard, section: t('sidebar.workSection') },
+        { href: '/dashboard/files', label: t('sidebar.files'), icon: HardDrive, section: t('sidebar.toolsSection') },
+        { href: '/dashboard/services', label: t('sidebar.services'), icon: Briefcase, section: t('sidebar.toolsSection') },
+        { href: '/dashboard/templates', label: t('sidebar.templates'), icon: LayoutTemplate, section: t('sidebar.toolsSection') },
         { href: '/dashboard/settings/personal-info', label: t('sidebar.settings'), icon: Settings, section: t('sidebar.settingsSection') },
     ];
 

@@ -11,6 +11,7 @@ import { AuthModule } from './auth/auth.module';
 import { StorageModule } from './storage/storage.module';
 import { SettingsModule } from './core/settings/settings.module';
 import { MailModule } from './core/mail/mail.module';
+import { PdfModule } from './core/pdf/pdf.module';
 import { EncryptionModule } from './common/encryption/encryption.module';
 import { TokenModule } from './common/token/token.module';
 import { BillingModule } from './billing/billing.module';
@@ -55,6 +56,7 @@ import { GoogleDriveModule } from './google-drive/google-drive.module';
         // Redis (used by MailService to enqueue emails)
         REDIS_URL: Joi.string().required(),
         REDIS_QUEUE_NAME: Joi.string().default('email_queue'),
+        PDF_JOBS_QUEUE: Joi.string().default('pdf_jobs'),
         // Legacy SMTP vars kept optional (consumed by the mailer worker, not NestJS)
         MAIL_HOST: Joi.string().optional(),
         MAIL_PORT: Joi.number().optional(),
@@ -100,6 +102,7 @@ import { GoogleDriveModule } from './google-drive/google-drive.module';
     AuthModule,
     SettingsModule,
     MailModule,
+    PdfModule,
     EncryptionModule,
     TokenModule,
     WorkspacesModule,

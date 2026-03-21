@@ -15,7 +15,9 @@ import { Workspace } from '../workspaces/workspace.entity';
 import { Client } from '../clients/client.entity';
 import { Service } from '../services/service.entity';
 import { MilestoneSplit } from './entities/milestone-split.entity';
+import { Project } from '../projects/entities/project.entity';
 import { ProjectsModule } from '../projects/projects.module';
+import { GoogleDriveModule } from '../google-drive/google-drive.module';
 
 @Module({
   imports: [
@@ -31,8 +33,10 @@ import { ProjectsModule } from '../projects/projects.module';
       Client,
       Service,
       MilestoneSplit,
+      Project,
     ]),
     ProjectsModule,
+    GoogleDriveModule,
   ],
   controllers: [DealsController, PublicBriefsController, PublicDealsController],
   providers: [DealsService],

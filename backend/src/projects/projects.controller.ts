@@ -37,6 +37,15 @@ export class ProjectsController {
     return this.projectsService.create(workspaceId, dto);
   }
 
+  @Post(':id/enqueue-pdfs')
+  @HttpCode(HttpStatus.OK)
+  enqueuePdfs(
+    @Param('workspaceId') workspaceId: string,
+    @Param('id') id: string,
+  ) {
+    return this.projectsService.enqueueDealPdfs(workspaceId, id);
+  }
+
   @Get()
   findAll(
     @Param('workspaceId') workspaceId: string,
@@ -54,7 +63,7 @@ export class ProjectsController {
   update(
     @Param('workspaceId') workspaceId: string,
     @Param('id') id: string,
-    @Body() dto: { name?: string; description?: string; status?: string; currency?: string; budget?: number | null },
+    @Body() dto: { name?: string; description?: string; status?: string; currency?: string; budget?: number | null; clientUploadsEnabled?: boolean },
   ) {
     return this.projectsService.update(workspaceId, id, dto);
   }

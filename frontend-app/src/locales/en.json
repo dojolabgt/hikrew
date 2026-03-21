@@ -84,6 +84,7 @@
         "skipStep": "Skip this step",
         "continueBtn": "Continue",
         "markAsWonBtn": "Mark as Won",
+        "wonNoPlanWarning": "No payment plan defined yet. You can still mark as Won, but consider adding milestones first.",
         "wonTitle": "Proposal Accepted!",
         "wonDesc": "The deal has been marked as won. The brief, quotation and payment plan are saved as a historical record.",
         "roadmapTitle": "Deal Roadmap",
@@ -152,6 +153,8 @@
         "colName": "Client",
         "colContact": "Contact",
         "colNotes": "Notes",
+        "portalActive": "Portal active",
+        "noPortal": "No portal",
         "invitePortal": "Invite to portal",
         "alreadyLinked": "This client already has a portal account",
         "inviteSuccess": "Invitation sent to {email}",
@@ -224,16 +227,18 @@
     },
     "sidebar": {
         "mainSection": "GENERAL",
-        "businessSection": "BUSINESS",
-        "billingSection": "BILLING",
+        "peopleSection": "CONTACTS",
+        "workSection": "WORK",
+        "toolsSection": "TOOLS",
         "settingsSection": "SETTINGS",
         "dashboard": "Dashboard",
         "clients": "Directory",
-        "network": "My Network",
-        "services": "Services",
+        "network": "Connections",
+        "services": "Catalog",
         "deals": "Deals",
         "projects": "Projects",
         "templates": "Templates",
+        "files": "Files",
         "payments": "Payments",
         "settings": "Settings"
     },
@@ -325,7 +330,10 @@
         "statsPending": "pending",
         "statsComplete": "complete",
         "statsNoPlan": "No plan",
-        "statsNoBriefs": "No briefs"
+        "statsNoBriefs": "No briefs",
+        "clientContact": "Contact",
+        "noClientContact": "No contact info available",
+        "moreBriefs": "more"
     },
     "editProject": {
         "title": "Edit Project",
@@ -689,7 +697,14 @@
         "driveConnectSuccess": "Google Drive connected successfully",
         "driveDisconnectSuccess": "Google Drive disconnected",
         "driveConnectError": "Could not connect Google Drive. Please try again.",
-        "driveDisconnectError": "Could not disconnect. Please try again."
+        "driveDisconnectError": "Could not disconnect. Please try again.",
+        "driveFolderSection": "Workspace folder",
+        "driveFolderDesc": "All project folders will be created inside this folder in your Drive, keeping everything organized.",
+        "driveFolderPlaceholder": "e.g. My Business – Blend",
+        "driveFolderCreate": "Create",
+        "driveFolderRename": "Rename",
+        "driveFolderCreated": "Folder created in Drive",
+        "driveFolderError": "Could not create folder. Please try again."
     },
     "assets": {
         "title": "Project Assets",
@@ -1007,7 +1022,8 @@
         "existingMismatch": "The plan total ({plan}) differs from the quotation ({quotation})",
         "mismatchCovers": "The plan covers {plan} but the quotation is {quotation}.",
         "missingToDistribute": "{amount} still needs to be distributed.",
-        "excessAmount": "There is {amount} in excess."
+        "excessAmount": "There is {amount} in excess.",
+        "linkedToApproved": "Connected to approved quotation:"
     },
     "servicePicker": {
         "title": "Add from Catalog",
