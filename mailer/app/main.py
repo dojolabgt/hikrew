@@ -1,4 +1,5 @@
 import logging
+import time
 from app.config import settings
 from app.queue import wait_for_event
 from app.renderer import render
@@ -54,9 +55,11 @@ def main() -> None:
         [p.name for p in providers],
     )
 
+    _retry_delay = 1
     while True:
         try:
             event = wait_for_event()
+            _retry_delay = 1  # reset on success
             template = event["template"]
             to = event["to"]
             subject = event["subject"]
@@ -70,6 +73,8 @@ def main() -> None:
             log.error("Malformed event — missing key %s", exc)
         except Exception as exc:
             log.exception("Unexpected error processing event: %s", exc)
+            time.sleep(_retry_delay)
+            _retry_delay = min(_retry_delay * 2, 60)
 
 
 if __name__ == "__main__":
