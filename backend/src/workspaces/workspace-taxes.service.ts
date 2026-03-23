@@ -7,8 +7,10 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { WorkspaceTax } from './workspace-tax.entity';
+import { Workspace } from './workspace.entity';
 import { CreateTaxDto } from './dto/create-tax.dto';
 import { UpdateTaxDto } from './dto/update-tax.dto';
+import { PlanLimitsService } from '../billing/plan-limits.service';
 
 @Injectable()
 export class WorkspaceTaxesService {
@@ -17,6 +19,9 @@ export class WorkspaceTaxesService {
   constructor(
     @InjectRepository(WorkspaceTax)
     private readonly taxRepository: Repository<WorkspaceTax>,
+    @InjectRepository(Workspace)
+    private readonly workspaceRepo: Repository<Workspace>,
+    private readonly planLimits: PlanLimitsService,
   ) {}
 
   /** Devuelve todos los taxes del workspace, ordenados */
@@ -29,6 +34,12 @@ export class WorkspaceTaxesService {
 
   /** Crea un nuevo tax. La key debe ser única dentro del workspace. */
   async create(workspaceId: string, dto: CreateTaxDto): Promise<WorkspaceTax> {
+    const workspace = await this.workspaceRepo.findOne({ where: { id: workspaceId } });
+    if (workspace) {
+      const taxCount = await this.taxRepository.count({ where: { workspaceId } });
+      this.planLimits.assertNumericLimit(workspace.plan, 'taxes', taxCount);
+    }
+
     const existing = await this.taxRepository.findOne({
       where: { workspaceId, key: dto.key },
     });

@@ -9,11 +9,13 @@ import {
 import { Workspace } from '../workspaces/workspace.entity';
 import { Project } from '../projects/entities/project.entity';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
+import { BillingModule } from '../billing/billing.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Workspace, Project]),
-    WorkspacesModule, // for WorkspaceGuard
+    WorkspacesModule,
+    BillingModule,
   ],
   controllers: [
     WorkspaceDriveController,

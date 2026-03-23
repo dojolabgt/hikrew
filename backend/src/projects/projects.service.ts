@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { PlanLimitsService } from '../billing/plan-limits.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Project } from './entities/project.entity';
@@ -67,9 +68,18 @@ export class ProjectsService {
     @InjectRepository(Client)
     private readonly clientsRepository: Repository<Client>,
     private readonly pdfService: PdfService,
+    private readonly planLimits: PlanLimitsService,
   ) {}
 
   async create(workspaceId: string, dto: CreateProjectDto): Promise<Project> {
+    const workspace = await this.workspacesRepository.findOne({ where: { id: workspaceId } });
+    if (workspace) {
+      const activeCount = await this.projectsRepository.count({
+        where: { workspaceId, status: ProjectStatus.ACTIVE },
+      });
+      this.planLimits.assertNumericLimit(workspace.plan, 'activeProjects', activeCount);
+    }
+
     const project = this.projectsRepository.create({
       workspaceId,
       dealId: null,
@@ -230,6 +240,12 @@ export class ProjectsService {
   ): Promise<ProjectBrief> {
     await this.findProjectOwnerOrFail(workspaceId, projectId);
 
+    const workspace = await this.workspacesRepository.findOne({ where: { id: workspaceId } });
+    if (workspace) {
+      const briefCount = await this.projectBriefsRepository.count({ where: { projectId } });
+      this.planLimits.assertNumericLimit(workspace.plan, 'projectBriefs', briefCount);
+    }
+
     let templateSnapshot: {
       id: string;
       label: string;
@@ -362,6 +378,15 @@ export class ProjectsService {
     });
     if (!plan) throw new NotFoundException('Payment plan not found. Create one first.');
 
+    const workspace = await this.workspacesRepository.findOne({ where: { id: workspaceId } });
+    if (workspace) {
+      this.planLimits.assertNumericLimit(
+        workspace.plan,
+        'milestoneItems',
+        plan.milestones?.length ?? 0,
+      );
+    }
+
     await this.paymentMilestonesRepository.save(
       this.paymentMilestonesRepository.create({
         paymentPlan: { id: plan.id } as unknown as PaymentPlan,
@@ -446,6 +471,15 @@ export class ProjectsService {
     role: ProjectRole = ProjectRole.VIEWER,
   ): Promise<ProjectCollaborator> {
     const project = await this.findProjectOwnerOrFail(workspaceId, projectId);
+
+    const workspace = await this.workspacesRepository.findOne({ where: { id: workspaceId } });
+    if (workspace) {
+      const collabCount = await this.projectCollaboratorsRepository.count({
+        where: { project: { id: project.id } },
+      });
+      this.planLimits.assertNumericLimit(workspace.plan, 'collaboratorsPerProject', collabCount);
+    }
+
     const exists = await this.projectCollaboratorsRepository.findOne({
       where: {
         project: { id: project.id },
@@ -480,6 +514,11 @@ export class ProjectsService {
     milestoneId: string,
     dto: CreateMilestoneSplitDto,
   ): Promise<MilestoneSplit> {
+    const workspace = await this.workspacesRepository.findOne({ where: { id: workspaceId } });
+    if (workspace) {
+      this.planLimits.assertFeature(workspace.plan, 'milestoneSplits');
+    }
+
     const project = await this.findProjectOwnerOrFail(workspaceId, projectId);
     const milestone = await this.paymentMilestonesRepository.findOne({
       where: { id: milestoneId },

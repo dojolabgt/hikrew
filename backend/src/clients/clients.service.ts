@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
+import { PlanLimitsService } from '../billing/plan-limits.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
@@ -12,7 +13,7 @@ import { ClientPortalInvite } from './entities/client-portal-invite.entity';
 import { CreateClientDto, UpdateClientDto } from './dto/client.dto';
 import { ClientsQueryDto } from './dto/clients-query.dto';
 import { paginate, PaginatedResponse } from '../common/dto/pagination.dto';
-import { Workspace, WorkspacePlan } from '../workspaces/workspace.entity';
+import { Workspace } from '../workspaces/workspace.entity';
 import { WorkspaceMember, WorkspaceRole } from '../workspaces/workspace-member.entity';
 import { UsersService } from '../users/users.service';
 import { MailService } from '../core/mail/mail.service';
@@ -33,6 +34,7 @@ export class ClientsService {
     private readonly usersService: UsersService,
     private readonly mailService: MailService,
     private readonly configService: ConfigService,
+    private readonly planLimits: PlanLimitsService,
   ) {}
 
   // ─── CRUD ─────────────────────────────────────────────────────────────────
@@ -41,13 +43,9 @@ export class ClientsService {
     const workspace = await this.workspaceRepo.findOne({
       where: { id: workspaceId },
     });
-    if (workspace?.plan === WorkspacePlan.FREE) {
+    if (workspace) {
       const count = await this.clientRepo.count({ where: { workspaceId } });
-      if (count >= 5) {
-        throw new BadRequestException(
-          'Has alcanzado el límite de 5 clientes para el plan gratuito. Mejora tu plan para agregar más.',
-        );
-      }
+      this.planLimits.assertNumericLimit(workspace.plan, 'clients', count);
     }
 
     const client = this.clientRepo.create({ ...dto, workspaceId });
@@ -123,6 +121,11 @@ export class ClientsService {
     clientId: string,
     sendEmail = true,
   ): Promise<{ magicLink: string }> {
+    const workspace = await this.workspaceRepo.findOne({ where: { id: workspaceId } });
+    if (workspace) {
+      this.planLimits.assertFeature(workspace.plan, 'clientPortalInvite');
+    }
+
     const client = await this.clientRepo.findOne({
       where: { id: clientId, workspaceId },
       relations: ['workspace'],

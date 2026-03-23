@@ -4,6 +4,7 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
+import { PlanLimitsService } from '../billing/plan-limits.service';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -21,6 +22,7 @@ export class GoogleDriveService {
     private readonly workspaceRepo: Repository<Workspace>,
     @InjectRepository(Project)
     private readonly projectRepo: Repository<Project>,
+    private readonly planLimits: PlanLimitsService,
   ) {}
 
   // ─── OAuth client ──────────────────────────────────────────────────────────
@@ -40,6 +42,14 @@ export class GoogleDriveService {
   }
 
   // ─── Workspace OAuth management ───────────────────────────────────────────
+
+  async assertGoogleDriveEnabled(workspaceId: string): Promise<void> {
+    const ws = await this.workspaceRepo.findOne({
+      where: { id: workspaceId },
+      select: ['id', 'plan'],
+    });
+    if (ws) this.planLimits.assertFeature(ws.plan, 'googleDrive');
+  }
 
   getAuthUrl(workspaceId: string): string {
     const client = this.getOAuthClient();
@@ -80,6 +90,8 @@ export class GoogleDriveService {
     rootFolderId?: string;
     rootFolderName?: string;
   }> {
+    await this.assertGoogleDriveEnabled(workspaceId);
+
     const ws = await this.workspaceRepo.findOne({
       where: { id: workspaceId },
       select: ['id', 'googleDriveEmail', 'googleDriveAccessToken', 'googleDriveRootFolderId', 'googleDriveRootFolderName'],
@@ -109,6 +121,8 @@ export class GoogleDriveService {
     workspaceId: string,
     folderName: string,
   ): Promise<{ folderId: string; folderName: string }> {
+    await this.assertGoogleDriveEnabled(workspaceId);
+
     const trimmed = folderName.trim();
     if (!trimmed) throw new BadRequestException('El nombre de la carpeta no puede estar vacío');
 

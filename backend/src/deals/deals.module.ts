@@ -18,6 +18,7 @@ import { MilestoneSplit } from './entities/milestone-split.entity';
 import { Project } from '../projects/entities/project.entity';
 import { ProjectsModule } from '../projects/projects.module';
 import { GoogleDriveModule } from '../google-drive/google-drive.module';
+import { BillingModule } from '../billing/billing.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { GoogleDriveModule } from '../google-drive/google-drive.module';
     ]),
     ProjectsModule,
     GoogleDriveModule,
+    BillingModule,
   ],
   controllers: [DealsController, PublicBriefsController, PublicDealsController],
   providers: [DealsService],

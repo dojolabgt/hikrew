@@ -12,10 +12,10 @@ import {
   ConnectionStatus,
 } from './entities/workspace-connection.entity';
 import { WorkspacesService } from '../workspaces/workspaces.service';
-import { WorkspacePlan } from '../workspaces/workspace.entity';
 import { randomBytes } from 'crypto';
 import { InviteConnectionDto } from './dto/invite-connection.dto';
 import { MailService } from '../core/mail/mail.service';
+import { PlanLimitsService } from '../billing/plan-limits.service';
 
 @Injectable()
 export class ConnectionsService {
@@ -26,17 +26,19 @@ export class ConnectionsService {
     private connectionsRepository: Repository<WorkspaceConnection>,
     private workspacesService: WorkspacesService,
     private mailService: MailService,
+    private readonly planLimits: PlanLimitsService,
   ) {}
 
   async inviteConnection(inviterWorkspaceId: string, dto: InviteConnectionDto) {
     // 1. Validate inviter plan
     const workspace =
       await this.workspacesService.getWorkspaceById(inviterWorkspaceId);
-    if (workspace.plan === WorkspacePlan.FREE) {
-      throw new ForbiddenException(
-        'El plan Free no permite enviar invitaciones de conexión. Actualiza a Pro para armar tu red.',
-      );
-    }
+    this.planLimits.assertFeature(workspace.plan, 'canSendConnections');
+
+    const sentCount = await this.connectionsRepository.count({
+      where: { inviterWorkspaceId, status: ConnectionStatus.ACCEPTED },
+    });
+    this.planLimits.assertNumericLimit(workspace.plan, 'connections', sentCount);
 
     // 2. Prevent duplicate pending or accepted connections with the same email
     const existing = await this.connectionsRepository.findOne({
@@ -91,11 +93,7 @@ export class ConnectionsService {
     // 1. Validate inviter plan
     const workspace =
       await this.workspacesService.getWorkspaceById(inviterWorkspaceId);
-    if (workspace.plan === WorkspacePlan.FREE) {
-      throw new ForbiddenException(
-        'El plan Free no permite generar enlaces de conexión. Actualiza a Pro para armar tu red.',
-      );
-    }
+    this.planLimits.assertFeature(workspace.plan, 'canSendConnections');
 
     // Generate a new token
     const token = randomBytes(32).toString('hex');
@@ -180,6 +178,21 @@ export class ConnectionsService {
     if (existingConnection) {
       throw new BadRequestException('Ya estás conectado con este workspace.');
     }
+
+    // Check invitee connection limit
+    const inviteeWorkspace =
+      await this.workspacesService.getWorkspaceById(inviteeWorkspaceId);
+    const inviteeConnectionCount = await this.connectionsRepository.count({
+      where: [
+        { inviterWorkspaceId: inviteeWorkspaceId, status: ConnectionStatus.ACCEPTED },
+        { inviteeWorkspaceId: inviteeWorkspaceId, status: ConnectionStatus.ACCEPTED },
+      ],
+    });
+    this.planLimits.assertNumericLimit(
+      inviteeWorkspace.plan,
+      'connections',
+      inviteeConnectionCount,
+    );
 
     if (connection.inviteEmail) {
       // It's a direct email invite (single use). Update it directly.

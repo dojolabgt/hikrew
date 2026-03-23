@@ -9,6 +9,7 @@ import { WorkspaceTaxesController } from './workspace-taxes.controller';
 import { WorkspaceTaxesService } from './workspace-taxes.service';
 import { StorageModule } from '../storage/storage.module';
 import { EncryptionModule } from '../common/encryption/encryption.module';
+import { PlanLimitsService } from '../billing/plan-limits.service';
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import { EncryptionModule } from '../common/encryption/encryption.module';
     EncryptionModule,
   ],
   controllers: [WorkspacesController, WorkspaceTaxesController],
-  providers: [WorkspacesService, WorkspaceTaxesService],
-  exports: [WorkspacesService, WorkspaceTaxesService],
+  providers: [WorkspacesService, WorkspaceTaxesService, PlanLimitsService],
+  exports: [WorkspacesService, WorkspaceTaxesService, PlanLimitsService],
 })
 export class WorkspacesModule {}

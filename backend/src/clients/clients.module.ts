@@ -8,12 +8,14 @@ import { Workspace } from '../workspaces/workspace.entity';
 import { WorkspaceMember } from '../workspaces/workspace-member.entity';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
 import { UsersModule } from '../users/users.module';
+import { BillingModule } from '../billing/billing.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Client, ClientPortalInvite, Workspace, WorkspaceMember]),
     WorkspacesModule,
     UsersModule,
+    BillingModule,
   ],
   controllers: [ClientsController, PublicClientInviteController, AuthenticatedClientInviteController],
   providers: [ClientsService],

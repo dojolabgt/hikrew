@@ -11,6 +11,7 @@ import { WorkspaceMember, WorkspaceRole } from './workspace-member.entity';
 import { EncryptionService } from '../common/encryption/encryption.service';
 import { StorageService } from '../storage/storage.service';
 import { storageConfig } from '../storage/storage.config';
+import { PlanLimitsService } from '../billing/plan-limits.service';
 
 export interface UpdateRecurrenteKeysDto {
   publicKey: string;
@@ -26,6 +27,7 @@ export class WorkspacesService {
     private workspaceMembersRepository: Repository<WorkspaceMember>,
     private readonly encryptionService: EncryptionService,
     private readonly storageService: StorageService,
+    private readonly planLimits: PlanLimitsService,
   ) {}
 
   async createDefaultWorkspace(userId: string): Promise<Workspace> {
@@ -73,6 +75,18 @@ export class WorkspacesService {
     id: string,
     data: Partial<Workspace>,
   ): Promise<Workspace> {
+    const workspace = await this.getWorkspaceById(id);
+
+    if (!this.planLimits.hasFeature(workspace.plan, 'brandCustomization')) {
+      delete (data as any).brandColor;
+    }
+    if (!this.planLimits.hasFeature(workspace.plan, 'proposalTerms')) {
+      delete (data as any).defaultProposalTerms;
+    }
+    if (!this.planLimits.hasFeature(workspace.plan, 'taxReporting')) {
+      delete (data as any).taxReporting;
+    }
+
     this.logger.log(
       `Updating workspace ${id} with data: ${JSON.stringify(data)}`,
     );
@@ -82,6 +96,7 @@ export class WorkspacesService {
 
   async uploadLogo(id: string, file: Express.Multer.File): Promise<Workspace> {
     const workspace = await this.getWorkspaceById(id);
+    this.planLimits.assertFeature(workspace.plan, 'brandCustomization');
     if (workspace.logo) {
       try {
         await this.storageService.delete(workspace.logo);
@@ -98,6 +113,9 @@ export class WorkspacesService {
   }
 
   async updateRecurrenteKeys(id: string, dto: UpdateRecurrenteKeysDto) {
+    const workspace = await this.getWorkspaceById(id);
+    this.planLimits.assertFeature(workspace.plan, 'recurrente');
+
     if (!dto.publicKey || !dto.privateKey) {
       throw new BadRequestException(
         'Both publicKey and privateKey are required',
@@ -113,6 +131,9 @@ export class WorkspacesService {
   }
 
   async getRecurrenteStatus(id: string): Promise<{ configured: boolean }> {
+    const ws = await this.getWorkspaceById(id);
+    this.planLimits.assertFeature(ws.plan, 'recurrente');
+
     // Select the encrypted fields explicitly since they might have select: false
     const workspace = await this.workspacesRepository.findOne({
       where: { id },

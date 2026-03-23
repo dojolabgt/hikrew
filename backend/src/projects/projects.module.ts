@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { BillingModule } from '../billing/billing.module';
 import { ProjectsController } from './projects.controller';
 import { ProjectsService } from './projects.service';
 import { Project } from './entities/project.entity';
@@ -33,6 +34,7 @@ import { BriefTemplate } from '../deals/entities/brief-template.entity';
       MilestoneSplit,
       BriefTemplate,
     ]),
+    BillingModule,
   ],
   controllers: [ProjectsController],
   providers: [ProjectsService],

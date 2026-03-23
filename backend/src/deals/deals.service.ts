@@ -4,9 +4,10 @@ import {
   BadRequestException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { PlanLimitsService } from '../billing/plan-limits.service';
 import * as crypto from 'crypto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { Deal } from './entities/deal.entity';
 import { Brief } from './entities/brief.entity';
 import { BriefTemplate } from './entities/brief-template.entity';
@@ -26,7 +27,6 @@ import { CreateDealDto } from './dto/create-deal.dto';
 import { CreateBriefTemplateDto } from './dto/create-brief-template.dto';
 import { UpdateDealDto } from './dto/update-deal.dto';
 import { DealStatus } from './enums/deal-status.enum';
-import { WorkspacePlan } from '../workspaces/workspace.entity';
 import { CreateQuotationDto } from './dto/create-quotation.dto';
 import { UpdateQuotationDto } from './dto/update-quotation.dto';
 import { AddQuotationItemDto } from './dto/add-quotation-item.dto';
@@ -84,6 +84,7 @@ export class DealsService {
     private readonly projectsService: ProjectsService,
     private readonly pdfService: PdfService,
     private readonly driveService: GoogleDriveService,
+    private readonly planLimits: PlanLimitsService,
   ) {}
 
   // ─── DEALS ───────────────────────────────────────────────────────────────
@@ -98,6 +99,11 @@ export class DealsService {
     });
 
     if (!workspace) throw new NotFoundException('Workspace not found');
+
+    const activeDealsCount = await this.dealsRepository.count({
+      where: { workspace: { id: workspaceId }, status: Not(DealStatus.LOST) },
+    });
+    this.planLimits.assertNumericLimit(workspace.plan, 'activeDeals', activeDealsCount);
 
     const client = await this.clientsRepository.findOne({
       where: { id: createDealDto.clientId, workspace: { id: workspaceId } },
@@ -559,11 +565,13 @@ export class DealsService {
     dealId: string,
     dto: CreateQuotationDto,
   ): Promise<Quotation> {
-    await this.findDealOrFail(workspaceId, dealId, true);
+    const deal = await this.findDealOrFail(workspaceId, dealId, true);
 
     const existing = await this.quotationsRepository.count({
       where: { deal: { id: dealId } },
     });
+    this.planLimits.assertNumericLimit(deal.workspace.plan, 'quotationOptions', existing);
+
     const optionName =
       dto.optionName || `Opción ${String.fromCharCode(65 + existing)}`; // A, B, C...
 
@@ -654,8 +662,13 @@ export class DealsService {
     quotationId: string,
     dto: AddQuotationItemDto,
   ): Promise<Quotation> {
-    await this.findDealOrFail(workspaceId, dealId, true);
+    const deal = await this.findDealOrFail(workspaceId, dealId, true);
     const quotation = await this.findQuotationOrFail(dealId, quotationId);
+
+    const itemCount = await this.quotationItemsRepository.count({
+      where: { quotation: { id: quotationId } },
+    });
+    this.planLimits.assertNumericLimit(deal.workspace.plan, 'quotationItems', itemCount);
 
     let itemData: Partial<QuotationItem> = {
       quotation: { id: quotationId } as unknown as Quotation,
@@ -847,13 +860,19 @@ export class DealsService {
     dealId: string,
     dto: CreateMilestoneDto,
   ): Promise<PaymentPlan> {
-    await this.findDealOrFail(workspaceId, dealId, true);
+    const deal = await this.findDealOrFail(workspaceId, dealId, true);
     const plan = await this.paymentPlansRepository.findOne({
       where: { deal: { id: dealId } },
       relations: ['milestones'],
     });
     if (!plan)
       throw new NotFoundException('Payment plan not found. Create one first.');
+
+    this.planLimits.assertNumericLimit(
+      deal.workspace.plan,
+      'milestoneItems',
+      plan.milestones?.length ?? 0,
+    );
 
     const milestone = this.paymentMilestonesRepository.create({
       paymentPlan: { id: plan.id } as unknown as PaymentPlan,
@@ -922,19 +941,11 @@ export class DealsService {
       where: { workspace: { id: workspaceId } },
     });
 
-    const planLimits = {
-      [WorkspacePlan.FREE]: 2,
-      [WorkspacePlan.PRO]: 12,
-      [WorkspacePlan.PREMIUM]: 30,
-    };
-
-    const limit = planLimits[workspace.plan] || planLimits[WorkspacePlan.FREE];
-
-    if (currentTemplatesCount >= limit) {
-      throw new BadRequestException(
-        `Límite de plantillas alcanzado para el plan ${workspace.plan}. Máximo permitido: ${limit}`,
-      );
-    }
+    this.planLimits.assertNumericLimit(
+      workspace.plan,
+      'briefTemplates',
+      currentTemplatesCount,
+    );
 
     const template = this.briefTemplatesRepository.create({
       ...dto,

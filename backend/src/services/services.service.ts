@@ -2,18 +2,38 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Service } from './service.entity';
+import { Workspace } from '../workspaces/workspace.entity';
 import { CreateServiceDto, UpdateServiceDto } from './dto/service.dto';
 import { ServicesQueryDto } from './dto/services-query.dto';
 import { paginate, PaginatedResponse } from '../common/dto/pagination.dto';
+import { PlanLimitsService } from '../billing/plan-limits.service';
 
 @Injectable()
 export class ServicesService {
   constructor(
     @InjectRepository(Service)
     private readonly serviceRepo: Repository<Service>,
+    @InjectRepository(Workspace)
+    private readonly workspaceRepo: Repository<Workspace>,
+    private readonly planLimits: PlanLimitsService,
   ) {}
 
   async create(workspaceId: string, dto: CreateServiceDto): Promise<Service> {
+    const workspace = await this.workspaceRepo.findOne({ where: { id: workspaceId } });
+    if (workspace) {
+      const count = await this.serviceRepo.count({
+        where: { workspaceId, isActive: true },
+      });
+      this.planLimits.assertNumericLimit(workspace.plan, 'services', count);
+
+      if (!this.planLimits.hasFeature(workspace.plan, 'serviceImages')) {
+        delete (dto as any).imageUrl;
+      }
+      if (!this.planLimits.hasFeature(workspace.plan, 'internalCost')) {
+        delete (dto as any).internalCost;
+      }
+    }
+
     const service = this.serviceRepo.create({
       ...dto,
       workspaceId,
