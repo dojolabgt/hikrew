@@ -147,21 +147,21 @@ function BriefForm({ deal, onSubmitted }: { deal: DealData; onSubmitted: () => v
                         </div>
                     )}
                     {field.type === 'radio' && (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                             {field.options?.map(o => (
                                 <label key={optValue(o)} className="flex items-center gap-3 cursor-pointer group">
-                                    <div className={cn('w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors', responses[field.id] === optValue(o) ? 'border-white bg-white' : 'border-white/20 group-hover:border-white/40')}>
-                                        {responses[field.id] === optValue(o) && <div className="w-1.5 h-1.5 rounded-full bg-zinc-900" />}
+                                    <div className={cn('w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0', responses[field.id] === optValue(o) ? 'border-white bg-white' : 'border-white/25 group-hover:border-white/50')}>
+                                        {responses[field.id] === optValue(o) && <div className="w-2 h-2 rounded-full bg-zinc-900" />}
                                     </div>
                                     <input type="radio" className="sr-only" checked={responses[field.id] === optValue(o)} onChange={() => setResp(field.id, optValue(o))} />
-                                    <span className="text-[13px] text-white/65">{optLabel(o)}</span>
+                                    <span className="text-base text-white/80">{optLabel(o)}</span>
                                 </label>
                             ))}
                             {field.allowOther && (
                                 <>
                                     <label className="flex items-center gap-3 cursor-pointer group">
-                                        <div className={cn('w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors', responses[field.id] === '__other__' ? 'border-white bg-white' : 'border-white/20 group-hover:border-white/40')}>
-                                            {responses[field.id] === '__other__' && <div className="w-1.5 h-1.5 rounded-full bg-zinc-900" />}
+                                        <div className={cn('w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0', responses[field.id] === '__other__' ? 'border-white bg-white' : 'border-white/25 group-hover:border-white/50')}>
+                                            {responses[field.id] === '__other__' && <div className="w-2 h-2 rounded-full bg-zinc-900" />}
                                         </div>
                                         <input type="radio" className="sr-only" checked={responses[field.id] === '__other__'} onChange={() => setResp(field.id, '__other__')} />
                                         <span className="text-base text-white/55 italic">Otro</span>
@@ -172,19 +172,34 @@ function BriefForm({ deal, onSubmitted }: { deal: DealData; onSubmitted: () => v
                         </div>
                     )}
                     {field.type === 'checkbox' && (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                             {field.options?.map(o => {
                                 const v = optValue(o); const checked = ((responses[field.id] as string[]) || []).includes(v);
                                 return (
                                     <label key={v} className="flex items-center gap-3 cursor-pointer group">
-                                        <div className={cn('w-4 h-4 rounded border-2 flex items-center justify-center transition-colors', checked ? 'border-white bg-white' : 'border-white/20 group-hover:border-white/40')}>
-                                            {checked && <svg className="w-2.5 h-2.5 text-zinc-900" fill="none" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                                        <div className={cn('w-5 h-5 rounded border-2 flex items-center justify-center transition-colors shrink-0', checked ? 'border-white bg-white' : 'border-white/25 group-hover:border-white/50')}>
+                                            {checked && <svg className="w-3 h-3 text-zinc-900" fill="none" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
                                         </div>
                                         <input type="checkbox" className="sr-only" checked={checked} onChange={() => toggleCb(field.id, v)} />
                                         <span className="text-base text-white/80">{optLabel(o)}</span>
                                     </label>
                                 );
                             })}
+                            {field.allowOther && (() => {
+                                const otherChecked = ((responses[field.id] as string[]) || []).includes('__other__');
+                                return (
+                                    <>
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <div className={cn('w-5 h-5 rounded border-2 flex items-center justify-center transition-colors shrink-0', otherChecked ? 'border-white bg-white' : 'border-white/25 group-hover:border-white/50')}>
+                                                {otherChecked && <svg className="w-3 h-3 text-zinc-900" fill="none" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                                            </div>
+                                            <input type="checkbox" className="sr-only" checked={otherChecked} onChange={() => toggleCb(field.id, '__other__')} />
+                                            <span className="text-base text-white/55 italic">Otro</span>
+                                        </label>
+                                        {otherChecked && <input className={inputCls} value={otherValues[field.id] || ''} onChange={e => { setOtherValues(v => ({ ...v, [field.id]: e.target.value })); }} placeholder="Especifica..." />}
+                                    </>
+                                );
+                            })()}
                         </div>
                     )}
                     {field.type === 'rating' && (
