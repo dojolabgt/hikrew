@@ -87,7 +87,7 @@ const STAGE_STEPS: { key: Stage; label: string }[] = [
 
 // ─── Brief Form ───────────────────────────────────────────────────────────────────
 
-const inputCls = "w-full rounded-xl border border-white/[0.1] bg-white/[0.05] px-4 py-2.5 text-sm text-white/85 placeholder:text-white/20 focus:outline-none focus:border-white/[0.22] transition-all disabled:opacity-40";
+const inputCls = "w-full rounded-xl border border-white/[0.15] bg-white/[0.06] px-4 py-3 text-base text-white/90 placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-all disabled:opacity-40";
 
 function BriefForm({ deal, onSubmitted }: { deal: DealData; onSubmitted: () => void }) {
     const schema = deal.brief!.template.schema;
@@ -130,10 +130,10 @@ function BriefForm({ deal, onSubmitted }: { deal: DealData; onSubmitted: () => v
         <form onSubmit={submit} className="space-y-5">
             {schema.filter(isVisible).map(field => (
                 <div key={field.id} className="space-y-2">
-                    <label className="block text-[13px] font-medium text-white/75">
+                    <label className="block text-base font-semibold text-white/90">
                         {field.label}{field.required && <span className="text-red-400 ml-1">*</span>}
                     </label>
-                    {field.description && <p className="text-[11px] text-white/35">{field.description}</p>}
+                    {field.description && <p className="text-sm text-white/55">{field.description}</p>}
 
                     {field.type === 'text' && <input className={inputCls} value={(responses[field.id] as string) || ''} onChange={e => setResp(field.id, e.target.value)} placeholder="Tu respuesta..." />}
                     {field.type === 'textarea' && <textarea className={inputCls + ' h-24 resize-none'} value={(responses[field.id] as string) || ''} onChange={e => setResp(field.id, e.target.value)} placeholder="Tu respuesta..." />}
@@ -164,7 +164,7 @@ function BriefForm({ deal, onSubmitted }: { deal: DealData; onSubmitted: () => v
                                             {responses[field.id] === '__other__' && <div className="w-1.5 h-1.5 rounded-full bg-zinc-900" />}
                                         </div>
                                         <input type="radio" className="sr-only" checked={responses[field.id] === '__other__'} onChange={() => setResp(field.id, '__other__')} />
-                                        <span className="text-[13px] text-white/35 italic">Otro</span>
+                                        <span className="text-base text-white/55 italic">Otro</span>
                                     </label>
                                     {responses[field.id] === '__other__' && <input className={inputCls} value={otherValues[field.id] || ''} onChange={e => { setOtherValues(v => ({ ...v, [field.id]: e.target.value })); setResp(field.id, e.target.value || '__other__'); }} placeholder="Especifica..." />}
                                 </>
@@ -181,7 +181,7 @@ function BriefForm({ deal, onSubmitted }: { deal: DealData; onSubmitted: () => v
                                             {checked && <svg className="w-2.5 h-2.5 text-zinc-900" fill="none" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
                                         </div>
                                         <input type="checkbox" className="sr-only" checked={checked} onChange={() => toggleCb(field.id, v)} />
-                                        <span className="text-[13px] text-white/65">{optLabel(o)}</span>
+                                        <span className="text-base text-white/80">{optLabel(o)}</span>
                                     </label>
                                 );
                             })}
@@ -196,12 +196,12 @@ function BriefForm({ deal, onSubmitted }: { deal: DealData; onSubmitted: () => v
                             ))}
                         </div>
                     )}
-                    {errors[field.id] && <p className="text-[11px] text-red-400 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" />{errors[field.id]}</p>}
+                    {errors[field.id] && <p className="text-sm text-red-400 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors[field.id]}</p>}
                 </div>
             ))}
             {submitError && <div className="flex items-start gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20"><AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" /><p className="text-[13px] text-red-400">{submitError}</p></div>}
-            <button type="submit" disabled={submitting} className="w-full h-11 rounded-full bg-white hover:bg-white/90 text-zinc-900 font-semibold text-[13px] flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50">
-                {submitting ? <><Loader2 className="w-4 h-4 animate-spin" />Enviando...</> : <>Enviar cuestionario <ArrowRight className="w-3.5 h-3.5" /></>}
+            <button type="submit" disabled={submitting} className="w-full h-13 rounded-full bg-white hover:bg-white/90 text-zinc-900 font-bold text-base flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50">
+                {submitting ? <><Loader2 className="w-5 h-5 animate-spin" />Enviando...</> : <>Enviar cuestionario <ArrowRight className="w-4 h-4" /></>}
             </button>
         </form>
     );
@@ -219,18 +219,18 @@ function OverviewView({ deal, brandColor, onNav }: { deal: DealData; brandColor:
         <div className="space-y-4">
             {/* Progress stepper */}
             <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-white/25 mb-4">Progreso</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-white/50 mb-4">Progreso</p>
                 <div className="flex items-center">
                     {STAGE_STEPS.map((s, i) => {
                         const done = i < stageIdx; const active = i === stageIdx;
                         return (
                             <React.Fragment key={s.key}>
                                 <div className="flex flex-col items-center gap-1.5 shrink-0">
-                                    <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold', !done && !active && 'bg-white/[0.05] text-white/20')}
+                                    <div className={cn('w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold', !done && !active && 'bg-white/[0.07] text-white/35')}
                                         style={done || active ? { backgroundColor: done ? brandColor + 'bb' : brandColor, color: '#fff' } : {}}>
-                                        {done ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
+                                        {done ? <CheckCircle2 className="w-5 h-5" /> : i + 1}
                                     </div>
-                                    <span className={cn('text-[10px] font-semibold whitespace-nowrap', active ? 'text-white' : done ? 'text-white/45' : 'text-white/20')}>{s.label}</span>
+                                    <span className={cn('text-xs font-bold whitespace-nowrap', active ? 'text-white' : done ? 'text-white/60' : 'text-white/35')}>{s.label}</span>
                                 </div>
                                 {i < STAGE_STEPS.length - 1 && <div className={cn('flex-1 h-px mx-2 mb-5', i < stageIdx ? 'bg-white/30' : 'bg-white/[0.07]')} />}
                             </React.Fragment>
@@ -243,79 +243,79 @@ function OverviewView({ deal, brandColor, onNav }: { deal: DealData; brandColor:
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Brief card */}
                 {deal.brief && (
-                    <button onClick={() => onNav('brief')} className="text-left rounded-2xl border border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.05] transition-colors p-4 group">
-                        <div className="flex items-start justify-between mb-3">
-                            <div className="w-8 h-8 rounded-xl bg-white/[0.07] flex items-center justify-center">
-                                <ClipboardList className="w-4 h-4 text-white/50" />
+                    <button onClick={() => onNav('brief')} className="text-left rounded-2xl border border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.08] transition-colors p-5 group">
+                        <div className="flex items-start justify-between mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-white/[0.08] flex items-center justify-center">
+                                <ClipboardList className="w-5 h-5 text-white/60" />
                             </div>
-                            <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-white/40 transition-colors mt-1" />
+                            <ChevronRight className="w-5 h-5 text-white/35 group-hover:text-white/60 transition-colors mt-1" />
                         </div>
-                        <p className="text-[12px] font-bold text-white/85 mb-0.5">{deal.brief.template.name}</p>
-                        <p className="text-[11px] text-white/35">{deal.brief.isCompleted ? 'Completado' : 'Pendiente de completar'}</p>
+                        <p className="text-sm font-bold text-white/90 mb-1">{deal.brief.template.name}</p>
+                        <p className="text-sm text-white/55">{deal.brief.isCompleted ? 'Completado' : 'Pendiente de completar'}</p>
                         {deal.brief.isCompleted
-                            ? <span className="mt-2 inline-block text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">Listo</span>
-                            : <span className="mt-2 inline-block text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md">Pendiente</span>
+                            ? <span className="mt-3 inline-block text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md">Listo</span>
+                            : <span className="mt-3 inline-block text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-md">Pendiente</span>
                         }
                     </button>
                 )}
 
                 {/* Proposal card */}
-                <button onClick={() => onNav('proposal')} className="text-left rounded-2xl border border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.05] transition-colors p-4 group">
-                    <div className="flex items-start justify-between mb-3">
-                        <div className="w-8 h-8 rounded-xl bg-white/[0.07] flex items-center justify-center">
-                            <FileText className="w-4 h-4 text-white/50" />
+                <button onClick={() => onNav('proposal')} className="text-left rounded-2xl border border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.08] transition-colors p-5 group">
+                    <div className="flex items-start justify-between mb-4">
+                        <div className="w-10 h-10 rounded-xl bg-white/[0.08] flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-white/60" />
                         </div>
-                        <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-white/40 transition-colors mt-1" />
+                        <ChevronRight className="w-5 h-5 text-white/35 group-hover:text-white/60 transition-colors mt-1" />
                     </div>
-                    <p className="text-[12px] font-bold text-white/85 mb-0.5">Propuesta</p>
+                    <p className="text-sm font-bold text-white/90 mb-1">Propuesta</p>
                     {approvedQ
-                        ? <><p className="text-[11px] text-white/35">{approvedQ.optionName}</p><p className="text-[15px] font-black text-white mt-1">{fmt(approvedQ.total, sym)}</p><span className="mt-1 inline-block text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">Aprobada</span></>
+                        ? <><p className="text-sm text-white/55">{approvedQ.optionName}</p><p className="text-xl font-black text-white mt-1.5">{fmt(approvedQ.total, sym)}</p><span className="mt-2 inline-block text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md">Aprobada</span></>
                         : (deal.quotations?.length ?? 0) > 0
-                            ? <><p className="text-[11px] text-white/35">{deal.quotations!.length} opción(es) disponibles</p><span className="mt-2 inline-block text-[10px] font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md">Por aprobar</span></>
-                            : <><p className="text-[11px] text-white/35">En preparación</p><span className="mt-2 inline-block text-[10px] font-bold uppercase tracking-wider text-white/25 bg-white/[0.05] px-2 py-0.5 rounded-md">Pendiente</span></>
+                            ? <><p className="text-sm text-white/55">{deal.quotations!.length} opción(es) disponibles</p><span className="mt-3 inline-block text-xs font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-md">Por aprobar</span></>
+                            : <><p className="text-sm text-white/55">En preparación</p><span className="mt-3 inline-block text-xs font-bold uppercase tracking-wider text-white/40 bg-white/[0.07] px-2.5 py-1 rounded-md">Pendiente</span></>
                     }
                 </button>
 
                 {/* Payment card */}
-                <button onClick={() => onNav('payment')} className="text-left rounded-2xl border border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.05] transition-colors p-4 group">
-                    <div className="flex items-start justify-between mb-3">
-                        <div className="w-8 h-8 rounded-xl bg-white/[0.07] flex items-center justify-center">
-                            <CreditCard className="w-4 h-4 text-white/50" />
+                <button onClick={() => onNav('payment')} className="text-left rounded-2xl border border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.08] transition-colors p-5 group">
+                    <div className="flex items-start justify-between mb-4">
+                        <div className="w-10 h-10 rounded-xl bg-white/[0.08] flex items-center justify-center">
+                            <CreditCard className="w-5 h-5 text-white/60" />
                         </div>
-                        <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-white/40 transition-colors mt-1" />
+                        <ChevronRight className="w-5 h-5 text-white/35 group-hover:text-white/60 transition-colors mt-1" />
                     </div>
-                    <p className="text-[12px] font-bold text-white/85 mb-0.5">Plan de pagos</p>
+                    <p className="text-sm font-bold text-white/90 mb-1">Plan de pagos</p>
                     {(deal.paymentPlan?.milestones?.length ?? 0) > 0
-                        ? <p className="text-[11px] text-white/35">{deal.paymentPlan!.milestones.length} hito(s)</p>
-                        : <p className="text-[11px] text-white/35">Sin configurar aún</p>
+                        ? <p className="text-sm text-white/55">{deal.paymentPlan!.milestones.length} hito(s)</p>
+                        : <p className="text-sm text-white/55">Sin configurar aún</p>
                     }
                 </button>
 
                 {/* Project card */}
                 {deal.project && (
-                    <button onClick={() => onNav('project')} className="text-left rounded-2xl border border-blue-500/20 bg-blue-500/[0.04] hover:bg-blue-500/[0.07] transition-colors p-4 group sm:col-span-2">
-                        <div className="flex items-start justify-between mb-3">
-                            <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                                <Briefcase className="w-4 h-4 text-blue-400" />
+                    <button onClick={() => onNav('project')} className="text-left rounded-2xl border border-blue-500/20 bg-blue-500/[0.05] hover:bg-blue-500/[0.09] transition-colors p-5 group sm:col-span-2">
+                        <div className="flex items-start justify-between mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-blue-500/15 flex items-center justify-center">
+                                <Briefcase className="w-5 h-5 text-blue-400" />
                             </div>
-                            <div className="flex items-center gap-1.5">
-                                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-                                <ChevronRight className="w-4 h-4 text-blue-400/40 group-hover:text-blue-400/70 transition-colors" />
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                                <ChevronRight className="w-5 h-5 text-blue-400/50 group-hover:text-blue-400/80 transition-colors" />
                             </div>
                         </div>
-                        <p className="text-[12px] font-bold text-white/85 mb-0.5">{deal.project.name}</p>
-                        <p className="text-[11px] text-blue-400/60">
+                        <p className="text-sm font-bold text-white/90 mb-1">{deal.project.name}</p>
+                        <p className="text-sm text-blue-400/75">
                             {deal.project.clientUploadsEnabled ? 'Puedes subir archivos al proyecto' : 'Proyecto en progreso'}
                         </p>
-                        <span className="mt-2 inline-block text-[10px] font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md">En progreso</span>
+                        <span className="mt-3 inline-block text-xs font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-md">En progreso</span>
                     </button>
                 )}
             </div>
 
             {deal.proposalTerms && (
-                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-4">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/20 mb-2 flex items-center gap-1.5"><Sparkles className="w-3 h-3" />Términos y Condiciones</p>
-                    <p className="text-[12px] text-white/30 leading-relaxed whitespace-pre-line font-light">{deal.proposalTerms}</p>
+                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] px-5 py-5">
+                    <p className="text-xs font-bold uppercase tracking-widest text-white/50 mb-3 flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5" />Términos y Condiciones</p>
+                    <p className="text-sm text-white/55 leading-relaxed whitespace-pre-line">{deal.proposalTerms}</p>
                 </div>
             )}
         </div>
@@ -345,9 +345,9 @@ function ProposalView({ deal, token, onApproved }: { deal: DealData; token: stri
 
     if (quotations.length === 0) return (
         <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] flex flex-col items-center justify-center py-16 text-center px-6">
-            <Clock className="w-9 h-9 text-white/15 mb-3" strokeWidth={1.5} />
-            <p className="text-[14px] font-semibold text-white/40 mb-1">Propuesta en preparación</p>
-            <p className="text-[12px] text-white/25">Te notificaremos cuando esté lista.</p>
+            <Clock className="w-12 h-12 text-white/25 mb-4" strokeWidth={1.5} />
+            <p className="text-base font-semibold text-white/60 mb-1">Propuesta en preparación</p>
+            <p className="text-sm text-white/40">Te notificaremos cuando esté lista.</p>
         </div>
     );
 
@@ -355,10 +355,10 @@ function ProposalView({ deal, token, onApproved }: { deal: DealData; token: stri
         <div className="space-y-4">
             {/* Tab selector */}
             {!isApproved && quotations.length > 1 && (
-                <div className="flex gap-1.5 p-1.5 bg-white/[0.04] rounded-2xl border border-white/[0.06] w-fit">
+                <div className="flex gap-2 p-1.5 bg-white/[0.04] rounded-2xl border border-white/[0.06] w-fit">
                     {quotations.map(q => (
                         <button key={q.id} onClick={() => setActiveId(q.id)}
-                            className={cn('px-4 py-1.5 rounded-xl text-[12px] font-semibold transition-all', activeId === q.id ? 'bg-white/[0.1] text-white border border-white/[0.12]' : 'text-white/30 hover:text-white/55')}>
+                            className={cn('px-5 py-2 rounded-xl text-sm font-semibold transition-all', activeId === q.id ? 'bg-white/[0.1] text-white border border-white/[0.12]' : 'text-white/45 hover:text-white/70')}>
                             {q.optionName}
                         </button>
                     ))}
@@ -369,13 +369,13 @@ function ProposalView({ deal, token, onApproved }: { deal: DealData; token: stri
                 {/* Header */}
                 <div className="px-6 py-5 border-b border-white/[0.06] flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                     <div>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/25 mb-1">{isApproved ? 'Propuesta aprobada' : 'Opción seleccionada'}</p>
-                        <h2 className="text-[17px] font-black text-white/90 tracking-tight">{displayQ?.optionName}</h2>
-                        {displayQ?.description && <p className="text-[12px] text-white/35 mt-1 leading-relaxed">{displayQ.description}</p>}
+                        <p className="text-xs font-bold uppercase tracking-widest text-white/45 mb-1">{isApproved ? 'Propuesta aprobada' : 'Opción seleccionada'}</p>
+                        <h2 className="text-[20px] font-black text-white tracking-tight">{displayQ?.optionName}</h2>
+                        {displayQ?.description && <p className="text-sm text-white/55 mt-1 leading-relaxed">{displayQ.description}</p>}
                     </div>
                     <div className="shrink-0 sm:text-right">
-                        <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest mb-0.5">Total</p>
-                        <p className="text-3xl font-black text-white tracking-tight">{fmt(displayQ?.total ?? 0, sym)}</p>
+                        <p className="text-xs font-bold text-white/45 uppercase tracking-widest mb-0.5">Total</p>
+                        <p className="text-4xl font-black text-white tracking-tight">{fmt(displayQ?.total ?? 0, sym)}</p>
                     </div>
                 </div>
 
@@ -386,14 +386,14 @@ function ProposalView({ deal, token, onApproved }: { deal: DealData; token: stri
                             <p className="text-[10px] font-bold uppercase tracking-widest text-white/20">Desglose</p>
                         </div>
                         {displayQ!.items.map((item, idx) => (
-                            <div key={item.id ?? idx} className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-3.5 border-b border-white/[0.04] last:border-0 gap-2 hover:bg-white/[0.02] transition-colors">
+                            <div key={item.id ?? idx} className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-4 border-b border-white/[0.04] last:border-0 gap-2 hover:bg-white/[0.03] transition-colors">
                                 <div>
-                                    <p className="text-[13px] font-semibold text-white/80">{item.name}</p>
-                                    {item.description && <p className="text-[11px] text-white/30 mt-0.5">{item.description}</p>}
+                                    <p className="text-base font-semibold text-white/90">{item.name}</p>
+                                    {item.description && <p className="text-sm text-white/50 mt-0.5">{item.description}</p>}
                                 </div>
                                 <div className="flex items-center gap-5 sm:justify-end shrink-0">
-                                    <span className="text-[12px] text-white/30">{item.quantity} × {fmt(Number(item.price), sym)}</span>
-                                    <span className="text-[13px] font-bold text-white/80 min-w-[80px] text-right">{fmt(Number(item.subtotal), sym)}</span>
+                                    <span className="text-sm text-white/45">{item.quantity} × {fmt(Number(item.price), sym)}</span>
+                                    <span className="text-base font-bold text-white/90 min-w-[80px] text-right">{fmt(Number(item.subtotal), sym)}</span>
                                 </div>
                             </div>
                         ))}
@@ -409,33 +409,33 @@ function ProposalView({ deal, token, onApproved }: { deal: DealData; token: stri
                 {/* CTA / approved */}
                 <div className="px-6 py-5 border-t border-white/[0.06]">
                     {isApproved ? (
-                        <div className="flex items-start gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-4 py-3.5">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                        <div className="flex items-start gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-4 py-4">
+                            <CheckCircle2 className="w-5 h-5 text-emerald-400 mt-0.5 shrink-0" />
                             <div>
-                                <p className="text-[13px] font-semibold text-emerald-300">Propuesta aprobada</p>
-                                <p className="text-[11px] text-emerald-400/50 mt-0.5">{deal.workspace.businessName ?? 'El equipo'} ya fue notificado.</p>
+                                <p className="text-base font-semibold text-emerald-300">Propuesta aprobada</p>
+                                <p className="text-sm text-emerald-400/60 mt-0.5">{deal.workspace.businessName ?? 'El equipo'} ya fue notificado.</p>
                             </div>
                         </div>
                     ) : confirming ? (
                         <div className="space-y-3">
-                            <p className="text-[13px] font-semibold text-white/85">¿Confirmar aprobación?</p>
-                            <p className="text-[12px] text-white/35 leading-snug">Al aprobar, {deal.workspace.businessName ?? 'el equipo'} recibirá una notificación para proceder.</p>
+                            <p className="text-base font-semibold text-white/90">¿Confirmar aprobación?</p>
+                            <p className="text-sm text-white/55 leading-snug">Al aprobar, {deal.workspace.businessName ?? 'el equipo'} recibirá una notificación para proceder.</p>
                             <div className="flex gap-2">
                                 <button onClick={handleApprove} disabled={approving}
-                                    className="flex-1 h-10 rounded-xl bg-white hover:bg-white/90 text-zinc-900 text-[13px] font-bold transition-opacity disabled:opacity-60 flex items-center justify-center gap-2">
-                                    {approving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                                    className="flex-1 h-12 rounded-xl bg-white hover:bg-white/90 text-zinc-900 text-sm font-bold transition-opacity disabled:opacity-60 flex items-center justify-center gap-2">
+                                    {approving ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
                                     {approving ? 'Aprobando...' : 'Sí, aprobar'}
                                 </button>
                                 <button onClick={() => setConfirming(false)} disabled={approving}
-                                    className="px-4 h-10 rounded-xl border border-white/[0.1] text-[13px] font-medium text-white/50 hover:bg-white/[0.05] transition-colors">
+                                    className="px-5 h-12 rounded-xl border border-white/[0.15] text-sm font-medium text-white/65 hover:bg-white/[0.07] transition-colors">
                                     Cancelar
                                 </button>
                             </div>
                         </div>
                     ) : (
                         <button onClick={() => setConfirming(true)}
-                            className="w-full sm:w-auto px-8 h-11 rounded-2xl bg-white hover:bg-white/90 text-zinc-900 text-[13px] font-bold flex items-center justify-center gap-2 transition-all active:scale-95">
-                            <CheckCircle2 className="w-4 h-4" />
+                            className="w-full sm:w-auto px-8 h-13 rounded-2xl bg-white hover:bg-white/90 text-zinc-900 text-base font-bold flex items-center justify-center gap-2 transition-all active:scale-95">
+                            <CheckCircle2 className="w-5 h-5" />
                             {quotations.length > 1 ? `Aprobar "${activeQ?.optionName}"` : 'Aprobar esta propuesta'}
                         </button>
                     )}
@@ -453,9 +453,9 @@ function PaymentView({ deal }: { deal: DealData }) {
 
     if (!isApproved) return (
         <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] flex flex-col items-center justify-center py-16 text-center px-6">
-            <Lock className="w-8 h-8 text-white/15 mb-3" />
-            <p className="text-[14px] font-semibold text-white/35 mb-1">Disponible tras aprobar</p>
-            <p className="text-[12px] text-white/20">Aprueba la propuesta para ver el plan de pagos.</p>
+            <Lock className="w-12 h-12 text-white/25 mb-4" />
+            <p className="text-base font-semibold text-white/55 mb-1">Disponible tras aprobar</p>
+            <p className="text-sm text-white/35">Aprueba la propuesta para ver el plan de pagos.</p>
         </div>
     );
 
@@ -475,13 +475,13 @@ function PaymentView({ deal }: { deal: DealData }) {
             {/* Summary */}
             <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5 flex flex-col sm:flex-row sm:items-center gap-4">
                 <div className="flex-1">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/25 mb-1">Total acordado</p>
-                    <p className="text-2xl font-black text-white tracking-tight">{fmt(totalAmount, sym)}</p>
+                    <p className="text-xs font-bold uppercase tracking-widest text-white/45 mb-1">Total acordado</p>
+                    <p className="text-3xl font-black text-white tracking-tight">{fmt(totalAmount, sym)}</p>
                 </div>
                 <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1.5">
-                        <p className="text-[11px] text-white/35">Pagado</p>
-                        <p className="text-[11px] font-bold text-white/60">{paidPct}%</p>
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm text-white/55">Pagado</p>
+                        <p className="text-sm font-bold text-white/80">{paidPct}%</p>
                     </div>
                     <div className="h-1.5 rounded-full bg-white/[0.07] overflow-hidden">
                         <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${paidPct}%` }} />
@@ -502,15 +502,15 @@ function PaymentView({ deal }: { deal: DealData }) {
                     return (
                         <div key={m.id} className="flex items-start justify-between px-5 py-4 border-b border-white/[0.05] last:border-0 gap-4">
                             <div className="flex items-start gap-3">
-                                <span className="text-white/20 text-[11px] font-bold pt-0.5 w-4 shrink-0">{i + 1}.</span>
+                                <span className="text-white/40 text-sm font-bold pt-0.5 w-5 shrink-0">{i + 1}.</span>
                                 <div>
-                                    <p className="text-[13px] font-semibold text-white/80">{m.name}</p>
-                                    {m.dueDate && <p className="text-[11px] text-white/30 mt-0.5 flex items-center gap-1"><Calendar className="w-3 h-3" />{fmtDate(m.dueDate)}</p>}
+                                    <p className="text-base font-semibold text-white/90">{m.name}</p>
+                                    {m.dueDate && <p className="text-sm text-white/50 mt-0.5 flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{fmtDate(m.dueDate)}</p>}
                                 </div>
                             </div>
                             <div className="text-right shrink-0">
-                                <p className="text-[13px] font-bold text-white/80">{fmt(m.amount, sym)}</p>
-                                <span className={cn('text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md', s.cls)}>{s.label}</span>
+                                <p className="text-base font-bold text-white/90">{fmt(m.amount, sym)}</p>
+                                <span className={cn('text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded-md', s.cls)}>{s.label}</span>
                             </div>
                         </div>
                     );
@@ -551,10 +551,10 @@ function ProjectView({ deal, token }: { deal: DealData; token: string }) {
         <div className="space-y-4">
             {/* Project info */}
             <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-white/25 mb-2">Proyecto</p>
-                <h2 className="text-[17px] font-black text-white/90 tracking-tight mb-3">{project.name}</h2>
-                <span className={cn('inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg', statusCls)}>
-                    {project.status !== 'COMPLETED' && <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />}
+                <p className="text-xs font-bold uppercase tracking-widest text-white/45 mb-2">Proyecto</p>
+                <h2 className="text-xl font-black text-white/95 tracking-tight mb-3">{project.name}</h2>
+                <span className={cn('inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg', statusCls)}>
+                    {project.status !== 'COMPLETED' && <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />}
                     {statusLabel}
                 </span>
             </div>
@@ -563,8 +563,8 @@ function ProjectView({ deal, token }: { deal: DealData; token: string }) {
             {project.clientUploadsEnabled ? (
                 <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] overflow-hidden">
                     <div className="px-5 py-4 border-b border-white/[0.06]">
-                        <p className="text-[13px] font-bold text-white/80">Subir archivos</p>
-                        <p className="text-[11px] text-white/30 mt-0.5">Comparte archivos con tu proveedor de servicios</p>
+                        <p className="text-base font-bold text-white/90">Subir archivos</p>
+                        <p className="text-sm text-white/50 mt-0.5">Comparte archivos con tu proveedor de servicios</p>
                     </div>
                     <div className="p-5 space-y-4">
                         {/* Drop zone */}
@@ -583,10 +583,10 @@ function ProjectView({ deal, token }: { deal: DealData; token: string }) {
                                 dragOver ? 'bg-white/[0.12] border-white/20' : 'bg-white/[0.05] border-white/[0.08]')}>
                                 <Upload className={cn('w-5 h-5 transition-colors', dragOver ? 'text-white/60' : 'text-white/30')} />
                             </div>
-                            <p className="text-[13px] font-semibold text-white/60 mb-1">
+                            <p className="text-sm font-semibold text-white/70 mb-1">
                                 {dragOver ? 'Suelta para subir' : 'Arrastra archivos o haz clic'}
                             </p>
-                            <p className="text-[11px] text-white/25">Cualquier formato · Sin límite de archivos</p>
+                            <p className="text-xs text-white/40">Cualquier formato · Sin límite de archivos</p>
                         </div>
 
                         {/* Upload list */}
@@ -615,9 +615,9 @@ function ProjectView({ deal, token }: { deal: DealData; token: string }) {
                 </div>
             ) : (
                 <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] flex flex-col items-center justify-center py-14 text-center px-6">
-                    <FolderOpen className="w-9 h-9 text-white/15 mb-3" strokeWidth={1.5} />
-                    <p className="text-[14px] font-semibold text-white/35 mb-1">Proyecto en curso</p>
-                    <p className="text-[12px] text-white/20">Tu proveedor te contactará con actualizaciones.</p>
+                    <FolderOpen className="w-12 h-12 text-white/25 mb-4" strokeWidth={1.5} />
+                    <p className="text-base font-semibold text-white/55 mb-1">Proyecto en curso</p>
+                    <p className="text-sm text-white/35">Tu proveedor te contactará con actualizaciones.</p>
                 </div>
             )}
         </div>
@@ -643,36 +643,36 @@ function Sidebar({ deal, activeNav, onNav, brandColor }: { deal: DealData; activ
         <aside className="w-full lg:w-60 shrink-0 flex flex-col gap-4">
             {/* Workspace card */}
             <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4">
-                <div className="flex items-center gap-2.5 mb-3">
+                <div className="flex items-center gap-3 mb-3">
                     {deal.workspace.logo ? (
-                        <img src={getImageUrl(deal.workspace.logo)} alt="" className="h-7 w-auto max-w-[90px] object-contain" />
+                        <img src={getImageUrl(deal.workspace.logo)} alt="" className="h-8 w-auto max-w-[100px] object-contain" />
                     ) : (
-                        <div className="w-7 h-7 rounded-lg bg-white/[0.08] border border-white/[0.1] flex items-center justify-center font-bold text-white text-[11px] shrink-0">
+                        <div className="w-9 h-9 rounded-lg bg-white/[0.08] border border-white/[0.1] flex items-center justify-center font-bold text-white text-sm shrink-0">
                             {(deal.workspace.businessName || 'W').charAt(0)}
                         </div>
                     )}
-                    <span className="text-[12px] font-semibold text-white/60 truncate">{deal.workspace.businessName}</span>
+                    <span className="text-sm font-semibold text-white/75 truncate">{deal.workspace.businessName}</span>
                 </div>
                 <div className="border-t border-white/[0.06] pt-3 space-y-1">
-                    <p className="text-[10px] text-white/25 uppercase tracking-widest font-bold">Cliente</p>
-                    <p className="text-[13px] font-semibold text-white/80 truncate">{deal.client.name}</p>
-                    {deal.client.email && <p className="text-[11px] text-white/30 truncate">{deal.client.email}</p>}
+                    <p className="text-xs text-white/45 uppercase tracking-widest font-bold">Cliente</p>
+                    <p className="text-base font-semibold text-white/90 truncate">{deal.client.name}</p>
+                    {deal.client.email && <p className="text-sm text-white/50 truncate">{deal.client.email}</p>}
                 </div>
             </div>
 
             {/* Mini stepper */}
             <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-white/25 mb-3">Etapa actual</p>
-                <div className="space-y-2">
+                <p className="text-xs font-bold uppercase tracking-widest text-white/45 mb-3">Etapa actual</p>
+                <div className="space-y-3">
                     {STAGE_STEPS.map((s, i) => {
                         const done = i < stageIdx; const active = i === stageIdx;
                         return (
-                            <div key={s.key} className="flex items-center gap-2.5">
-                                <div className={cn('w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold', !done && !active && 'bg-white/[0.05] text-white/15')}
+                            <div key={s.key} className="flex items-center gap-3">
+                                <div className={cn('w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold', !done && !active && 'bg-white/[0.06] text-white/25')}
                                     style={done || active ? { backgroundColor: done ? brandColor + 'aa' : brandColor, color: '#fff' } : {}}>
-                                    {done ? <CheckCircle2 className="w-3 h-3" /> : i + 1}
+                                    {done ? <CheckCircle2 className="w-3.5 h-3.5" /> : i + 1}
                                 </div>
-                                <span className={cn('text-[12px] font-medium', active ? 'text-white' : done ? 'text-white/40' : 'text-white/15')}>{s.label}</span>
+                                <span className={cn('text-sm font-semibold', active ? 'text-white' : done ? 'text-white/55' : 'text-white/25')}>{s.label}</span>
                             </div>
                         );
                     })}
@@ -686,26 +686,26 @@ function Sidebar({ deal, activeNav, onNav, brandColor }: { deal: DealData; activ
                         onClick={() => !item.locked && onNav(item.key)}
                         disabled={item.locked}
                         className={cn(
-                            'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors text-left',
+                            'w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-colors text-left',
                             activeNav === item.key
                                 ? item.highlight ? 'bg-blue-500/10 text-blue-300' : 'bg-white/[0.08] text-white'
-                                : item.locked ? 'text-white/15 cursor-not-allowed'
-                                : item.highlight ? 'text-blue-400/60 hover:text-blue-300 hover:bg-blue-500/[0.06]'
-                                : 'text-white/45 hover:text-white/70 hover:bg-white/[0.04]',
+                                : item.locked ? 'text-white/25 cursor-not-allowed'
+                                : item.highlight ? 'text-blue-400/70 hover:text-blue-300 hover:bg-blue-500/[0.06]'
+                                : 'text-white/55 hover:text-white/85 hover:bg-white/[0.05]',
                         )}
                     >
                         <span className={cn(
-                            activeNav === item.key ? (item.highlight ? 'text-blue-400' : 'text-white/70') : item.locked ? 'text-white/15' : item.highlight ? 'text-blue-400/50' : 'text-white/30'
+                            activeNav === item.key ? (item.highlight ? 'text-blue-400' : 'text-white/80') : item.locked ? 'text-white/20' : item.highlight ? 'text-blue-400/60' : 'text-white/40'
                         )}>{item.icon}</span>
                         <span className="flex-1 truncate">{item.label}</span>
-                        {item.locked && <Lock className="w-3 h-3 shrink-0 text-white/15" />}
+                        {item.locked && <Lock className="w-3.5 h-3.5 shrink-0 text-white/25" />}
                         {item.badge && !item.locked && (
-                            <span className={cn('text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shrink-0',
+                            <span className={cn('text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0',
                                 item.badge === '✓' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
                             )}>{item.badge}</span>
                         )}
                         {item.highlight && !item.locked && (
-                            <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse shrink-0" />
+                            <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse shrink-0" />
                         )}
                     </button>
                 ))}
@@ -740,11 +740,11 @@ function PasswordGate({ onUnlock }: { onUnlock: (pw: string) => Promise<boolean>
                         onChange={e => { setInput(e.target.value); setError(false); }}
                         onKeyDown={e => e.key === 'Enter' && submit()}
                         placeholder="Contraseña"
-                        className={cn('w-full rounded-xl border px-4 py-3 text-sm bg-white/[0.05] text-white placeholder:text-white/20 focus:outline-none transition',
+                        className={cn('w-full rounded-xl border px-4 py-3.5 text-base bg-white/[0.05] text-white placeholder:text-white/30 focus:outline-none transition',
                             error ? 'border-red-500/50' : 'border-white/[0.1] focus:border-white/[0.22]')} />
                     {error && <p className="text-[12px] text-red-400 text-left">Contraseña incorrecta</p>}
                     <button onClick={submit} disabled={!input || loading}
-                        className="w-full py-3 rounded-xl bg-white hover:bg-white/90 text-zinc-900 text-[13px] font-bold disabled:opacity-40 transition">
+                        className="w-full py-3.5 rounded-xl bg-white hover:bg-white/90 text-zinc-900 text-base font-bold disabled:opacity-40 transition">
                         {loading ? 'Verificando...' : 'Acceder'}
                     </button>
                 </div>
@@ -812,11 +812,11 @@ export default function PublicDealPage({ params }: { params: Promise<{ token: st
             <div className="fixed pointer-events-none inset-0" style={{ background: 'radial-gradient(ellipse 80% 30% at 50% 0%, rgba(255,255,255,0.035) 0%, transparent 60%)' }} />
 
             {/* Top bar */}
-            <header className="relative border-b border-white/[0.06] bg-[#0d0d0d]/80 backdrop-blur-xl sticky top-0 z-20 h-13">
-                <div className="max-w-6xl mx-auto px-5 h-13 flex items-center gap-3">
-                    <span className="text-[13px] font-semibold text-white/50 truncate">{deal.client.name}</span>
-                    <span className="text-white/15 text-xs">/</span>
-                    <span className="text-[13px] font-semibold text-white/80 truncate">
+            <header className="relative border-b border-white/[0.06] bg-[#0d0d0d]/80 backdrop-blur-xl sticky top-0 z-20 h-14">
+                <div className="max-w-6xl mx-auto px-5 h-14 flex items-center gap-3">
+                    <span className="text-sm font-semibold text-white/60 truncate">{deal.client.name}</span>
+                    <span className="text-white/20 text-sm">/</span>
+                    <span className="text-sm font-bold text-white truncate">
                         {activeNav === 'overview' ? 'Resumen'
                             : activeNav === 'brief' ? deal.brief?.template.name
                             : activeNav === 'proposal' ? 'Propuesta'
